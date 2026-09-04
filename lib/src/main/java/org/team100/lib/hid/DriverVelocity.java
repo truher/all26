@@ -6,7 +6,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
  * This represents driver's velocity command, usually mapped to three axes in
  * the control, so the ranges are [-1,1]
  */
-public record Velocity(double x, double y, double theta) {
+public record DriverVelocity(double x, double y, double theta) {
 
     /**
      * Clip the translational velocity to the unit circle.
@@ -24,7 +24,7 @@ public record Velocity(double x, double y, double theta) {
      * If you'd like to avoid clipping, then squash the input upstream, in the
      * control class.
      */
-    public Velocity clip(double maxMagnitude) {
+    public DriverVelocity clip(double maxMagnitude) {
         double x = x();
         double y = y();
         double hyp = Math.hypot(x, y);
@@ -32,7 +32,7 @@ public record Velocity(double x, double y, double theta) {
             return this;
         double clamped = Math.min(hyp, maxMagnitude);
         double ratio = clamped / hyp;
-        return new Velocity(ratio * x, ratio * y, theta());
+        return new DriverVelocity(ratio * x, ratio * y, theta());
     }
 
     /**
@@ -41,7 +41,7 @@ public record Velocity(double x, double y, double theta) {
      * that the orientation of the rhombus depends on the robot's actual
      * orientation.
      */
-    public Velocity diamond(double maxX, double maxY, Rotation2d poseAngle) {
+    public DriverVelocity diamond(double maxX, double maxY, Rotation2d poseAngle) {
         double x = x();
         double y = y();
         double hyp = Math.hypot(x, y);
@@ -52,11 +52,11 @@ public record Velocity(double x, double y, double theta) {
         double r = 1 / (Math.abs(robotRelative.getCos() / maxX) + Math.abs(robotRelative.getSin() / maxY));
         double clamped = Math.min(hyp, r);
         double ratio = clamped / hyp;
-        return new Velocity(ratio * x, ratio * y, theta());
+        return new DriverVelocity(ratio * x, ratio * y, theta());
     }
 
 
-    public Velocity squashedDiamond(double maxX, double maxY, Rotation2d poseAngle) {
+    public DriverVelocity squashedDiamond(double maxX, double maxY, Rotation2d poseAngle) {
         double x = x();
         double y = y();
         double hyp = Math.hypot(x, y);
@@ -68,6 +68,6 @@ public record Velocity(double x, double y, double theta) {
         double r = 1 / (Math.abs(robotRelative.getCos() / maxX) + Math.abs(robotRelative.getSin() / maxY));
         // assuming the max stick hyp is 1 (i.e. "round" stick response) then
         // r is also the scaling factor.
-        return new Velocity(r * x, r * y, theta());
+        return new DriverVelocity(r * x, r * y, theta());
     }
 }

@@ -2,7 +2,6 @@ package org.team100.lib.subsystems.rrr;
 
 import java.util.List;
 
-import org.team100.lib.commands.MoveAndHold;
 import org.team100.lib.config.CurrentLimit;
 import org.team100.lib.config.Friction;
 import org.team100.lib.config.Identity;
@@ -25,22 +24,15 @@ import org.team100.lib.motor.NeutralMode100;
 import org.team100.lib.motor.ctre.Falcon500Motor;
 import org.team100.lib.motor.rev.Neo550CANSparkMotor;
 import org.team100.lib.motor.sim.SimulatedMotor;
-import org.team100.lib.profile.r1.ProfileR1;
 import org.team100.lib.state.ControlR1;
 import org.team100.lib.state.ControlSE2;
 import org.team100.lib.state.StateR1;
 import org.team100.lib.state.StateSE2;
-import org.team100.lib.subsystems.rrr.commands.MoveManually;
-import org.team100.lib.subsystems.rrr.commands.MoveWithProfile;
-import org.team100.lib.subsystems.rrr.commands.MoveWithSpline;
-import org.team100.lib.subsystems.rrr.commands.MoveWithTrajectorySE2;
 import org.team100.lib.util.CanId;
 import org.team100.lib.util.StrUtil;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.wpilibj.XboxController;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 /**
@@ -74,15 +66,13 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
         double l2 = 0.3;
         double l3 = 0.1;
         m_kinematics = new RRRKinematicsPoE(l1, l2, l3);
-        m_dynamics = new RRRDynamicsNewtonEuler(
+        m_dynamics = RRRDynamicsNewtonEuler.thinRod(
                 VecBuilder.fill(0, 0, 0),
                 0.1, 0.1, 0.1,
-                l1, l2, l3,
-                l1 / 2, l2 / 2, l3 / 2,
-                0.1, 0.1, 0.1);
-        m_feasibility = new RRRFeasibility(m_kinematics,
-                new RRRConfig(-Math.PI / 2, -Math.PI / 2, -Math.PI / 2),
-                new RRRConfig(Math.PI / 2, Math.PI / 2, Math.PI / 2));
+                l1, l2, l3);
+        RRRConfig qMin = new RRRConfig(-Math.PI / 2, -Math.PI / 2, -Math.PI / 2);
+        RRRConfig qMax = new RRRConfig(Math.PI / 2, Math.PI / 2, Math.PI / 2);
+        m_feasibility = new RRRFeasibility(m_kinematics, qMin, qMax);
         final Motor m1;
         final Motor m2;
         final Motor m3;
@@ -113,9 +103,12 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
         double r2 = -5;
         double r3 = -12;
 
-        m_q1 = new RotaryMechanism(q1, m1, m1.encoder(), 0, r1, -Math.PI / 2, Math.PI / 2);
-        m_q2 = new RotaryMechanism(q2, m2, m2.encoder(), 0, r2, -Math.PI / 2, Math.PI / 2);
-        m_q3 = new RotaryMechanism(q3, m3, m3.encoder(), 0, r3, -Math.PI / 2, Math.PI / 2);
+        m_q1 = new RotaryMechanism(
+                q1, m1, m1.encoder(), 0, r1, qMin.q1(), qMax.q1());
+        m_q2 = new RotaryMechanism(
+                q2, m2, m2.encoder(), 0, r2, qMin.q2(), qMax.q2());
+        m_q3 = new RotaryMechanism(
+                q3, m3, m3.encoder(), 0, r3, qMin.q3(), qMax.q3());
     }
 
     @Override
@@ -171,12 +164,12 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
         List<RRRConfig> qAll = m_kinematics.inverse(p, q0.q1());
         if (qAll.isEmpty()) {
             System.out.println("no solution for pose " + StrUtil.poseStr(p));
-            return null;
+            return q0;
         }
         List<RRRConfig> qFeasible = m_feasibility.filter(qAll);
         if (qFeasible.isEmpty()) {
             System.out.println("infeasible pose " + StrUtil.poseStr(p));
-            return null;
+            return q0;
         }
         return RRRConfig.getBest(qFeasible, q0);
     }
@@ -238,24 +231,6 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
         m_q1.stop();
         m_q2.stop();
         m_q3.stop();
-    }
-
-    // COMMANDS
-
-    public MoveAndHold moveProfiled(ProfileR1 profile, Pose2d goal) {
-        return new MoveWithProfile(this, profile, goal);
-    }
-
-    public MoveAndHold moveTrajSE2(Pose2d goal, double speed) {
-        return new MoveWithTrajectorySE2(m_log, this, goal, speed);
-    }
-
-    public MoveAndHold moveSplined(VelocitySE2 x0dot, Pose2d x1, VelocitySE2 x1dot) {
-        return new MoveWithSpline(m_log, this, x0dot, x1, x1dot);
-    }
-
-    public Command moveManually(XboxController controller) {
-        return new MoveManually(this, controller);
     }
 
     @Override

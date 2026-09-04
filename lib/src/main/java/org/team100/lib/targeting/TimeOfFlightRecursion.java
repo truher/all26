@@ -67,7 +67,8 @@ public class TimeOfFlightRecursion implements Solver {
         Optional<LoopSolution> step(Double targetTOF) {
 
             // where is the target at the specified TOF?
-            Translation2d targetPositionAtTOF = m_vT.integrate(m_T0, targetTOF);
+            // target velocity is constant so this works.
+            Translation2d targetPositionAtTOF = m_vT.evolve(m_T0, targetTOF);
             double rangeAtTOF = targetPositionAtTOF.getNorm();
 
             // What gun elevation gets to that range, and what is the

@@ -6,6 +6,9 @@ import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 
+/**
+ * qdot in rad/s
+ */
 public record RRRVelocity(
         double q1dot,
         double q2dot,
@@ -23,6 +26,21 @@ public record RRRVelocity(
                 q1dot,
                 q2dot,
                 q3dot);
+    }
+
+    /**
+     * a = (v1 - v0) / dt
+     */
+    public RRRAcceleration accel(RRRVelocity prev, double dt) {
+        return RRRAcceleration.fromVector(
+                toVector().minus(prev.toVector()).div(dt));
+    }
+
+    /**
+     * v1 = v0 + a dt
+     */
+    public static RRRVelocity evolve(RRRVelocity v0, RRRAcceleration a, double dt) {
+        return RRRVelocity.fromVector(v0.toVector().plus(a.toVector().times(dt)));
     }
 
 }

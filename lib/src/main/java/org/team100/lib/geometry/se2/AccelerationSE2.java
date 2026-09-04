@@ -22,8 +22,9 @@ import edu.wpi.first.math.numbers.N3;
  * See README.md for details.
  */
 public record AccelerationSE2(double x, double y, double theta) {
-    public VelocitySE2 integrate(double dtSec) {
-        return new VelocitySE2(x * dtSec, y * dtSec, theta * dtSec);
+    /** v1 = v0 + a dt */
+    public VelocitySE2 evolve(VelocitySE2 v0, double dtSec) {
+        return v0.plus(new VelocitySE2(x * dtSec, y * dtSec, theta * dtSec));
     }
 
     public AccelerationSE2 plus(AccelerationSE2 other) {

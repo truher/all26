@@ -93,4 +93,9 @@ public record RRRConfig(double q1, double q2, double q3) {
         }
         return best;
     }
+
+    public RRRConfig evolve(RRRVelocity v0, RRRAcceleration a, double dt) {
+        return RRRConfig.fromVector(
+                toVector().plus(v0.toVector().times(dt).plus(a.toVector().times(dt * dt / 2))));
+    }
 }

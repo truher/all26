@@ -2,7 +2,6 @@ package org.team100.lib.subsystems.rrr;
 
 import java.util.List;
 
-import org.team100.lib.commands.MoveAndHold;
 import org.team100.lib.config.CurrentLimit;
 import org.team100.lib.config.Friction;
 import org.team100.lib.config.Identity;
@@ -25,22 +24,15 @@ import org.team100.lib.motor.NeutralMode100;
 import org.team100.lib.motor.ctre.Falcon500Motor;
 import org.team100.lib.motor.rev.Neo550CANSparkMotor;
 import org.team100.lib.motor.sim.SimulatedMotor;
-import org.team100.lib.profile.r1.ProfileR1;
 import org.team100.lib.state.ControlR1;
 import org.team100.lib.state.ControlSE2;
 import org.team100.lib.state.StateR1;
 import org.team100.lib.state.StateSE2;
-import org.team100.lib.subsystems.rrr.commands.MoveManually;
-import org.team100.lib.subsystems.rrr.commands.MoveWithProfile;
-import org.team100.lib.subsystems.rrr.commands.MoveWithSpline;
-import org.team100.lib.subsystems.rrr.commands.MoveWithTrajectorySE2;
 import org.team100.lib.util.CanId;
 import org.team100.lib.util.StrUtil;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.wpilibj.XboxController;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 /**
@@ -222,24 +214,6 @@ public class RRRArmIndependent extends SubsystemBase implements RRRArm {
         m_q1.stop();
         m_q2.stop();
         m_q3.stop();
-    }
-
-    // COMMANDS
-
-    public MoveAndHold moveProfiled(ProfileR1 profile, Pose2d goal) {
-        return new MoveWithProfile(this, profile, goal);
-    }
-
-    public MoveAndHold moveTrajSE2(Pose2d goal, double speed) {
-        return new MoveWithTrajectorySE2(m_log, this, goal, speed);
-    }
-
-    public MoveAndHold moveSplined(VelocitySE2 x0dot, Pose2d x1, VelocitySE2 x1dot) {
-        return new MoveWithSpline(m_log, this, x0dot, x1, x1dot);
-    }
-
-    public Command moveManually(XboxController controller) {
-        return new MoveManually(this, controller);
     }
 
     @Override

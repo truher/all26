@@ -25,4 +25,8 @@ public record RRRAcceleration(
                 q3ddot);
     }
 
+    public static RRRAcceleration solve(RRRConfig x0, RRRConfig x1, RRRVelocity v0, double dt) {
+        return RRRAcceleration.fromVector(
+                x1.toVector().minus(x0.toVector()).minus(v0.toVector().times(dt)).times(2 / (dt * dt)));
+    }
 }

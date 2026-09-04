@@ -5,7 +5,6 @@ import org.team100.lib.geometry.rn.WaypointRn;
 import org.team100.lib.geometry.rrr.RRRConfig;
 import org.team100.lib.geometry.rrr.RRRVelocity;
 import org.team100.lib.geometry.se2.VelocitySE2;
-import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.reference.rn.PositionReferenceControllerRn;
 import org.team100.lib.reference.rn.SplineReferenceRn;
 import org.team100.lib.spline.rn.SplineRn;
@@ -36,8 +35,6 @@ import edu.wpi.first.math.numbers.N3;
  */
 public class MoveWithSpline extends MoveAndHold {
     private static final boolean DEBUG = false;
-    @SuppressWarnings("unused")
-    private final LoggerFactory m_log;
     private final RRRArm m_arm;
     private final VelocitySE2 m_x0dot;
     private final Pose2d m_x1;
@@ -46,12 +43,10 @@ public class MoveWithSpline extends MoveAndHold {
     private PositionReferenceControllerRn<N3> m_referenceController;
 
     public MoveWithSpline(
-            LoggerFactory parent,
             RRRArm arm,
             VelocitySE2 x0dot,
             Pose2d x1,
             VelocitySE2 x1dot) {
-        m_log = parent.type(this);
         m_arm = arm;
         m_x0dot = x0dot;
         m_x1 = x1;

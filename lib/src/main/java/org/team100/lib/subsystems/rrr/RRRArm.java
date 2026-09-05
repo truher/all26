@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 import org.team100.lib.commands.MoveAndHold;
 import org.team100.lib.geometry.rrr.RRRAcceleration;
 import org.team100.lib.geometry.rrr.RRRConfig;
+import org.team100.lib.geometry.rrr.RRRState;
 import org.team100.lib.geometry.rrr.RRRVelocity;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.hid.DriverVelocity;
@@ -24,21 +25,23 @@ import edu.wpi.first.wpilibj2.command.Command;
 
 public interface RRRArm extends PositionSubsystemSE2, PositionSubsystemRn<N3> {
 
+    /** Current measurement as config. */
     RRRConfig getConfig();
 
+    /** Most-recent desired config, with limits applied. */
     RRRConfig getConfigWithinLimits();
 
     RRRConfig config(Pose2d p);
 
     RRRVelocity qdot(RRRConfig q, VelocitySE2 xdot);
 
+    /** Current measurement as pose. */
     Pose2d pose();
 
     /**
-     * May modify q according to joint limits.
-     * See getConfigWithinLimits() to see what actually happened.
+     * Imposes joint limits; returns the position and velocity actually used.
      */
-    void set(RRRConfig q, RRRVelocity qdot, RRRAcceleration qddot);
+    RRRState set(RRRConfig q, RRRVelocity qdot, RRRAcceleration qddot);
 
     void stop();
 

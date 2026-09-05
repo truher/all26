@@ -8,6 +8,7 @@ import org.team100.lib.geometry.se2.AccelerationSE2;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.hid.DriverVelocity;
 import org.team100.lib.state.ControlSE2;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.se2.PositionSubsystemSE2;
 
 import edu.wpi.first.math.geometry.Pose2d;
@@ -55,8 +56,10 @@ public class ManualPosition extends Command {
         // Find new position using *previous* velocity and accel
         // x1 = x0 + v0 dt + 1/2 a dt^2
         m_pose = GeometryUtil.evolve(m_pose, m_v, a, DT);
-        m_v = v;
-        m_subsystem.set(new ControlSE2(m_pose, v, a));
+        // note the mechanism may not obey this instruction
+        StateSE2 actual = m_subsystem.set(new ControlSE2(m_pose, v, a));
+        m_pose = actual.pose();
+        m_v = actual.velocity();
         if (DEBUG) {
             System.out.printf("pose %s\n", m_pose);
         }

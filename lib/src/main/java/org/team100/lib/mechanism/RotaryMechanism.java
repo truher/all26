@@ -169,6 +169,8 @@ public class RotaryMechanism implements Player {
     /**
      * Apply limits and gear ratio, and set the resulting motor position.
      * 
+     * Use getUnwrappedPositionWithinLimits to see the actual desired position.
+     * 
      * This is the "unwrapped" position, i.e. the domain is infinite, not cyclical
      * within +/- pi.
      * 
@@ -229,7 +231,7 @@ public class RotaryMechanism implements Player {
     }
 
     /**
-     * Returns the "wrapped" angular position, i.e. this dimension is cyclical, with
+     * Current measurement, "wrapped", i.e. this dimension is cyclical, with
      * values beyond +/- pi mapped back to the +/- pi interval: 2pi is mapped to 0,
      * 5pi/4 is mapped to pi/4, etc.
      * 
@@ -239,7 +241,7 @@ public class RotaryMechanism implements Player {
         return m_sensor.getWrappedPositionRad();
     }
 
-    /** Unwrapped domain is infinite. */
+    /** Current measurement.  Unwrapped domain is infinite. */
     public double getUnwrappedPositionRad() {
         return m_sensor.getUnwrappedPositionRad();
     }

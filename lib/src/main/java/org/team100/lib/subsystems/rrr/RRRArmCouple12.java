@@ -8,8 +8,10 @@ import org.team100.lib.config.Identity;
 import org.team100.lib.config.PIDConstants;
 import org.team100.lib.dynamics.rrr.RRRDynamicsNewtonEuler;
 import org.team100.lib.dynamics.rrr.RRREffort;
+import org.team100.lib.framework.TimedRobot100;
 import org.team100.lib.geometry.rrr.RRRAcceleration;
 import org.team100.lib.geometry.rrr.RRRConfig;
+import org.team100.lib.geometry.rrr.RRRState;
 import org.team100.lib.geometry.rrr.RRRVelocity;
 import org.team100.lib.geometry.se2.AccelerationSE2;
 import org.team100.lib.geometry.se2.VelocitySE2;
@@ -42,6 +44,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
  * This arrangement couples q1 and q2 together.
  */
 public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
+    private static final double DT = TimedRobot100.LOOP_PERIOD_S;
     private final LoggerFactory m_log;
     private final TotalCurrentLog m_currentLog;
     final RRRKinematicsPoE m_kinematics;
@@ -54,6 +57,9 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
     private final RotaryMechanism m_q2;
     // q3 has a flying motor
     private final RotaryMechanism m_q3;
+
+    private RRRConfig m_q;
+    private RRRVelocity m_qdot = new RRRVelocity(0, 0, 0);
 
     public RRRArmCouple12(LoggerFactory parent, TotalCurrentLog currentLog) {
         m_log = parent.type(this);
@@ -109,6 +115,8 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
                 q2, m2, m2.encoder(), 0, r2, qMin.q2(), qMax.q2());
         m_q3 = new RotaryMechanism(
                 q3, m3, m3.encoder(), 0, r3, qMin.q3(), qMax.q3());
+
+        m_q = getConfig();
     }
 
     @Override
@@ -134,12 +142,12 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
     }
 
     @Override
-    public void set(RRRConfig q, RRRVelocity qdot, RRRAcceleration qddot) {
+    public RRRState set(RRRConfig q, RRRVelocity qdot, RRRAcceleration qddot) {
         RRREffort f = m_dynamics.effort(q, qdot, qddot);
-        set(q, qdot, f);
+        return set(q, qdot, f);
     }
 
-    public void set(RRRConfig q, RRRVelocity qdot, RRREffort f) {
+    private RRRState set(RRRConfig q, RRRVelocity qdot, RRREffort f) {
         // q1 mechanism angle is the kinematic angle
         // q1 mechanism velocity is the kinematic velocity
         // q1 effort is the difference of kinematic efforts ... i think?
@@ -151,6 +159,13 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
         m_q2.setUnwrappedPosition(q.q2() + q.q1(), qdot.q2dot() + qdot.q1dot(), f.t2());
         // q3 is not coupled to anything.
         m_q3.setUnwrappedPosition(q.q3(), qdot.q3dot(), f.t3());
+
+        q = getConfigWithinLimits();
+        RRRAcceleration qddot = RRRAcceleration.solve(m_q, q, m_qdot, DT);
+        qdot = RRRVelocity.evolve(m_qdot, qddot, DT);
+        m_q = q;
+        m_qdot = qdot;
+        return new RRRState(q, qdot);
     }
 
     /**
@@ -249,7 +264,7 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
     }
 
     @Override
-    public void set(ControlSE2 setpoint) {
+    public StateSE2 set(ControlSE2 setpoint) {
         Pose2d x = setpoint.pose();
         VelocitySE2 xdot = setpoint.velocity();
         AccelerationSE2 xddot = setpoint.acceleration();

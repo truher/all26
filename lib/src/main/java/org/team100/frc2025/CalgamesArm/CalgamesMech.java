@@ -345,14 +345,14 @@ public class CalgamesMech extends SubsystemBase implements Music, PositionSubsys
 
     /** There are no profiles here, so this control needs to be feasible. */
     @Override
-    public void set(ControlSE2 control) {
+    public StateSE2 set(ControlSE2 control) {
         Pose2d pose = control.pose();
         List<PRRConfig> configs = m_kinematics.inverse(pose);
         if (configs.isEmpty()) {
             if (DEBUG)
                 System.out.println("skipping invalid config");
             stop();
-            return;
+            return getState();
         }
         // for now always use the "up" config.
         PRRConfig config = configs.get(0);

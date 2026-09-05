@@ -120,7 +120,7 @@ public class RRRKinematicsPoE {
             System.out.printf("t %s w %s\n", StrUtil.transStr(t), StrUtil.transStr(w));
         List<RRConfig> rrs = rrk.inverse(w, q1Default);
         if (rrs.isEmpty()) {
-            System.out.printf("no RR solution for wrist %s\n", StrUtil.transStr(w));
+            System.out.printf("RRRKinematicsPOE: no RR solution %s\n", StrUtil.transStr(w));
         }
         List<RRRConfig> result = new ArrayList<>();
         for (RRConfig rr : rrs) {

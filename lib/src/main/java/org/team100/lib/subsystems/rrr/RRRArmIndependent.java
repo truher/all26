@@ -162,12 +162,12 @@ public class RRRArmIndependent extends SubsystemBase implements RRRArm {
         RRRConfig q0 = getConfig();
         List<RRRConfig> qAll = m_kinematics.inverse(p, q0.q1());
         if (qAll.isEmpty()) {
-            System.out.println("no solution for pose " + StrUtil.poseStr(p));
+            System.out.println("RRRArmIndependent: no solution " + StrUtil.poseStr(p));
             return null;
         }
         List<RRRConfig> qFeasible = m_feasibility.filter(qAll);
         if (qFeasible.isEmpty()) {
-            System.out.println("infeasible pose " + StrUtil.poseStr(p));
+            System.out.println("RRRArmIndependent: infeasible " + StrUtil.poseStr(p));
             return null;
         }
         return RRRConfig.getBest(qFeasible, q0);
@@ -253,17 +253,22 @@ public class RRRArmIndependent extends SubsystemBase implements RRRArm {
         RRRConfig q = config(x);
         RRRVelocity qdot = qdot(q, xdot);
         RRRAcceleration qddot = qddot(q, xdot, xddot);
-        set(q, qdot, qddot);
+        RRRState s = set(q, qdot, qddot);
+        return new StateSE2(pose(s.q()), velocity(s.q(), s.qdot()));
     }
 
     @Override
-    public void setRn(List<ControlR1> p) {
+    public List<StateR1> setRn(List<ControlR1> p) {
         ControlR1 c1 = p.get(0);
         ControlR1 c2 = p.get(1);
         ControlR1 c3 = p.get(2);
         RRRConfig q = new RRRConfig(c1.x(), c2.x(), c3.x());
         RRRVelocity qdot = new RRRVelocity(c1.v(), c2.v(), c3.v());
         RRRAcceleration qddot = new RRRAcceleration(c1.a(), c2.a(), c3.a());
-        set(q, qdot, qddot);
+        RRRState s = set(q, qdot, qddot);
+        return List.of(
+                new StateR1(s.q().q1(), s.qdot().q1dot()),
+                new StateR1(s.q().q2(), s.qdot().q2dot()),
+                new StateR1(s.q().q3(), s.qdot().q3dot()));
     }
 }

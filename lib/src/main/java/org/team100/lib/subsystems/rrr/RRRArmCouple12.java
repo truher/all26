@@ -162,9 +162,16 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
 
         q = getConfigWithinLimits();
         RRRAcceleration qddot = RRRAcceleration.solve(m_q, q, m_qdot, DT);
-        qdot = RRRVelocity.evolve(m_qdot, qddot, DT);
+        // this accel will be very high when the arm "flips"
+        // TODO: handle flipping
+        System.out.printf("RRRArmCouple12: m_q [%s] q [%s] m_qdot [%s] qddot [%s]\n",
+                m_q, q, m_qdot, qddot);
+        RRRVelocity qdot2 = RRRVelocity.evolve(m_qdot, qddot, DT);
         m_q = q;
         m_qdot = qdot;
+        if (qdot.toVector().norm() > 0.001 && qdot2.toVector().norm() > 2 * qdot.toVector().norm()) {
+            m_qdot = new RRRVelocity(0, 0, 0);
+        }
         return new RRRState(q, qdot);
     }
 
@@ -176,17 +183,20 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
     @Override
     public RRRConfig config(Pose2d p) {
         RRRConfig q0 = getConfig();
+        System.out.printf("RRRArmCouple12: config %s\n", q0);
         List<RRRConfig> qAll = m_kinematics.inverse(p, q0.q1());
         if (qAll.isEmpty()) {
-            System.out.println("no solution for pose " + StrUtil.poseStr(p));
+            System.out.println("RRRArmCouple12: no solution " + StrUtil.poseStr(p));
             return q0;
         }
         List<RRRConfig> qFeasible = m_feasibility.filter(qAll);
         if (qFeasible.isEmpty()) {
-            System.out.println("infeasible pose " + StrUtil.poseStr(p));
+            System.out.println("RRRArmCouple12: infeasible " + StrUtil.poseStr(p));
             return q0;
         }
-        return RRRConfig.getBest(qFeasible, q0);
+        RRRConfig qBest = RRRConfig.getBest(qFeasible, q0);
+        System.out.printf("RRRArmCouple12: qBest %s\n", qBest);
+        return qBest;
     }
 
     public RRRVelocity qdot(RRRConfig q, VelocitySE2 xdot) {
@@ -265,23 +275,29 @@ public class RRRArmCouple12 extends SubsystemBase implements RRRArm {
 
     @Override
     public StateSE2 set(ControlSE2 setpoint) {
+        System.out.printf("RRRArmCouple12: set %s\n", StrUtil.poseStr(setpoint.pose()));
         Pose2d x = setpoint.pose();
         VelocitySE2 xdot = setpoint.velocity();
         AccelerationSE2 xddot = setpoint.acceleration();
         RRRConfig q = config(x);
         RRRVelocity qdot = qdot(q, xdot);
         RRRAcceleration qddot = qddot(q, xdot, xddot);
-        set(q, qdot, qddot);
+        RRRState s = set(q, qdot, qddot);
+        return new StateSE2(pose(s.q()), velocity(s.q(), s.qdot()));
     }
 
     @Override
-    public void setRn(List<ControlR1> p) {
+    public List<StateR1> setRn(List<ControlR1> p) {
         ControlR1 c1 = p.get(0);
         ControlR1 c2 = p.get(1);
         ControlR1 c3 = p.get(2);
         RRRConfig q = new RRRConfig(c1.x(), c2.x(), c3.x());
         RRRVelocity qdot = new RRRVelocity(c1.v(), c2.v(), c3.v());
         RRRAcceleration qddot = new RRRAcceleration(c1.a(), c2.a(), c3.a());
-        set(q, qdot, qddot);
+        RRRState s = set(q, qdot, qddot);
+        return List.of(
+                new StateR1(s.q().q1(), s.qdot().q1dot()),
+                new StateR1(s.q().q2(), s.qdot().q2dot()),
+                new StateR1(s.q().q3(), s.qdot().q3dot()));
     }
 }

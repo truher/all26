@@ -132,7 +132,7 @@ public class TimeOfFlightRecursion implements Solver {
                 // be valid.
                 // TODO: use better initial guesses to avoid that.
                 if (DEBUG) {
-                    System.out.printf("No solution for target TOF %f\n", targetTOF);
+                    System.out.printf("TimeOfFlightRecursion: no solution %f\n", targetTOF);
                 }
                 return Optional.empty();
             }

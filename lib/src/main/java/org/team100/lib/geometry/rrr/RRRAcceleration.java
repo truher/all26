@@ -29,4 +29,9 @@ public record RRRAcceleration(
         return RRRAcceleration.fromVector(
                 x1.toVector().minus(x0.toVector()).minus(v0.toVector().times(dt)).times(2 / (dt * dt)));
     }
+
+    @Override
+    public String toString() {
+        return String.format("%6.3f %6.3f %6.3f", q1ddot, q2ddot, q3ddot);
+    }
 }

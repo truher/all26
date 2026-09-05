@@ -98,4 +98,9 @@ public record RRRConfig(double q1, double q2, double q3) {
         return RRRConfig.fromVector(
                 toVector().plus(v0.toVector().times(dt).plus(a.toVector().times(dt * dt / 2))));
     }
+
+    @Override
+    public String toString() {
+        return String.format("%6.3f %6.3f %6.3f", q1, q2, q3);
+    }
 }

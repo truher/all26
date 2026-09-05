@@ -93,7 +93,8 @@ public class RRKinematics {
      * https://docs.google.com/document/d/1B6vGPtBtnDSOpfzwHBflI8-nn98W9QvmrX78bon8Ajw
      * 
      * For the default, use the previous value, or null if you have no idea (and in
-     * that case, catch the exception that may occur).  If l1 and l2 are not the same,
+     * that case, catch the exception that may occur). If l1 and l2 are not the
+     * same,
      * the singularity is impossible, so you can safely pass null.
      * 
      * @param x         tool point position
@@ -107,8 +108,7 @@ public class RRKinematics {
         if (r < 1e-3) {
             // This can only occur if l1 and l2 are (nearly) the same,
             // so use the default, and 180 degrees for the elbow.
-            if (DEBUG)
-                System.out.println("RR singularity");
+            System.out.printf("RRKinematics: singularity for %s\n", StrUtil.transStr(x));
             if (q1Default == null)
                 throw new IllegalArgumentException("RR singularity with no default");
             return List.of(new RRConfig(q1Default, Math.PI));
@@ -120,9 +120,7 @@ public class RRKinematics {
         double alpha = Math.acos(c2);
 
         if (Double.isNaN(alpha) || Double.isNaN(beta) || Double.isNaN(gamma)) {
-            if (DEBUG) {
-                System.out.println("infeasible");
-            }
+            System.out.printf("RRKinematics: no solution %s\n", StrUtil.transStr(x));
             return List.of();
         }
 
@@ -130,8 +128,7 @@ public class RRKinematics {
         double q2up = MathUtil.angleModulus(alpha + Math.PI);
 
         if (Math.abs(q2up) < 1e-3) {
-            if (DEBUG)
-                System.out.println("elbow singularity");
+            System.out.printf("RRKinematics: elbow singularity %s\n", StrUtil.transStr(x));
             return List.of(new RRConfig(q1up, q2up));
         }
 

@@ -76,9 +76,9 @@ public class RRArm extends SubsystemBase
         m_q2.periodic();
     }
 
-    public void set(RRConfig q, RRVelocity qdot, RRAcceleration qddot) {
+    public RRState set(RRConfig q, RRVelocity qdot, RRAcceleration qddot) {
         RREffort f = m_dynamics.effort(q, qdot, qddot);
-        set(q, qdot, f);
+        return set(q, qdot, f);
     }
 
     public RRState set(RRConfig q, RRVelocity qdot, RREffort f) {
@@ -95,7 +95,6 @@ public class RRArm extends SubsystemBase
 
     /** Desired config, with limits applied. */
     public RRConfig getConfigWithinLimits() {
-        // q2 kinematic angle is the difference between mechanism angles
         return new RRConfig(
                 m_q1.getUnwrappedPositionWithinLimits(),
                 m_q2.getUnwrappedPositionWithinLimits());
@@ -110,12 +109,12 @@ public class RRArm extends SubsystemBase
         RRConfig q0 = getConfig();
         List<RRConfig> qAll = m_kinematics.inverse(p, q0.q1());
         if (qAll.isEmpty()) {
-            System.out.println("no solution for pose " + StrUtil.transStr(p));
+            System.out.println("RRArm: no solution " + StrUtil.transStr(p));
             return null;
         }
         List<RRConfig> qFeasible = m_feasibility.filter(qAll);
         if (qFeasible.isEmpty()) {
-            System.out.println("infeasible pose " + StrUtil.transStr(p));
+            System.out.println("RRArm: infeasible " + StrUtil.transStr(p));
             return null;
         }
         return RRConfig.getBest(qFeasible, q0);
@@ -201,16 +200,20 @@ public class RRArm extends SubsystemBase
         RRConfig q = config(x);
         RRVelocity qdot = qdot(q, xdot);
         RRAcceleration qddot = qddot(q, xdot, xddot);
-        set(q, qdot, qddot);
+        RRState s = set(q, qdot, qddot);
+        return new StateR2(translation(s.q()), velocity(s.q(), s.qdot()));
     }
 
     @Override
-    public void setRn(List<ControlR1> p) {
+    public List<StateR1> setRn(List<ControlR1> p) {
         ControlR1 c1 = p.get(0);
         ControlR1 c2 = p.get(1);
         RRConfig q = new RRConfig(c1.x(), c2.x());
         RRVelocity qdot = new RRVelocity(c1.v(), c2.v());
         RRAcceleration qddot = new RRAcceleration(c1.a(), c2.a());
-        set(q, qdot, qddot);
+        RRState s = set(q, qdot, qddot);
+        return List.of(
+                new StateR1(s.q().q1(), s.qdot().q1dot()),
+                new StateR1(s.q().q2(), s.qdot().q2dot()));
     }
 }

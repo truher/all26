@@ -43,4 +43,9 @@ public record RRRVelocity(
         return RRRVelocity.fromVector(v0.toVector().plus(a.toVector().times(dt)));
     }
 
+    @Override
+    public String toString() {
+        return String.format("%6.3f %6.3f %6.3f", q1dot, q2dot, q3dot);
+    }
+
 }

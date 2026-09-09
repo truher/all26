@@ -76,6 +76,45 @@ public class SwerveModuleCollection implements Player {
         LoggerFactory rearRightLogger = collectionLogger.name("Rear Right");
 
         switch (Identity.instance) {
+            case SYSTEMCORE:
+                System.out.println("************** WCP MODULES w/Duty-Cycle Encoders **************");
+                return new SwerveModuleCollection(
+                        WCPSwerveModule100.getKrakenDriveKrakenSteerRedux(
+                                frontLeftLogger, currentLog, driveLimit, steerLimit,
+                                new CanId(1), // drive
+                                DriveRatio.MEDIUM,
+                                new CanId(3), // steer
+                                new CanId(1),
+                                0.109162,
+                                kinodynamics,
+                                EncoderDrive.INVERSE, NeutralMode100.COAST, MotorPhase.REVERSE),
+                        WCPSwerveModule100.getKrakenDriveKrakenSteerRedux(
+                                frontRightLogger, currentLog, driveLimit, steerLimit,
+                                new CanId(22), // drive
+                                DriveRatio.MEDIUM,
+                                new CanId(18), // steer
+                                new CanId(1),
+                                0.361342,
+                                kinodynamics,
+                                EncoderDrive.INVERSE, NeutralMode100.COAST, MotorPhase.REVERSE),
+                        WCPSwerveModule100.getKrakenDriveKrakenSteerRedux(
+                                rearLeftLogger, currentLog, driveLimit, steerLimit,
+                                new CanId(8), // drive
+                                DriveRatio.MEDIUM,
+                                new CanId(7), // steer
+                                new CanId(1),
+                                0.611814,
+                                kinodynamics,
+                                EncoderDrive.INVERSE, NeutralMode100.COAST, MotorPhase.REVERSE),
+                        WCPSwerveModule100.getKrakenDriveKrakenSteerRedux(
+                                rearRightLogger, currentLog, driveLimit, steerLimit,
+                                new CanId(23), // drive
+                                DriveRatio.MEDIUM,
+                                new CanId(21), // steer
+                                new CanId(1),
+                                0.279052,
+                                kinodynamics,
+                                EncoderDrive.INVERSE, NeutralMode100.COAST, MotorPhase.REVERSE));
             case COMP_BOT:
                 System.out.println("************** WCP MODULES w/Duty-Cycle Encoders **************");
                 return new SwerveModuleCollection(
@@ -218,7 +257,7 @@ public class SwerveModuleCollection implements Player {
                 SimulatedSwerveModule100.get(log));
     }
 
-    //////////////////////////////////////////////////
+    /////////////////////////////////////////////////
     //
     // Actuators
     //
@@ -267,7 +306,7 @@ public class SwerveModuleCollection implements Player {
         m_rearRight.stop();
     }
 
-    //////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////
     //
     // Observers
     //
@@ -290,7 +329,7 @@ public class SwerveModuleCollection implements Player {
                 m_rearRight.getState());
     }
 
-    ////////////////////////////////////////////
+    ///////////////////////////////////////////
 
     public void close() {
         m_frontLeft.close();

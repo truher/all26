@@ -35,7 +35,6 @@ import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 
-
 /**
  * Superclass for TalonFX motors.
  * 
@@ -68,7 +67,7 @@ public abstract class Talon6Motor implements Motor {
     protected final DoubleCache m_statorCurrent;
     protected final DoubleCache m_temp;
 
-    ////////////////////////////////////
+    ///////////////////////////////////
     // CONTROL REQUESTS
     //
     // caching the control requests saves allocation
@@ -116,7 +115,7 @@ public abstract class Talon6Motor implements Motor {
             Friction friction,
             PIDConstants pid) {
         currentLog.register(this);
-        /////////////////////////////////////
+        ////////////////////////////////////
         //
         // CONTROL REQUESTS
         //
@@ -127,7 +126,7 @@ public abstract class Talon6Motor implements Motor {
         m_positionVoltage = new PositionVoltage(0);
         m_music = new MusicTone(0);
 
-        /////////////////////////////////////
+        ////////////////////////////////////
         // Update frequencies.
         // make control synchronous, i.e. "actuate immediately." See
         // https://github.com/Team254/FRC-2024-Public/blob/040f653744c9b18182be5f6bc51a7e505e346e59/src/main/java/com/team254/lib/ctre/swerve/SwerveModule.java#L210
@@ -139,7 +138,7 @@ public abstract class Talon6Motor implements Motor {
 
         m_log = parent.type(this);
         // TODO: fix for 2027
-        m_motor = new TalonFX(canId.id, new CANBus());
+        m_motor = new TalonFX(canId.id, CANBus.systemcore(0));
         m_friction = friction;
 
         m_configurator = new PhoenixConfigurator(
@@ -394,7 +393,7 @@ public abstract class Talon6Motor implements Motor {
         log();
     }
 
-    ////////////////////////////////////////////
+    ///////////////////////////////////////////
 
     private void log() {
         m_log_position.log(m_position);

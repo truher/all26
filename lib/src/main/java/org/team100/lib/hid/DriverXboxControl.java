@@ -79,17 +79,17 @@ public class DriverXboxControl {
 
     /** Axis 5 */
     public double rightY() {
-        return m_filterRightY.calculate(m_controller.getRightY());
+        return m_filterRightY.calculate(m_controller.getRawAxis(5));
     }
 
     /** Axis 4 */
     public double rightX() {
-        return m_filterRightX.calculate(m_controller.getRightX());
+        return m_filterRightX.calculate(m_controller.getRawAxis(4));
     }
 
     /** Axis 0 */
     public double leftX() {
-        return m_filterLeftX.calculate(m_controller.getLeftX());
+        return m_filterLeftX.calculate(m_controller.getRawAxis(0));
     }
 
     public Rotation2d pov() {

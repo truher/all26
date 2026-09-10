@@ -17,7 +17,7 @@ public class Robot extends TimedRobot {
   private Command autonomousCommand;
 
   private final RobotContainer robotContainer;
-  // private final TalonFX f = new TalonFX(0, new CANBus());
+  private final TalonFX f = new TalonFX(0, new CANBus());
 
   public Robot() {
     robotContainer = new RobotContainer();
@@ -27,7 +27,7 @@ public class Robot extends TimedRobot {
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
-    // System.out.println(f.getPosition());
+    System.out.println(f.getPosition());
   }
 
   @Override

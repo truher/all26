@@ -26,6 +26,7 @@ import org.wpilib.networktables.NetworkTableInstance;
 import org.wpilib.smartdashboard.SmartDashboard;
 import org.wpilib.system.WPILibVersion;
 
+import com.reduxrobotics.canand.CanandEventLoop;
 // import com.reduxrobotics.canand.CanandEventLoop;
 import com.revrobotics.util.StatusLogger;
 
@@ -43,7 +44,7 @@ public class Robot extends TimedRobot100 {
     public Robot() {
         Banner.printBanner();
 
-        // CanandEventLoop.getInstance();
+        CanandEventLoop.getInstance();
 
         // We want the CommandScheduler, not LiveWindow.
         enableLiveWindowInTest(false);

@@ -77,41 +77,41 @@ public class SwerveModuleCollection implements Player {
 
         switch (Identity.instance) {
             case SYSTEMCORE:
-                System.out.println("************** WCP MODULES w/Duty-Cycle Encoders **************");
+                System.out.println("************** WCP MODULES w/Redux Encoders **************");
                 return new SwerveModuleCollection(
                         WCPSwerveModule100.getKrakenDriveKrakenSteerRedux(
                                 frontLeftLogger, currentLog, driveLimit, steerLimit,
                                 new CanId(1), // drive
                                 DriveRatio.MEDIUM,
-                                new CanId(3), // steer
-                                new CanId(1),
+                                new CanId(2), // steer
+                                new CanId(1), // encoder
                                 0.109162,
                                 kinodynamics,
                                 EncoderDrive.INVERSE, NeutralMode100.COAST, MotorPhase.REVERSE),
                         WCPSwerveModule100.getKrakenDriveKrakenSteerRedux(
                                 frontRightLogger, currentLog, driveLimit, steerLimit,
-                                new CanId(22), // drive
+                                new CanId(3), // drive
                                 DriveRatio.MEDIUM,
-                                new CanId(18), // steer
-                                new CanId(1),
+                                new CanId(4), // steer
+                                new CanId(2), // encoder
                                 0.361342,
                                 kinodynamics,
                                 EncoderDrive.INVERSE, NeutralMode100.COAST, MotorPhase.REVERSE),
                         WCPSwerveModule100.getKrakenDriveKrakenSteerRedux(
                                 rearLeftLogger, currentLog, driveLimit, steerLimit,
-                                new CanId(8), // drive
+                                new CanId(5), // drive
                                 DriveRatio.MEDIUM,
-                                new CanId(7), // steer
-                                new CanId(1),
+                                new CanId(6), // steer
+                                new CanId(3), // encoder
                                 0.611814,
                                 kinodynamics,
                                 EncoderDrive.INVERSE, NeutralMode100.COAST, MotorPhase.REVERSE),
                         WCPSwerveModule100.getKrakenDriveKrakenSteerRedux(
                                 rearRightLogger, currentLog, driveLimit, steerLimit,
-                                new CanId(23), // drive
+                                new CanId(7), // drive
                                 DriveRatio.MEDIUM,
-                                new CanId(21), // steer
-                                new CanId(1),
+                                new CanId(8), // steer
+                                new CanId(4), // encoder
                                 0.279052,
                                 kinodynamics,
                                 EncoderDrive.INVERSE, NeutralMode100.COAST, MotorPhase.REVERSE));

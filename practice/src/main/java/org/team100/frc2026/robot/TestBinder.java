@@ -1,15 +1,8 @@
 package org.team100.frc2026.robot;
 
-import static edu.wpi.first.wpilibj2.command.Commands.parallel;
-import static edu.wpi.first.wpilibj2.command.Commands.repeatingSequence;
-import static edu.wpi.first.wpilibj2.command.Commands.waitUntil;
 import static org.team100.lib.util.TriggerUtil.onTrue;
 import static org.team100.lib.util.TriggerUtil.whileTrue;
 
-import org.team100.frc2026.auton.CenterFullSweepAuton;
-import org.team100.frc2026.auton.CenterHalfSweepAuton;
-import org.team100.frc2026.auton.RightBumpFullSweepAuton;
-import org.team100.frc2026.auton.RightBumpHalfSweepAuton;
 import org.team100.lib.controller.r1.AzimuthController;
 import org.team100.lib.controller.r1.FeedbackR1;
 import org.team100.lib.controller.r1.FullStateFeedback;
@@ -32,6 +25,7 @@ public class TestBinder {
     public TestBinder(LoggerFactory rootLogger, Machinery machinery) {
         LoggerFactory log = rootLogger.name("Commands");
 
+        @SuppressWarnings("unused")
         ControllerSE2 holonomicController = new FullStateControllerSE2(log,
                 2.9, // P for x/y
                 3.5, // P for theta
@@ -63,12 +57,12 @@ public class TestBinder {
                         driver::velocity,
                         machinery.m_drive,
                         limiter));
-        machinery.m_intake.setDefaultCommand(
-                machinery.m_intake.stop());
-        machinery.m_intakeExtend.setDefaultCommand(
-                machinery.m_intakeExtend.stop());
-        machinery.m_shooter.setDefaultCommand(
-                machinery.m_shooter.stop());
+        // machinery.m_intake.setDefaultCommand(
+        // machinery.m_intake.stop());
+        // machinery.m_intakeExtend.setDefaultCommand(
+        // machinery.m_intakeExtend.stop());
+        // machinery.m_shooter.setDefaultCommand(
+        // machinery.m_shooter.stop());
 
         ////////////////////////////////////////////////////
         ///
@@ -123,11 +117,11 @@ public class TestBinder {
         /// INTAKE
         ///
 
-        whileTrue(driver::rightBumper,
-                machinery.m_intakeExtend.goToRetractedPosition());
-        whileTrue(driver::rightTrigger,
-                machinery.m_intakeExtend.goToExtendedPosition()
-                        .andThen(machinery.m_intake.intake()));
+        // whileTrue(driver::rightBumper,
+        // machinery.m_intakeExtend.goToRetractedPosition());
+        // whileTrue(driver::rightTrigger,
+        // machinery.m_intakeExtend.goToExtendedPosition()
+        // .andThen(machinery.m_intake.intake()));
 
         // For testing
         // whileTrue(driver::leftBumper,
@@ -164,13 +158,13 @@ public class TestBinder {
         /// SHOOT
         ///
 
-        whileTrue(driver::leftTrigger,
-                parallel(
-                        machinery.m_shooter.auto(),
-                        repeatingSequence(
-                                waitUntil(
-                                        machinery.m_shooter::atSpeed)
-                                        .onlyWhile(machinery.m_shooter::atSpeed))));
+        // whileTrue(driver::leftTrigger,
+        // parallel(
+        // machinery.m_shooter.auto(),
+        // repeatingSequence(
+        // waitUntil(
+        // machinery.m_shooter::atSpeed)
+        // .onlyWhile(machinery.m_shooter::atSpeed))));
 
         //////////////////
         ///
@@ -208,8 +202,8 @@ public class TestBinder {
         // parallel(
         // m_machinery.m_conveyor.testConveyorBack(),
         // m_machinery.m_feeder.testFeedBack()));
-        whileTrue(driver::x,
-                machinery.m_shooter.testRun());
+        // whileTrue(driver::x,
+        // machinery.m_shooter.testRun());
 
         // whileTrue(driver::rightTrigger, parallel(runSerial, runSerialUpper,
         // runShooter));
@@ -220,31 +214,31 @@ public class TestBinder {
         ///
         /// Auton test mode is with POV down.
 
-        whileTrue(() -> driver.povDown() && driver.a(),
-                new CenterFullSweepAuton(
-                        log,
-                        machinery.m_swerveKinodynamics,
-                        holonomicController,
-                        machinery).command());
+        // whileTrue(() -> driver.povDown() && driver.a(),
+        // new CenterFullSweepAuton(
+        // log,
+        // machinery.m_swerveKinodynamics,
+        // holonomicController,
+        // machinery).command());
 
-        whileTrue(() -> driver.povDown() && driver.b(),
-                new CenterHalfSweepAuton(
-                        log,
-                        machinery.m_swerveKinodynamics,
-                        holonomicController,
-                        machinery).command());
-        whileTrue(() -> driver.povDown() && driver.x(),
-                new RightBumpFullSweepAuton(
-                        log,
-                        machinery.m_swerveKinodynamics,
-                        holonomicController,
-                        machinery).command());
-        whileTrue(() -> driver.povDown() && driver.y(),
-                new RightBumpHalfSweepAuton(
-                        log,
-                        machinery.m_swerveKinodynamics,
-                        holonomicController,
-                        machinery).command());
+        // whileTrue(() -> driver.povDown() && driver.b(),
+        // new CenterHalfSweepAuton(
+        // log,
+        // machinery.m_swerveKinodynamics,
+        // holonomicController,
+        // machinery).command());
+        // whileTrue(() -> driver.povDown() && driver.x(),
+        // new RightBumpFullSweepAuton(
+        // log,
+        // machinery.m_swerveKinodynamics,
+        // holonomicController,
+        // machinery).command());
+        // whileTrue(() -> driver.povDown() && driver.y(),
+        // new RightBumpHalfSweepAuton(
+        // log,
+        // machinery.m_swerveKinodynamics,
+        // holonomicController,
+        // machinery).command());
 
         ////////////////////////////////////////////////////
         ///
@@ -262,7 +256,7 @@ public class TestBinder {
         // m_machinery.m_intakeExtend.goToWobbleSlightlyInExtendedPosition().withTimeout(0.5),
         // m_machinery.m_intakeExtend.goToWobbleSlightlyOutRetractedPosition().withTimeout(0.5)));
 
-        whileTrue(driver::povUp, (machinery.m_shooter.tune()));
+        // whileTrue(driver::povUp, (machinery.m_shooter.tune()));
 
         Tester tester = new Tester(machinery);
         onTrue(() -> RobotState.isTest(), tester.prompt());

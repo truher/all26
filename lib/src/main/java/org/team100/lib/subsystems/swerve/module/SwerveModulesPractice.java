@@ -11,7 +11,7 @@ import org.team100.lib.util.CanId;
 import org.team100.lib.util.RoboRioChannel;
 
 /**
- * For the practice swerve drive.
+ * For the practice swerve drive labeled `SWERVE_ONE`.
  */
 public class SwerveModulesPractice extends SwerveModuleCollection {
     public SwerveModulesPractice(

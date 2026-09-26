@@ -1,8 +1,5 @@
 package org.team100.frc2026.robot;
 
-import static edu.wpi.first.wpilibj2.command.Commands.parallel;
-import static edu.wpi.first.wpilibj2.command.Commands.sequence;
-import static edu.wpi.first.wpilibj2.command.Commands.waitUntil;
 import static org.team100.lib.util.TriggerUtil.onTrue;
 import static org.team100.lib.util.TriggerUtil.whileTrue;
 
@@ -50,12 +47,12 @@ public class Binder {
                         m_driver::velocity,
                         machinery.m_drive,
                         limiter));
-        machinery.m_intake.setDefaultCommand(
-                machinery.m_intake.stop());
-        machinery.m_intakeExtend.setDefaultCommand(
-                machinery.m_intakeExtend.goToRetractedPosition());
-        machinery.m_shooter.setDefaultCommand(
-                machinery.m_shooter.stop());
+        // machinery.m_intake.setDefaultCommand(
+        // machinery.m_intake.stop());
+        // machinery.m_intakeExtend.setDefaultCommand(
+        // machinery.m_intakeExtend.goToRetractedPosition());
+        // machinery.m_shooter.setDefaultCommand(
+        // machinery.m_shooter.stop());
         ////////////////////////////////////////////////////
         ///
         /// DISORIENT
@@ -75,22 +72,22 @@ public class Binder {
         ///
         whileTrue(m_driver::povDown, machinery.m_drive.defend());
 
-        whileTrue(m_driver::rightTrigger,
-                parallel(
-                        machinery.m_intakeExtend.goToExtendedPositionEndlessly(),
-                        sequence(
-                                waitUntil(machinery.m_intakeExtend::atGoal),
-                                parallel(
-                                        machinery.m_intake.intake(),
-                                        machinery.m_shooter.shooterFullspeed()))));
+        // whileTrue(m_driver::rightTrigger,
+        // parallel(
+        // machinery.m_intakeExtend.goToExtendedPositionEndlessly(),
+        // sequence(
+        // waitUntil(machinery.m_intakeExtend::atGoal),
+        // parallel(
+        // machinery.m_intake.intake(),
+        // machinery.m_shooter.shooterFullspeed()))));
 
-        whileTrue(m_driver::x,
-                machinery.m_intake.intake());
-        whileTrue(m_driver::a,
-                machinery.m_intakeExtend.goToExtendedPositionEndlessly());
-        whileTrue(m_driver::b,
-                machinery.m_intakeExtend.goToRetractedPosition());
-        whileTrue(m_driver::y, machinery.m_shooter.testShooterFullspeed());
+        // whileTrue(m_driver::x,
+        // machinery.m_intake.intake());
+        // whileTrue(m_driver::a,
+        // machinery.m_intakeExtend.goToExtendedPositionEndlessly());
+        // whileTrue(m_driver::b,
+        // machinery.m_intakeExtend.goToRetractedPosition());
+        // whileTrue(m_driver::y, machinery.m_shooter.testShooterFullspeed());
 
         ////////////////////////////////////////////////////
         ///

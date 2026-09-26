@@ -2,7 +2,7 @@ package org.team100.lib.subsystems.swerve.kinodynamics;
 
 import org.team100.lib.dynamics.swerve.Tire;
 
-/** For the practice swerve base */
+/** For the practice swerve base? */
 public class SwerveKinodynamicsPractice extends SwerveKinodynamics {
     public SwerveKinodynamicsPractice() {
         super(

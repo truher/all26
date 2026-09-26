@@ -35,7 +35,6 @@ public class Autons {
                 1, // v tolerance
                 1);// omega tolerance
         m_autonChooser = new AutonChooser();
-        m_autonChooser.add(new JustShoot(machinery));
         m_autonChooser.add(new DoNothing());
 
         // These are for training, see
@@ -51,43 +50,6 @@ public class Autons {
                 controller,
                 machinery));
         m_autonChooser.add(new UTurnWithRotation(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-
-        // The following were from CVE in 2026
-        m_autonChooser.add(new ScallopLobAuton(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-        m_autonChooser.add(new ScallopLobAutonRight(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-        m_autonChooser.add(new ScallopLobAutonLeft(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-        m_autonChooser.add(new TrenchScallopLobAutonRight(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-        m_autonChooser.add(new TrenchScallopLobAutonRightFull(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-        m_autonChooser.add(new TrenchScallopLobAutonLeft(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-        m_autonChooser.add(new TrenchScallopLobAutonLeftFull(
                 log,
                 machinery.m_swerveKinodynamics,
                 controller,
@@ -108,31 +70,6 @@ public class Autons {
                 controller,
                 machinery));
         m_autonChooser.add(new MajorDisruptRTrench(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-        m_autonChooser.add(new MiddleDefenseLBump(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-        m_autonChooser.add(new MiddleDefenseRTrench(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-        m_autonChooser.add(new MiddleDefenseLTrench(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-        m_autonChooser.add(new MajorDefenseLTrench(
-                log,
-                machinery.m_swerveKinodynamics,
-                controller,
-                machinery));
-        m_autonChooser.add(new MajorDefenseRTrench(
                 log,
                 machinery.m_swerveKinodynamics,
                 controller,

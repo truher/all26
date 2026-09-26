@@ -46,12 +46,12 @@ public class InterlinkBinder {
                         driver::velocity,
                         machinery.m_drive,
                         limiter));
-        machinery.m_shooter.setDefaultCommand(
-                machinery.m_shooter.stop());
-        machinery.m_intake.setDefaultCommand(
-                machinery.m_intake.stop());
-        machinery.m_intakeExtend.setDefaultCommand(
-                machinery.m_intakeExtend.stop());
+        // machinery.m_shooter.setDefaultCommand(
+        // machinery.m_shooter.stop());
+        // machinery.m_intake.setDefaultCommand(
+        // machinery.m_intake.stop());
+        // machinery.m_intakeExtend.setDefaultCommand(
+        // machinery.m_intakeExtend.stop());
 
         ////////////////////////////////////////////////////
         ///
@@ -63,11 +63,11 @@ public class InterlinkBinder {
         ///
         /// INTAKE
         ///
-        whileTrue(driver::c2,
-                machinery.m_intakeExtend.goToRetractedPosition());
-        whileTrue(driver::c0,
-                machinery.m_intakeExtend.goToExtendedPosition()
-                        .andThen(machinery.m_intake.intake()));
+        // whileTrue(driver::c2,
+        // machinery.m_intakeExtend.goToRetractedPosition());
+        // whileTrue(driver::c0,
+        // machinery.m_intakeExtend.goToExtendedPosition()
+        // .andThen(machinery.m_intake.intake()));
 
         ////////////////////////////////////////////////////
         ///

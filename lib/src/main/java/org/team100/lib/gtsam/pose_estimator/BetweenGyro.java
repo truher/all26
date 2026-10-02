@@ -15,15 +15,15 @@ public class BetweenGyro {
     // std dev of bias instability
     private static final double BIAS_INSTABILITY_SIGMA = 3e-5;
 
-    private final Solver estimate;
-    private final shared_ptr<PlanarGyroParams> params;
+    private final Solver m_solver;
+    private final shared_ptr<PlanarGyroParams> m_params;
 
     private double m_yaw;
     private Long t0_us = null;
 
-    public BetweenGyro(Solver e) throws Throwable {
-        estimate = e;
-        params = PlanarGyroParams.makeSharedPlanarGyroParams(//
+    public BetweenGyro(Solver solver) throws Throwable {
+        m_solver = solver;
+        m_params = PlanarGyroParams.makeSharedPlanarGyroParams(//
                 ARW_SIGMA, BIAS_INSTABILITY_SIGMA);
     }
 
@@ -39,25 +39,26 @@ public class BetweenGyro {
             t0_us = t1_us;
             return;
         }
-        // System.out.println("BetweenGyro.add()");
+        System.out.println("BetweenGyro.add()");
 
         // measurement period in seconds
         double dt = (double) (t1_us - t0_us) * 1e-6;
-        // System.out.printf("dt (sec) %f\n", dt);
+        System.out.printf("dt (sec) %f\n", dt);
 
         // rotation between poses
         Rot2 dr = new Rot2(yaw - m_yaw);
-        // dr.print("dr");
+        dr.print("dr");
 
         shared_ptr<PlanarGyroFactor> x = PlanarGyroFactor.FromRotation(//
-                Key.X(t0_us), Key.X(t1_us), Key.B(t0_us), params, dr, dt);
+                Key.X(t0_us), Key.X(t1_us), Key.B(t0_us), m_params, dr, dt);
 
-        estimate.add(x);
+        // this is the step that fails
+        m_solver.add(x);
 
         shared_ptr<PlanarGyroBiasFactor> b = PlanarGyroBiasFactor.makeSharedPlanarGyroBiasFactor(//
-                Key.B(t0_us), Key.B(t1_us), params);
+                Key.B(t0_us), Key.B(t1_us), m_params);
 
-        estimate.add(b);
+        m_solver.add(b);
 
         m_yaw = yaw;
         t0_us = t1_us;

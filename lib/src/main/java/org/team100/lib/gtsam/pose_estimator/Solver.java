@@ -18,13 +18,13 @@ import gtsam.shared_ptr;
  * Port of estimate.py from 2024.
  */
 public class Solver {
-    private final BatchFixedLagSmoother isam;
-    private final NonlinearFactorGraph new_factors;
-    private final Values new_values;
+    private final BatchFixedLagSmoother m_smoother;
+    public final NonlinearFactorGraph m_newFactors;
+    public final Values m_newValues;
     /** key is Key, "X(timestamp in us)", value is timestamp in us */
-    private final FixedLagSmoother.KeyTimestampMap new_timestamps;
+    private final FixedLagSmoother.KeyTimestampMap m_newTimestamps;
 
-    private Values result;
+    private Values m_result;
 
     /** @param lag in microseconds, not seconds as in python */
     public Solver(double lag) throws Throwable {
@@ -32,24 +32,24 @@ public class Solver {
         // initial module positions are at their origins.
         // TODO: some other initial positions?
 
-        isam = new BatchFixedLagSmoother(lag);
-        result = new Values();
+        m_smoother = new BatchFixedLagSmoother(lag);
+        m_result = new Values();
         // between updates we accumulate inputs here
 
-        new_factors = new NonlinearFactorGraph();
-        new_values = new Values();
-        new_timestamps = new FixedLagSmoother.KeyTimestampMap();
+        m_newFactors = new NonlinearFactorGraph();
+        m_newValues = new Values();
+        m_newTimestamps = new FixedLagSmoother.KeyTimestampMap();
     }
 
-    public void addVariable(Key key,double time_us, Pose2 initial_value) throws Throwable {
+    public void addVariable(Key key, double time_us, Pose2 initial_value) throws Throwable {
         // System.out.print("adding key:\n");
         // key.print();
         // System.out.printf("with value (%f %f %f)\n",
-        //         initial_value.x(), initial_value.y(), initial_value.theta());
+        // initial_value.x(), initial_value.y(), initial_value.theta());
         if (exists(key))
             return;
-        new_values.insert(key, initial_value);
-        new_timestamps.put(key, time_us);
+        m_newValues.insert(key, initial_value);
+        m_newTimestamps.put(key, time_us);
         // System.out.println("added!");
     }
 
@@ -59,14 +59,14 @@ public class Solver {
         // System.out.printf("with value: %f\n", initial_value);
         if (exists(key))
             return;
-        new_values.insert(key, initial_value);
+        m_newValues.insert(key, initial_value);
         // System.out.printf("adding timestamp %f\n", time_us);
-        new_timestamps.put(key, time_us);
+        m_newTimestamps.put(key, time_us);
         // System.out.println("added!");
     }
 
     private boolean exists(Key k) throws Throwable {
-        return result.exists(k) || new_values.exists(k);
+        return m_result.exists(k) || m_newValues.exists(k);
     }
 
     /**
@@ -79,14 +79,14 @@ public class Solver {
         KeyVector keys = f.get().keys();
         for (int i = 0; i < keys.size(); ++i) {
             Key k = keys.at(i);
-            if (!new_values.exists(k) && !result.exists(k)) {
+            if (!m_newValues.exists(k) && !m_result.exists(k)) {
                 complain(f, k);
                 return false;
             }
         }
-        // System.out.println("adding factor");
-        // f.get().print();
-        new_factors.add(f);
+        System.out.println("adding factor");
+        f.get().print();
+        m_newFactors.add(f);
         return true;
     }
 
@@ -101,9 +101,9 @@ public class Solver {
         System.out.flush();
         k.print();
         System.out.println("result:");
-        result.print("result");
+        m_result.print("result");
         System.out.println("new values:");
-        new_values.print("new values");
+        m_newValues.print("new values");
     }
 
     /**
@@ -113,23 +113,27 @@ public class Solver {
         // System.out.println("update");
         // new_factors.print("new factors");
         // new_values.print("new values");
-        isam.update(new_factors, new_values, new_timestamps);
-        result = isam.calculateEstimate();
+        m_smoother.update(m_newFactors, m_newValues, m_newTimestamps);
+        m_result = m_smoother.calculateEstimate();
 
         // reset the accumulators
-        new_factors.resize(0);
-        new_values.clear();
-        new_timestamps.clear();
+        m_newFactors.resize(0);
+        m_newValues.clear();
+        m_newTimestamps.clear();
     }
 
     public long result_size() throws Throwable {
         // result.print();
-        return result.size();
+        return m_result.size();
+    }
+
+    public Values result() {
+        return m_result;
     }
 
     /** The mean expected pose. */
     public Pose2 mean_pose2(Key key) throws Throwable {
-        return result.atPose2(key);
+        return m_result.atPose2(key);
     }
 
     public double mean_double(Key key) throws Throwable {
@@ -137,7 +141,7 @@ public class Solver {
         // key.print();
         // System.out.println("In results:");
         // result.print("");
-        return result.atDouble(key);
+        return m_result.atDouble(key);
     }
 
     public Vector sigma_pose2(Key key) throws Throwable {
@@ -147,8 +151,12 @@ public class Solver {
     }
 
     public Marginals marginal_covariance() throws Throwable {
-        NonlinearFactorGraph factors = isam.getFactors();
-        return new Marginals(factors, result);
+        NonlinearFactorGraph factors = getFactors();
+        return new Marginals(factors, m_result);
+    }
+
+    public NonlinearFactorGraph getFactors() throws Throwable {
+        return m_smoother.getFactors();
     }
 
     public Pose2 sample_Pose2(Key key) throws Throwable {

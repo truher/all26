@@ -1,9 +1,9 @@
-package org.team100.lib.gtsam.util;
+package org.team100.lib.util;
 
 /**
+ * Mean and standard deviation of a stream.
  * 
  * https://nestedsoftware.com/2018/03/27/calculating-standard-deviation-on-streaming-data-253l.23919.html
- * 
  */
 public class Stats {
 

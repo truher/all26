@@ -9,6 +9,7 @@ import gtsam.shared_ptr;
 
 /** Gyro that uses PlanarGyroFactor. */
 public class BetweenGyro {
+    private static final boolean DEBUG = false;
     // std dev of "angle random walk" noise
     private static final double ARW_SIGMA = 1e-4;
 
@@ -39,15 +40,18 @@ public class BetweenGyro {
             t0_us = t1_us;
             return;
         }
-        System.out.println("BetweenGyro.add()");
+        if (DEBUG)
+            System.out.println("BetweenGyro.add()");
 
         // measurement period in seconds
         double dt = (double) (t1_us - t0_us) * 1e-6;
-        System.out.printf("dt (sec) %f\n", dt);
+        if (DEBUG)
+            System.out.printf("dt (sec) %f\n", dt);
 
         // rotation between poses
         Rot2 dr = new Rot2(yaw - m_yaw);
-        dr.print("dr");
+        if (DEBUG)
+            dr.print("dr");
 
         shared_ptr<PlanarGyroFactor> x = PlanarGyroFactor.FromRotation(//
                 Key.X(t0_us), Key.X(t1_us), Key.B(t0_us), m_params, dr, dt);

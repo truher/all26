@@ -18,11 +18,12 @@ import gtsam.shared_ptr;
  * Port of estimate.py from 2024.
  */
 public class Solver {
+    private static final boolean DEBUG = false;
     private final BatchFixedLagSmoother m_smoother;
     public final NonlinearFactorGraph m_newFactors;
     public final Values m_newValues;
     /** key is Key, "X(timestamp in us)", value is timestamp in us */
-    private final FixedLagSmoother.KeyTimestampMap m_newTimestamps;
+    public final FixedLagSmoother.KeyTimestampMap m_newTimestamps;
 
     private Values m_result;
 
@@ -42,27 +43,34 @@ public class Solver {
     }
 
     public void addVariable(Key key, double time_us, Pose2 initial_value) throws Throwable {
-        // System.out.print("adding key:\n");
-        // key.print();
-        // System.out.printf("with value (%f %f %f)\n",
-        // initial_value.x(), initial_value.y(), initial_value.theta());
+        if (DEBUG) {
+            System.out.print("adding key:\n");
+            key.print();
+            System.out.printf("with value (%f %f %f)\n",
+                    initial_value.x(), initial_value.y(), initial_value.theta());
+        }
         if (exists(key))
             return;
         m_newValues.insert(key, initial_value);
         m_newTimestamps.put(key, time_us);
-        // System.out.println("added!");
+        if (DEBUG)
+            System.out.println("added!");
     }
 
     public void addVariable(Key key, double time_us, double initial_value) throws Throwable {
-        // System.out.print("adding key:\n");
-        // key.print();
-        // System.out.printf("with value: %f\n", initial_value);
+        if (DEBUG) {
+            System.out.print("adding key:\n");
+            key.print();
+            System.out.printf("with value: %f\n", initial_value);
+        }
         if (exists(key))
             return;
         m_newValues.insert(key, initial_value);
-        // System.out.printf("adding timestamp %f\n", time_us);
+        if (DEBUG)
+            System.out.printf("adding timestamp %f\n", time_us);
         m_newTimestamps.put(key, time_us);
-        // System.out.println("added!");
+        if (DEBUG)
+            System.out.println("added!");
     }
 
     private boolean exists(Key k) throws Throwable {
@@ -84,8 +92,10 @@ public class Solver {
                 return false;
             }
         }
-        System.out.println("adding factor");
-        f.get().print();
+        if (DEBUG) {
+            System.out.println("adding factor");
+            f.get().print();
+        }
         m_newFactors.add(f);
         return true;
     }
@@ -110,9 +120,11 @@ public class Solver {
      * Run the solver
      */
     public void update() throws Throwable {
-        // System.out.println("update");
-        // new_factors.print("new factors");
-        // new_values.print("new values");
+        if (DEBUG) {
+            System.out.println("update");
+            m_newFactors.print("new factors");
+            m_newValues.print("new values");
+        }
         m_smoother.update(m_newFactors, m_newValues, m_newTimestamps);
         m_result = m_smoother.calculateEstimate();
 
@@ -137,10 +149,12 @@ public class Solver {
     }
 
     public double mean_double(Key key) throws Throwable {
-        // System.out.println("Looking for double key:");
-        // key.print();
-        // System.out.println("In results:");
-        // result.print("");
+        if (DEBUG) {
+            System.out.println("Looking for double key:");
+            key.print();
+            System.out.println("In results:");
+            m_result.print("");
+        }
         return m_result.atDouble(key);
     }
 
@@ -152,7 +166,8 @@ public class Solver {
 
     public Marginals marginal_covariance() throws Throwable {
         NonlinearFactorGraph factors = getFactors();
-        return new Marginals(factors, m_result);
+        // QR seems stable, default (Cholesky) is not.
+        return Marginals.QR(factors, m_result);
     }
 
     public NonlinearFactorGraph getFactors() throws Throwable {

@@ -41,7 +41,7 @@ import gtsam.noiseModel.Diagonal;
  * Outer simulation loop. Call "run" periodically.
  */
 public class Sim {
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     public final Solver m_solver;
     public final Field2d m_field;
@@ -60,6 +60,7 @@ public class Sim {
     public final Odometry m_odometry;
     public final Prior m_prior;
 
+    public Pose2d m_groundTruthPose;
     /** Estimate from the solver. */
     public Pose2 m_estimatedPose;
     public int m_loopCount;
@@ -157,8 +158,8 @@ public class Sim {
         long t1_us = 20000 * m_loopCount;
 
         // Compute ground truth and plot it.
-        Pose2d groundTruthPose = m_simulatedRobot.pose(t1_us);
-        m_field.getObject("gt").setPose(groundTruthPose);
+        m_groundTruthPose = m_simulatedRobot.pose(t1_us);
+        m_field.getObject("gt").setPose(m_groundTruthPose);
 
         if (DEBUG)
             System.out.println("==> Initial value is the previous estimate.");
@@ -168,17 +169,17 @@ public class Sim {
         if (DEBUG)
             System.out.println("==> Add odometry factors.");
 
-        applyOdometry(t1_us, groundTruthPose);
+        applyOdometry(t1_us, m_groundTruthPose);
 
         if (DEBUG)
             System.out.println("==> Add gyro factors.");
 
-        applyBetweenGyro(t1_us, groundTruthPose);
+        applyBetweenGyro(t1_us, m_groundTruthPose);
 
         if (DEBUG)
             System.out.println("==> Add camera factors.");
 
-        applyCamera(t1_us, groundTruthPose);
+        applyCamera(t1_us, m_groundTruthPose);
 
         if (DEBUG)
             System.out.println("==> Run the solver.");
@@ -187,16 +188,19 @@ public class Sim {
         if (DEBUG)
             System.out.println("==> Print the graph.");
         NonlinearFactorGraph factors = m_solver.getFactors();
-        factors.print("factors");
+        if (DEBUG)
+            factors.print("factors");
 
         if (DEBUG)
             System.out.println("==> Print the values.");
         Values values = m_solver.result();
-        values.print("values");
+        if (DEBUG)
+            values.print("values");
 
         if (DEBUG)
             System.out.println("==> Print factors and errors.");
-        factors.printErrors(values, "factors and errors");
+        if (DEBUG)
+            factors.printErrors(values, "factors and errors");
 
         if (DEBUG)
             System.out.println("==> Log a little about the iteration.");
@@ -210,7 +214,7 @@ public class Sim {
 
         if (DEBUG)
             System.out.println("==> Show the estimate, and errors.");
-        plotEstimatedPose(groundTruthPose);
+        plotEstimatedPose(m_groundTruthPose);
         if (DEBUG)
             System.out.println("==> Show samples on the field.");
         plotSamples(t1_us);
@@ -238,23 +242,23 @@ public class Sim {
         Marginals m = m_solver.marginal_covariance();
         if (DEBUG)
             System.out.println("print the marginals");
-        m.print("marginals");
+        if (DEBUG)
+            m.print("marginals");
 
         if (DEBUG)
             System.out.println("==> Find the bias sigma 2");
         // this is the step that fails,
         // so maybe just don't do that?
-        // Matrix s1 = m.marginalCovariance(Key.B(t1_us));
-        // if (DEBUG)
-            // System.out.println("==> Find the bias sigma 3");
-        // System.out.flush();
-        // Vector biasSigma = s1.diagonal_cwiseSqrt();
-        // if (DEBUG)
-            // System.out.println("==> Find the bias sigma 4");
-        // double bs = biasSigma.at(0);
-        // if (DEBUG)
-            // System.out.printf("==> Bias sigma is %f\n", bs);
-        // SmartDashboard.putNumber("bias sigma (rad)", bs);
+        Matrix s1 = m.marginalCovariance(Key.B(t1_us));
+        if (DEBUG)
+            System.out.println("==> Find the bias sigma 3");
+        Vector biasSigma = s1.diagonal_cwiseSqrt();
+        if (DEBUG)
+            System.out.println("==> Find the bias sigma 4");
+        double bs = biasSigma.at(0);
+        if (DEBUG)
+            System.out.printf("==> Bias sigma is %f\n", bs);
+        SmartDashboard.putNumber("bias sigma (rad)", bs);
 
         ++m_loopCount;
 

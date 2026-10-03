@@ -22,14 +22,15 @@ import gtsam.noiseModel.Diagonal;
  * derived from the drive module positions.
  */
 public class Odometry {
-    private final Solver estimate;
+    private static final boolean DEBUG = false;
+    private final Solver solver;
     private final SwerveDriveKinematics100 kinematics;
 
     private SwerveModulePositions positions;
     private Long t0_us = null;
 
     public Odometry(Solver e) throws Throwable {
-        estimate = e;
+        solver = e;
         kinematics = new SwerveDriveKinematics100(
                 new Translation2d(0.5, 0.5),
                 new Translation2d(0.5, -0.5),
@@ -58,7 +59,8 @@ public class Odometry {
     public void add(
             long t1_us,
             SwerveModulePositions newPositions) throws Throwable {
-        System.out.printf("add odometry factor %d\n", t1_us);
+        if (DEBUG)
+            System.out.printf("add odometry factor %d\n", t1_us);
 
         if (t0_us == null) {
             this.positions = newPositions;
@@ -83,7 +85,7 @@ public class Odometry {
         // twist:
         //
         // pose1.compose(betweenpose) = pose2.
-        estimate.add(BetweenFactorPose2.newBetweenFactorPose2(
+        solver.add(BetweenFactorPose2.newBetweenFactorPose2(
                 Key.X(t0_us), Key.X(t1_us), measurement, noise(twistVector)));
 
         positions = newPositions;

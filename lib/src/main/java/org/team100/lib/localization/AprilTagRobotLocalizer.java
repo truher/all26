@@ -1,5 +1,6 @@
 package org.team100.lib.localization;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.geometry.Metrics;
+import org.team100.lib.localization.NudgingVisionUpdater.VisionMeasurement;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleLogger;
@@ -105,16 +107,25 @@ public class AprilTagRobotLocalizer {
     }
 
     public void update() {
-        List<CameraReader.Record<Blip>> records = m_reader.getRecords();
-        for (CameraReader.Record<Blip> r : records) {
-            perValue(r.camera(), r.values());
+        List<VisionMeasurement> measurements = read();
+        for (VisionMeasurement m : measurements) {
+            m_visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         }
+    }
+
+    public List<VisionMeasurement> read() {
+        List<CameraReader.Record<Blip>> records = m_reader.getRecords();
+        List<VisionMeasurement> measurements = new ArrayList<>();
+        for (CameraReader.Record<Blip> r : records) {
+            measurements.addAll(perValue(r.camera(), r.values()));
+        }
+        return measurements;
     }
 
     /**
      * Compute the robot pose and put it in the pose estimator.
      */
-    protected void perValue(Camera camera, Blip[] blips) {
+    List<VisionMeasurement> perValue(Camera camera, Blip[] blips) {
 
         Transform3d cameraOffset = Offset.get(camera).offset();
 
@@ -123,7 +134,7 @@ public class AprilTagRobotLocalizer {
         if (!optAlliance.isPresent()) {
             if (DEBUG)
                 System.out.println("no alliance!");
-            return;
+            return List.of();
         }
         Alliance alliance = optAlliance.get();
         m_log_alliance.log(() -> alliance);
@@ -135,6 +146,7 @@ public class AprilTagRobotLocalizer {
                 System.out.println("no blips!");
         }
 
+        List<VisionMeasurement> measurements = new ArrayList<>();
         for (int i = 0; i < blips.length; ++i) {
             Blip blip = blips[i];
 
@@ -211,10 +223,10 @@ public class AprilTagRobotLocalizer {
                             cameraToTag.getTranslation().getNorm(),
                             Metrics.offAxisAngleRad(cameraToTag)));
 
-            m_visionUpdater.put(blipTimeSec, noisyMeasurement);
+            measurements.add(new VisionMeasurement(blipTimeSec, noisyMeasurement));
             m_prevPose = robotPose2d;
         }
-
+        return measurements;
     }
 
     /**

@@ -5,26 +5,14 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import org.team100.lib.coherence.Takt;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.NoisyPose2d;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 
 /**
- * Updates the whole history based on new and old inputs.
- * 
- * The old way we did this was to add a vision estimate, and then replay
- * odometry after that, and do that over and over for every vision input.
- * This was an evolution of the older WPI estimator.
- * 
- * The new way is to add all the inputs, and then sweep the history one time,
- * to do all the nudging and integrating in one pass.
- * 
- * The repetition in the first way is required because none of the replaying
- * was aware of any subsequent vision input: it just takes the vision-nudged
- * estimate and integrates the odometry. So without this repeated-integration
- * approach, if vision updates were received out-of-order (which was/is common)
- * then the "earlier" ones would end up overwriting the "later" ones.
+ * Centralized batched pose-estimation updates.
  */
 public class HistoryGardener {
     record Odo(Rotation2d gyro, SwerveModulePositions odo) {
@@ -47,6 +35,8 @@ public class HistoryGardener {
         m_odometryUpdater = odometryUpdater;
         m_visionUpdater = visionUpdater;
     }
+
+
 
     /** Add pending odometry measurement. */
     public void putOdometry(
@@ -90,5 +80,7 @@ public class HistoryGardener {
             vision = visionIter.hasNext() ? visionIter.next() : null;
         }
 
+        m_pendingOdo.clear();
+        m_pendingVision.clear();
     }
 }

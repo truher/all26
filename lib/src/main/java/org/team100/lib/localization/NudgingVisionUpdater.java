@@ -1,5 +1,7 @@
 package org.team100.lib.localization;
 
+import java.util.List;
+
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.fusion.CovarianceInflation;
 import org.team100.lib.fusion.Fusor;
@@ -27,6 +29,9 @@ import edu.wpi.first.math.geometry.Translation2d;
  */
 public class NudgingVisionUpdater implements VisionUpdater {
     private static final boolean DEBUG = false;
+
+    public record VisionMeasurement(double timestamp, NoisyPose2d noisyMeasurement) {
+    }
 
     private final SwerveHistory m_history;
     /** For replay. */
@@ -58,6 +63,12 @@ public class NudgingVisionUpdater implements VisionUpdater {
         // TODO: maybe the minimum variance here it too low?
         m_rotationFusor = new CovarianceInflation(0.02, 0.003);
         m_latestTimeS = 0;
+    }
+
+    public void put(List<VisionMeasurement> measurements) {
+        for (VisionMeasurement m : measurements) {
+            put(m.timestamp, m.noisyMeasurement);
+        }
     }
 
     /**

@@ -3,10 +3,13 @@ package org.team100.lib.localization;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.team100.lib.camera.Camera;
+import org.team100.lib.localization.NudgingVisionUpdater.VisionMeasurement;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
@@ -40,9 +43,14 @@ public class AprilTagCornerRobotLocalizerTest {
         BlipWithCorners tag4 = new BlipWithCorners(0, 4, 500, 600, 600, 600, 600, 500, 500, 500, new Transform3d());
         BlipWithCorners[] tags = new BlipWithCorners[] { tag4 };
         Camera camera = Camera.SIM0;
-        localizer.perValue(camera, tags);
-        assertEquals(0, visionUpdater.size());
-        localizer.perValue(camera, tags);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+
+        measurement.addAll(localizer.perValue(camera, tags));
+        assertEquals(0, measurement.size());
+        measurement = localizer.perValue(camera, tags);
+        assertEquals(1, measurement.size());
+        VisionMeasurement m = measurement.get(0);
+        visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         assertEquals(7.310, visionUpdater.poseEstimate.get(0).getX(), DELTA);
         assertEquals(1.914, visionUpdater.poseEstimate.get(0).getY(), DELTA);
     }
@@ -97,8 +105,12 @@ public class AprilTagCornerRobotLocalizerTest {
                 logger, layout, visionUpdater, () -> Optional.of(Alliance.Red));
         Camera camera = Camera.SIM0;
         // watch the tag for 0.2 sec
+        List<VisionMeasurement> measurements = new ArrayList<>();
         for (double t = 0.02; t <= 0.2; t += 0.02) {
-            localizer.perValue(camera, getTags(t));
+            measurements.addAll(localizer.perValue(camera, getTags(t)));
+        }
+        for (VisionMeasurement m : measurements) {
+            visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         }
         assertEquals(10, history.size());
         // pose is most of the way but not all the way; the nudging is proportional to
@@ -114,8 +126,12 @@ public class AprilTagCornerRobotLocalizerTest {
         assertEquals(1.53, state.noise().cartesian(), DELTA);
 
         // watch the tag for 0.2 more sec
+        measurements.clear();
         for (double t = 0.22; t <= 0.4; t += 0.02) {
-            localizer.perValue(camera, getTags(t));
+            measurements.addAll(localizer.perValue(camera, getTags(t)));
+        }
+        for (VisionMeasurement m : measurements) {
+            visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         }
         assertEquals(10, history.size());
         lastKey = history.lastKey();

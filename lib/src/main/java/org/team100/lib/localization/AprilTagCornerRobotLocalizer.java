@@ -1,5 +1,6 @@
 package org.team100.lib.localization;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.geometry.GeometryUtil;
 import org.team100.lib.geometry.Metrics;
+import org.team100.lib.localization.NudgingVisionUpdater.VisionMeasurement;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleLogger;
@@ -87,16 +89,27 @@ public class AprilTagCornerRobotLocalizer {
     }
 
     public void update() {
-        List<CameraReader.Record<BlipWithCorners>> records = m_reader.getRecords();
-        for (CameraReader.Record<BlipWithCorners> r : records) {
-            perValue(r.camera(), r.values());
+        List<VisionMeasurement> measurements = read();
+        for (VisionMeasurement m : measurements) {
+            m_visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         }
+    }
+
+    /** Read all pending input and return a list of measurements */
+    public List<VisionMeasurement> read() {
+        // camera inputs
+        List<CameraReader.Record<BlipWithCorners>> records = m_reader.getRecords();
+        List<VisionMeasurement> measurements = new ArrayList<>();
+        for (CameraReader.Record<BlipWithCorners> r : records) {
+            measurements.addAll(perValue(r.camera(), r.values()));
+        }
+        return measurements;
     }
 
     /**
      * Compute the robot pose and put it in the pose estimator.
      */
-    protected void perValue(Camera camera, BlipWithCorners[] blips) {
+    List<VisionMeasurement> perValue(Camera camera, BlipWithCorners[] blips) {
         Transform3d cameraOffset = Offset.get(camera).offset();
 
         // Fetch the alliance (not available immediately after startup).
@@ -104,7 +117,7 @@ public class AprilTagCornerRobotLocalizer {
         if (!optAlliance.isPresent()) {
             if (DEBUG)
                 System.out.println("no alliance!");
-            return;
+            return List.of();
         }
         Alliance alliance = optAlliance.get();
 
@@ -113,6 +126,7 @@ public class AprilTagCornerRobotLocalizer {
                 System.out.println("no blips!");
         }
 
+        List<VisionMeasurement> measurements = new ArrayList<>();
         for (int i = 0; i < blips.length; ++i) {
             BlipWithCorners blip = blips[i];
 
@@ -189,9 +203,10 @@ public class AprilTagCornerRobotLocalizer {
                             cameraToTag.getTranslation().getNorm(),
                             Metrics.offAxisAngleRad(cameraToTag)));
 
-            m_visionUpdater.put(blipTimeSec, noisyMeasurement);
+            measurements.add(new VisionMeasurement(blipTimeSec, noisyMeasurement));
             m_prevPose = robotPose2d;
         }
+        return measurements;
     }
 
     /**

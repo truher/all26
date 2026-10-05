@@ -1,11 +1,10 @@
 package org.team100.lib.targeting;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.DoubleStream;
 
-import org.team100.lib.camera.Camera;
-import org.team100.lib.camera.Offset;
 import org.team100.lib.coherence.Cache;
 import org.team100.lib.coherence.SideEffect;
 import org.team100.lib.coherence.Takt;
@@ -22,7 +21,6 @@ import org.team100.lib.util.CoalescingCollection;
 import org.team100.lib.util.TrailingHistory;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.util.struct.StructBuffer;
 
@@ -33,14 +31,17 @@ import edu.wpi.first.util.struct.StructBuffer;
 public class Targets {
     private static final boolean DEBUG = false;
 
-    /** Ignore sightings farther away than this. */
-    private static final double MAX_DISTANCE = 4.0;
+    public record TargetMeasurement(double timestamp, Translation2d location) {
+    }
+
     /** Forget sights older than this. */
     private static final double HISTORY_DURATION = 1.0;
     /** Targets closer than this to each other are combined */
     private static final double NEARNESS_THRESHOLD = 0.15;
 
     private final CameraReader<Target> m_reader;
+    private final DoubleLogger m_log_age;
+    private final DoubleLogger m_log_poseTimestamp;
 
     /**
      * Ignore incoming sights older than this, because they're stale.
@@ -52,6 +53,7 @@ public class Targets {
     public final DoubleArrayLogger m_log_allTargets;
     public final DoubleArrayLogger m_log_coalescedTargets;
 
+    private final TargetTranslator m_translator;
     /** state = f(takt seconds) from history. */
     private final StateSampler m_history;
     /** Accumulation of targets we see; this is really for logging only. */
@@ -61,8 +63,6 @@ public class Targets {
     /** Side effect mutates targets. */
     private final SideEffect m_vision;
     private final IntLogger m_log_historySize;
-    private final DoubleLogger m_log_age;
-    private final DoubleLogger m_log_poseTimestamp;
 
     /** The closest target from the most recent update. */
     private Optional<Translation2d> m_closestTarget;
@@ -75,13 +75,15 @@ public class Targets {
         m_reader = new CameraReader<>("objectVision", "targets",
                 StructBuffer.create(Target.struct));
         LoggerFactory log = parent.type(this);
+        m_log_age = log.doubleLogger(Level.TRACE, "target age");
+        m_log_poseTimestamp = log.doubleLogger(Level.TRACE, "pose timestamp");
         m_maxSightAgeS = maxSightAge;
         m_log_historySize = log.intLogger(Level.TRACE, "history size");
         m_log_closestTarget = fieldLogger.doubleArrayLogger(Level.TRACE, "closest target");
         m_log_allTargets = fieldLogger.doubleArrayLogger(Level.TRACE, "all targets");
         m_log_coalescedTargets = fieldLogger.doubleArrayLogger(Level.TRACE, "coalesced targets");
-        m_log_age = log.doubleLogger(Level.TRACE, "target age");
-        m_log_poseTimestamp = log.doubleLogger(Level.TRACE, "pose timestamp");
+
+        m_translator = new TargetTranslator(history);
         m_history = history;
         m_allTargets = new TrailingHistory<>();
         m_targets = new CoalescingCollection<>(
@@ -99,9 +101,19 @@ public class Targets {
         m_targets.evict(deadline);
 
         // Read all the pending input.
-        List<CameraReader.Record<Target>> records = m_reader.getRecords();
-        for (CameraReader.Record<Target> r : records) {
-            perValue(r.camera(), r.values());
+        List<TargetMeasurement> measurements = read();
+        for (TargetMeasurement m : measurements) {
+            m_log_poseTimestamp.log(() -> m.timestamp);
+            double age = Takt.get() - m.timestamp;
+            m_log_age.log(() -> age);
+            if (age > m_maxSightAgeS) {
+                if (DEBUG) {
+                    System.out.printf("WARNING: ignoring stale sight %f\n", age);
+                }
+                continue;
+            }
+            m_allTargets.add(m.timestamp, m.location);
+            m_targets.add(m.timestamp, m.location);
         }
 
         // Show the targets on the Field2d widget.
@@ -128,43 +140,13 @@ public class Targets {
         m_log_historySize.log(() -> m_targets.size());
     }
 
-    /**
-     * Transform sightings into field-relative targets.
-     */
-    protected void perValue(Camera camera, Target[] sights) {
-        for (Target sight : sights) {
-            // server timestamp in sec
-            double timeSec = (double) sight.getTimestamp() / 1e6;
-
-            double age = Takt.get() - timeSec;
-            m_log_age.log(() -> age);
-
-            if (age > m_maxSightAgeS) {
-                if (DEBUG) {
-                    System.out.printf("WARNING: ignoring stale sight %f\n", age);
-                }
-                continue;
-            }
-
-            m_log_poseTimestamp.log(() -> timeSec);
-            Pose2d robotPose = m_history.get(timeSec).pose();
-            Transform3d cameraOffset = Offset.get(camera).offset();
-            Optional<Translation2d> ot = TargetLocalizer.cameraRotToFieldRelative(
-                    robotPose,
-                    cameraOffset,
-                    sight.sight());
-            if (ot.isEmpty())
-                continue;
-            Translation2d t = ot.get();
-            double distance = t.getDistance(robotPose.getTranslation());
-            if (distance > MAX_DISTANCE) {
-                if (DEBUG)
-                    System.out.println("Target is too far away.");
-                continue;
-            }
-            m_allTargets.add(timeSec, t);
-            m_targets.add(timeSec, t);
+    private List<TargetMeasurement> read() {
+        List<CameraReader.Record<Target>> records = m_reader.getRecords();
+        List<TargetMeasurement> measurements = new ArrayList<>();
+        for (CameraReader.Record<Target> r : records) {
+            measurements.addAll(m_translator.convert(r.camera(), r.values()));
         }
+        return measurements;
     }
 
     /**

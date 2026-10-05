@@ -4,10 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.team100.lib.camera.Camera;
+import org.team100.lib.localization.NudgingVisionUpdater.VisionMeasurement;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
@@ -35,7 +38,6 @@ class AprilTagRobotLocalizerTest implements Timeless {
     void testEndToEnd() throws IOException, InterruptedException {
         AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation(
                 "2025-reefscape.json");
-
 
         MockVisionUpdater visionUpdater = new MockVisionUpdater();
 
@@ -123,9 +125,15 @@ class AprilTagRobotLocalizerTest implements Timeless {
         };
 
         Camera camera = Camera.UNKNOWN;
-        localizer.perValue(camera, blips);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+
+        measurement.addAll(localizer.perValue(camera, blips));
         // do it twice to convince vdp it's a good estimate
-        localizer.perValue(camera, blips);
+        measurement.addAll(localizer.perValue(camera, blips));
+        assertEquals(1, measurement.size());
+        VisionMeasurement m = measurement.get(0);
+        visionUpdater.put(m.timestamp(), m.noisyMeasurement());
+
         assertEquals(1, visionUpdater.poseEstimate.size());
         assertEquals(1, visionUpdater.timeEstimate.size());
 
@@ -165,9 +173,15 @@ class AprilTagRobotLocalizerTest implements Timeless {
         final Blip[] blips = new Blip[] { blip };
 
         Camera camera = Camera.UNKNOWN;
-        localizer.perValue(camera, blips);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+
+        measurement.addAll(localizer.perValue(camera, blips));
         // two good estimates are required, so do another one.
-        localizer.perValue(camera, blips);
+        measurement.addAll(localizer.perValue(camera, blips));
+
+        assertEquals(1, measurement.size());
+        VisionMeasurement m = measurement.get(0);
+        visionUpdater.put(m.timestamp(), m.noisyMeasurement());
 
         assertEquals(1, visionUpdater.poseEstimate.size());
         assertEquals(1, visionUpdater.timeEstimate.size());
@@ -213,10 +227,11 @@ class AprilTagRobotLocalizerTest implements Timeless {
         final Blip[] tags = new Blip[] { tag3, tag4 };
 
         Camera camera = Camera.GAME_PIECE;
-        localizer.perValue(camera, tags);
-        localizer.perValue(camera, tags);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+        measurement.addAll(localizer.perValue(camera, tags));
+        measurement.addAll(localizer.perValue(camera, tags));
         // every input is ignored
-        assertEquals(0, visionUpdater.size());
+        assertEquals(0, measurement.size());
     }
 
     @Test
@@ -242,9 +257,14 @@ class AprilTagRobotLocalizerTest implements Timeless {
         // if the tag is on bore then the camera is pretty high and also tilted up
         // the tag is tilted 30 degrees so the height is 0.5 meters lower than the tag
         Camera camera = Camera.TEST7A;
-        localizer.perValue(camera, tags);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+
+        measurement.addAll(localizer.perValue(camera, tags));
         assertEquals(0, visionUpdater.size());
-        localizer.perValue(camera, tags);
+        measurement.addAll(localizer.perValue(camera, tags));
+        assertEquals(1, measurement.size());
+        VisionMeasurement m = measurement.get(0);
+        visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         assertEquals(8.272 - Math.sqrt(3) / 2, visionUpdater.poseEstimate.get(0).getX(), DELTA);
         assertEquals(1.914, visionUpdater.poseEstimate.get(0).getY(), DELTA);
     }
@@ -271,9 +291,14 @@ class AprilTagRobotLocalizerTest implements Timeless {
 
         // nonzero camera offset
         Camera camera = Camera.TEST7;
-        localizer.perValue(camera, tags);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+
+        measurement.addAll(localizer.perValue(camera, tags));
         assertEquals(0, visionUpdater.size());
-        localizer.perValue(camera, tags);
+        measurement.addAll(localizer.perValue(camera, tags));
+        assertEquals(1, measurement.size());
+        VisionMeasurement m = measurement.get(0);
+        visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         assertEquals(7.272 - Math.sqrt(3) / 2, visionUpdater.poseEstimate.get(0).getX(), DELTA);
         assertEquals(1.914, visionUpdater.poseEstimate.get(0).getY(), DELTA);
     }
@@ -299,9 +324,14 @@ class AprilTagRobotLocalizerTest implements Timeless {
         final Blip[] tags = new Blip[] { tag4 };
 
         Camera camera = Camera.TEST8;
-        localizer.perValue(camera, tags);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+
+        measurement.addAll(localizer.perValue(camera, tags));
         assertEquals(0, visionUpdater.size());
-        localizer.perValue(camera, tags);
+        measurement.addAll(localizer.perValue(camera, tags));
+        assertEquals(1, measurement.size());
+        VisionMeasurement m = measurement.get(0);
+        visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         assertEquals(7.047, visionUpdater.poseEstimate.get(0).getX(), DELTA);
         assertEquals(1.914, visionUpdater.poseEstimate.get(0).getY(), DELTA);
     }
@@ -327,9 +357,14 @@ class AprilTagRobotLocalizerTest implements Timeless {
         final Blip[] tags = new Blip[] { tag4 };
 
         Camera camera = Camera.UNKNOWN;
-        localizer.perValue(camera, tags);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+
+        measurement.addAll(localizer.perValue(camera, tags));
         assertEquals(0, visionUpdater.size());
-        localizer.perValue(camera, tags);
+        measurement.addAll(localizer.perValue(camera, tags));
+        assertEquals(1, measurement.size());
+        VisionMeasurement m = measurement.get(0);
+        visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         assertEquals(7.407, visionUpdater.poseEstimate.get(0).getX(), DELTA);
         assertEquals(0.914, visionUpdater.poseEstimate.get(0).getY(), DELTA);
     }
@@ -355,9 +390,14 @@ class AprilTagRobotLocalizerTest implements Timeless {
         final Blip[] tags = new Blip[] { tag4 };
 
         Camera camera = Camera.UNKNOWN;
-        localizer.perValue(camera, tags);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+
+        measurement.addAll(localizer.perValue(camera, tags));
         assertEquals(0, visionUpdater.size());
-        localizer.perValue(camera, tags);
+        measurement.addAll(localizer.perValue(camera, tags));
+        assertEquals(1, measurement.size());
+        VisionMeasurement m = measurement.get(0);
+        visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         assertEquals(7.047, visionUpdater.poseEstimate.get(0).getX(), DELTA);
         assertEquals(1.914, visionUpdater.poseEstimate.get(0).getY(), DELTA);
     }
@@ -381,9 +421,14 @@ class AprilTagRobotLocalizerTest implements Timeless {
 
         final Blip[] tags = new Blip[] { tag4 };
         Camera camera = Camera.UNKNOWN;
-        localizer.perValue(camera, tags);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+
+        measurement.addAll(localizer.perValue(camera, tags));
         assertEquals(0, visionUpdater.size());
-        localizer.perValue(camera, tags);
+        measurement.addAll(localizer.perValue(camera, tags));
+        assertEquals(1, measurement.size());
+        VisionMeasurement m = measurement.get(0);
+        visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         assertEquals(7.047, visionUpdater.poseEstimate.get(0).getX(), DELTA);
         assertEquals(1.914, visionUpdater.poseEstimate.get(0).getY(), DELTA);
     }
@@ -409,9 +454,14 @@ class AprilTagRobotLocalizerTest implements Timeless {
         final Blip[] tags = new Blip[] { tag4 };
 
         Camera camera = Camera.TEST8;
-        localizer.perValue(camera, tags);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+
+        measurement.addAll(localizer.perValue(camera, tags));
         assertEquals(0, visionUpdater.size());
-        localizer.perValue(camera, tags);
+        measurement.addAll(localizer.perValue(camera, tags));
+        assertEquals(1, measurement.size());
+        VisionMeasurement m = measurement.get(0);
+        visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         assertEquals(6.54, visionUpdater.poseEstimate.get(0).getX(), DELTA);
         assertEquals(1.914, visionUpdater.poseEstimate.get(0).getY(), DELTA);
     }
@@ -438,9 +488,14 @@ class AprilTagRobotLocalizerTest implements Timeless {
         final Blip[] tags = new Blip[] { tag4 };
 
         Camera camera = Camera.TEST9;
-        localizer.perValue(camera, tags);
+        List<VisionMeasurement> measurement = new ArrayList<>();
+
+        measurement.addAll(localizer.perValue(camera, tags));
         assertEquals(0, visionUpdater.size());
-        localizer.perValue(camera, tags);
+        measurement.addAll(localizer.perValue(camera, tags));
+        assertEquals(1, measurement.size());
+        VisionMeasurement m = measurement.get(0);
+        visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         assertEquals(6.858, visionUpdater.poseEstimate.get(0).getX(), DELTA);
         assertEquals(1.914, visionUpdater.poseEstimate.get(0).getY(), DELTA);
     }

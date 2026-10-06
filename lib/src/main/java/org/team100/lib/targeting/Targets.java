@@ -94,14 +94,14 @@ public class Targets {
     }
 
     public void update() {
-        // Clean the history, relative to the current moment.
-        // Previously, eviction only occurred when the robot could see something.
-        double deadline = Takt.get() - HISTORY_DURATION;
-        m_allTargets.evict(deadline);
-        m_targets.evict(deadline);
+        List<TargetMeasurement> measurements = filteredRead();
+        consumeMeasurements(measurements);
+    }
 
+    private List<TargetMeasurement> filteredRead() {
         // Read all the pending input.
         List<TargetMeasurement> measurements = read();
+        List<TargetMeasurement> filteredMeasurements = new ArrayList<>();
         for (TargetMeasurement m : measurements) {
             m_log_poseTimestamp.log(() -> m.timestamp);
             double age = Takt.get() - m.timestamp;
@@ -112,10 +112,22 @@ public class Targets {
                 }
                 continue;
             }
+            filteredMeasurements.add(m);
+        }
+        return measurements;
+    }
+
+    private void consumeMeasurements(List<TargetMeasurement> measurements) {
+        // Clean the history, relative to the current moment.
+        // Previously, eviction only occurred when the robot could see something.
+        double deadline = Takt.get() - HISTORY_DURATION;
+        m_allTargets.evict(deadline);
+        m_targets.evict(deadline);
+
+        for (TargetMeasurement m : measurements) {
             m_allTargets.add(m.timestamp, m.location);
             m_targets.add(m.timestamp, m.location);
         }
-
         // Show the targets on the Field2d widget.
 
         // compute the closest target

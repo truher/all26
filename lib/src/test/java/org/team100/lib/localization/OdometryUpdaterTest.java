@@ -43,8 +43,8 @@ public class OdometryUpdaterTest {
                 IsotropicNoiseSE2.high(),
                 0);
         OdometryUpdater ou = new OdometryUpdater(
-                log, kinodynamics, gyro, history,
-                () -> positions, UnaryOperator.identity(), true);
+                log, kinodynamics, gyro.white_noise(),gyro.bias_noise(), history,
+                 UnaryOperator.identity(), true);
         // previous state is at zero, but uncertain
         StateSE2 sampleState = new StateSE2();
         IsotropicNoiseSE2 stateNoise = IsotropicNoiseSE2.fromStdDev(1, 1);
@@ -103,8 +103,8 @@ public class OdometryUpdaterTest {
                 IsotropicNoiseSE2.high(),
                 0);
         OdometryUpdater ou = new OdometryUpdater(
-                log, kinodynamics, gyro, history,
-                () -> positions, UnaryOperator.identity(), true);
+                log, kinodynamics, gyro.white_noise(),gyro.bias_noise(), history,
+                 UnaryOperator.identity(), true);
 
         // previous state is at zero, pretty sure.
         StateSE2 sampleState = new StateSE2();
@@ -150,8 +150,8 @@ public class OdometryUpdaterTest {
                 IsotropicNoiseSE2.high(),
                 0);
         OdometryUpdater ou = new OdometryUpdater(
-                log, kinodynamics, gyro, history,
-                () -> positions, UnaryOperator.identity(), true);
+                log, kinodynamics, gyro.white_noise(),gyro.bias_noise(), history,
+                 UnaryOperator.identity(), true);
 
         // previous state is at zero, pretty sure.
         StateSE2 sampleState = new StateSE2();
@@ -216,8 +216,8 @@ public class OdometryUpdaterTest {
                 IsotropicNoiseSE2.high(),
                 0);
         OdometryUpdater ou = new OdometryUpdater(
-                log, kinodynamics, gyro, history,
-                () -> positions, UnaryOperator.identity(), true);
+                log, kinodynamics, gyro.white_noise(),gyro.bias_noise(), history,
+                 UnaryOperator.identity(), true);
 
         // previous state is at zero, pretty sure.
         StateSE2 sampleState = new StateSE2();

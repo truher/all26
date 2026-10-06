@@ -31,7 +31,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
  */
 public class SwerveHistory implements StateSampler {
     private static final boolean DEBUG = false;
-
     private final DoubleLogger m_log_timestamp;
     private final TimeInterpolatableBuffer100<SwerveState> m_poseBuffer;
 

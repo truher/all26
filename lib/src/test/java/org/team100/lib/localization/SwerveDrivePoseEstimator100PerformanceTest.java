@@ -74,20 +74,22 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
                 0);
         positions = p(0);
         OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, gyro, history,
-                () -> positions, UnaryOperator.identity(), true);
+                logger, kinodynamics, gyro.white_noise(),gyro.bias_noise(), history,
+                 UnaryOperator.identity(), true);
         history.reset(
                 positions, Pose2d.kZero, IsotropicNoiseSE2.high(),
                 0, gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, history, ou);
+        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, history, ou::replay);
 
         // fill the buffer with odometry
         double t = 0.0;
         double duration = 0.2; // SwerveDrivePoseEstimator100.BUFFER_DURATION;
         while (t < duration) {
             positions = p(t);
-            ou.update(t);
+            SwerveState s = ou.estimate(t, gyro.getYawNWU(), positions);
+            if (s != null)
+                history.put(t, s);
             t += 0.02;
         }
         assertEquals(11, history.size());

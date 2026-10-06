@@ -9,7 +9,6 @@ import java.util.function.Supplier;
 
 import org.team100.lib.camera.Camera;
 import org.team100.lib.camera.Offset;
-import org.team100.lib.coherence.Takt;
 import org.team100.lib.geometry.Metrics;
 import org.team100.lib.localization.NudgingVisionUpdater.VisionMeasurement;
 import org.team100.lib.logging.Level;

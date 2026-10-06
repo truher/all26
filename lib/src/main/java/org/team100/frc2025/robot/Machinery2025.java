@@ -53,7 +53,6 @@ public class Machinery2025 {
     private static final LoggerFactory logger = Logging.instance().rootLogger;
     private static final LoggerFactory fieldLogger = Logging.instance().fieldLogger;
 
-    private final RobotPoseVisualization m_robotViz;
     private final AprilTagVisualizer m_tagViz;
     private final Runnable m_combinedViz;
     private final Runnable m_climberViz;
@@ -108,7 +107,7 @@ public class Machinery2025 {
                 swerveLocal);
         m_tagViz = new AprilTagVisualizer(
                 driveLog, fieldLogger, m_drive::getState, layout, DriverStation::getAlliance);
-        m_robotViz = new RobotPoseVisualization(
+        new RobotPoseVisualization(
                 fieldLogger, () -> m_drive.getState(), "robot");
 
         ////////////////////////////////////////////////////////////

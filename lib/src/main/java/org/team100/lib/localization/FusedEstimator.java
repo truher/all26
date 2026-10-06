@@ -36,10 +36,7 @@ public class FusedEstimator implements StateEstimator {
     private final SwerveHistory m_history;
     private final AprilTagCornerRobotLocalizer m_localizer;
     private final OdometryUpdater m_odometryUpdate;
-    /** Side effect mutates history. */
-    private final SideEffect m_localizerCache;
-    /** Side effect mutates history. */
-    private final SideEffect m_odometryCache;
+    private final SideEffect m_cache;
 
     public FusedEstimator(LoggerFactory driveLog,
             LoggerFactory fieldLogger,
@@ -62,20 +59,31 @@ public class FusedEstimator implements StateEstimator {
         m_odometryUpdate = new OdometryUpdater(
                 driveLog,
                 swerveKinodynamics,
-                gyro,
+                gyro.white_noise(),
+                gyro.bias_noise(),
                 m_history,
-                swerveLocal::positions,
                 odometryNoise,
                 false);
         NudgingVisionUpdater visionUpdater = new NudgingVisionUpdater(
-                driveLog, m_history, m_odometryUpdate);
+                driveLog, m_history, m_odometryUpdate::replay);
         m_localizer = new AprilTagCornerRobotLocalizer(
                 driveLog,
                 layout,
                 visionUpdater,
                 DriverStation::getAlliance);
-        m_localizerCache = Cache.ofSideEffect(m_localizer::update);
-        m_odometryCache = Cache.ofSideEffect(m_odometryUpdate::update);
+        m_cache = Cache.ofSideEffect(this::update);
+    }
+
+    void update() {
+        // these mutate history.
+        double timestamp = Takt.get();
+        m_localizer.update();
+        SwerveState s = m_odometryUpdate.estimate(
+                timestamp,
+                m_gyro.getYawNWU(),
+                m_swerveLocal.positions());
+        if (s != null)
+            m_history.put(timestamp, s);
     }
 
     public Map<Double, SwerveState> all() {
@@ -93,8 +101,9 @@ public class FusedEstimator implements StateEstimator {
     @Override
     public StateSE2 get(double timestampS) {
         // run our dependencies if they haven't already
-        m_localizerCache.run();
-        m_odometryCache.run();
+        // m_localizerCache.run();
+        // m_odometryCache.run();
+        m_cache.run();
         final StateSE2 state;
         if (Experiments.INSTANCE.enabled(Experiment.ImputeVelocity)) {
             // Use consecutive poses
@@ -127,8 +136,9 @@ public class FusedEstimator implements StateEstimator {
                 Takt.get(),
                 m_gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));
-        m_localizerCache.reset();
-        m_odometryCache.reset();
+        // m_localizerCache.reset();
+        // m_odometryCache.reset();
+        m_cache.reset();
     }
 
     /**

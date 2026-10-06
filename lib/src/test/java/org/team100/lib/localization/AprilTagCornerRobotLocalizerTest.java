@@ -45,7 +45,6 @@ public class AprilTagCornerRobotLocalizerTest {
         Camera camera = Camera.SIM0;
         List<VisionMeasurement> measurement = new ArrayList<>();
 
-
         measurement.addAll(localizer.m_translator.convert(camera, tags));
         assertEquals(1, measurement.size());
         VisionMeasurement m = measurement.get(0);
@@ -88,18 +87,9 @@ public class AprilTagCornerRobotLocalizerTest {
         // high uncertainty
         assertEquals(10, state.noise().cartesian(), DELTA);
 
-        // odometry does nothing
-        OdometryUpdaterInterface odometryUpdater = new OdometryUpdaterInterface() {
-            @Override
-            public void update() {
-            }
-
-            @Override
-            public void replay(double sampleTime) {
-            }
-        };
-
-        NudgingVisionUpdater visionUpdater = new NudgingVisionUpdater(logger, history, odometryUpdater);
+        // no replayer
+        NudgingVisionUpdater visionUpdater = new NudgingVisionUpdater(
+                logger, history, t->{});
         AprilTagCornerRobotLocalizer localizer = new AprilTagCornerRobotLocalizer(
                 logger, layout, visionUpdater, () -> Optional.of(Alliance.Red));
         Camera camera = Camera.SIM0;

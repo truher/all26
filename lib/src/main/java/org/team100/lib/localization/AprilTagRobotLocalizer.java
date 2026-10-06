@@ -77,7 +77,13 @@ public class AprilTagRobotLocalizer {
     }
 
     public void update() {
+        List<VisionMeasurement> filteredMeasurements = filteredRead();
+        consumeMeasurements(filteredMeasurements);
+    }
+
+    private List<VisionMeasurement> filteredRead() {
         List<VisionMeasurement> measurements = read();
+        List<VisionMeasurement> filteredMeasurements = new ArrayList<>();
         for (VisionMeasurement m : measurements) {
             m_log_lag.log(() -> Takt.get() - m.timestamp());
             Pose2d pose = m.noisyMeasurement().pose();
@@ -114,6 +120,13 @@ public class AprilTagRobotLocalizer {
             ///
             //////////////////////////////////////////////////////////////////
             m_prevPose = pose;
+            filteredMeasurements.add(m);
+        }
+        return filteredMeasurements;
+    }
+
+    private void consumeMeasurements(List<VisionMeasurement> filteredMeasurements) {
+        for (VisionMeasurement m : filteredMeasurements) {
             m_visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         }
     }

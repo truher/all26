@@ -1,6 +1,7 @@
 package org.team100.lib.localization;
 
 import java.util.List;
+import java.util.function.DoubleConsumer;
 
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.fusion.CovarianceInflation;
@@ -34,8 +35,8 @@ public class NudgingVisionUpdater implements VisionUpdater {
     }
 
     private final SwerveHistory m_history;
-    /** For replay. */
-    private final OdometryUpdaterInterface m_odometryUpdater;
+    /** Replay after the given timestamp. */
+    private final DoubleConsumer m_replayer;
     private final Fusor m_cartesianFusor;
     private final Fusor m_rotationFusor;
     private final SwerveStateLogger m_logState;
@@ -50,10 +51,10 @@ public class NudgingVisionUpdater implements VisionUpdater {
     public NudgingVisionUpdater(
             LoggerFactory parent,
             SwerveHistory history,
-            OdometryUpdaterInterface odometryUpdater) {
+            DoubleConsumer replayer) {
         LoggerFactory log = parent.type(this);
         m_history = history;
-        m_odometryUpdater = odometryUpdater;
+        m_replayer = replayer;
         m_logState = log.swerveStateLogger(Level.TRACE, "state");
         m_log_prevNoise = log.isotropicNoiseSE2Logger(Level.TRACE, "previous noise");
         m_log_updateNoise = log.isotropicNoiseSE2Logger(Level.TRACE, "update noise");
@@ -104,7 +105,7 @@ public class NudgingVisionUpdater implements VisionUpdater {
         m_history.put(timestamp, newState);
 
         // Replay everything after the sample.
-        m_odometryUpdater.replay(timestamp);
+        m_replayer.accept(timestamp);
     }
 
     /**

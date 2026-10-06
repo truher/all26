@@ -37,10 +37,10 @@ public class HistoryGardenerTest {
                 IsotropicNoiseSE2.high(),
                 0);
         OdometryUpdater ou = new OdometryUpdater(
-                log, kinodynamics, gyro, history,
-                () -> positions, UnaryOperator.identity(), true);
+                log, kinodynamics, gyro.white_noise(),gyro.bias_noise(), history,
+                 UnaryOperator.identity(), true);
 
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(log, history, ou);
+        NudgingVisionUpdater vu = new NudgingVisionUpdater(log, history, ou::replay);
 
         HistoryGardener gardener = new HistoryGardener(history, ou, vu);
 

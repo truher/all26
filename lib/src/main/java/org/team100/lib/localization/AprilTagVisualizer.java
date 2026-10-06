@@ -10,7 +10,6 @@ import org.team100.lib.coherence.Takt;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleArrayLogger;
-import org.team100.lib.logging.LoggerFactory.DoubleLogger;
 import org.team100.lib.network.CameraReader;
 import org.team100.lib.util.TrailingHistory;
 
@@ -32,8 +31,6 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
  * part of AprilTagCornerRobotLocalizer.
  */
 public class AprilTagVisualizer {
-    private static final boolean DEBUG = false;
-
     record Measurement(double timestamp, Pose3d pose) {
     }
 
@@ -63,26 +60,37 @@ public class AprilTagVisualizer {
     }
 
     public void update() {
-        // Clean the history, relative to the current moment.
-        // Previously, eviction only occurred when the robot could see something.
-        double deadline = Takt.get() - HISTORY_DURATION;
-        m_allTags.evict(deadline);
+        List<Measurement> measurements = read();
+        consumeMeasurements(measurements);
+    }
 
+    private List<Measurement> read() {
         // Read all the pending input.
         List<CameraReader.Record<BlipWithCorners>> records = m_reader.getRecords();
         List<Measurement> measurements = new ArrayList<>();
         for (CameraReader.Record<BlipWithCorners> r : records) {
             measurements.addAll(m_translator.convert(r.camera(), r.values()));
         }
+        return measurements;
+    }
+
+    private void consumeMeasurements(List<Measurement> measurements) {
+        // Clean the history, relative to the current moment.
+        // Previously, eviction only occurred when the robot could see something.
+        double deadline = Takt.get() - HISTORY_DURATION;
+        m_allTags.evict(deadline);
         for (Measurement m : measurements) {
             m_allTags.add(m.timestamp, m.pose);
         }
-
         // Show the tags on the Field2d widget and AdvantageScope.
         m_pub_tags.set(m_allTags.getAll().toArray(new Pose3d[0]));
         m_log_allTags.log(
                 () -> m_allTags.getAll().stream().flatMapToDouble(
-                        x -> DoubleStream.of(x.getX(), x.getY(), x.toPose2d().getRotation().getDegrees())).toArray());
+                        x -> DoubleStream.of(
+                                x.getX(),
+                                x.getY(),
+                                x.toPose2d().getRotation().getDegrees()))
+                        .toArray());
     }
 
 }

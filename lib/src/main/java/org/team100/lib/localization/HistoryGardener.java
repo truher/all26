@@ -5,7 +5,6 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import org.team100.lib.coherence.Takt;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.NoisyPose2d;
 
@@ -36,8 +35,6 @@ public class HistoryGardener {
         m_visionUpdater = visionUpdater;
     }
 
-
-
     /** Add pending odometry measurement. */
     public void putOdometry(
             double timeSec,
@@ -63,7 +60,9 @@ public class HistoryGardener {
 
         while (odo != null && vision != null) {
             if (odo.getKey() < vision.getKey()) {
-                m_odometryUpdater.put(odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
+                SwerveState s = m_odometryUpdater.estimate(odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
+                if (s != null)
+                    m_history.put(odo.getKey(), s);
                 odo = odoIter.hasNext() ? odoIter.next() : null;
             } else {
                 m_visionUpdater.put(vision.getKey(), vision.getValue());
@@ -72,7 +71,9 @@ public class HistoryGardener {
         }
         // catch the remaining; one of these will work.
         while (odo != null) {
-            m_odometryUpdater.put(odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
+            SwerveState s = m_odometryUpdater.estimate(odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
+            if (s != null)
+                m_history.put(odo.getKey(), s);
             odo = odoIter.hasNext() ? odoIter.next() : null;
         }
         while (vision != null) {

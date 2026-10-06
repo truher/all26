@@ -37,11 +37,20 @@ public class RawTags {
     }
 
     public void update() {
+        List<TagMeasurement> measurements = read();
+        consumeMeasurements(measurements);
+    }
+
+    private List<TagMeasurement> read() {
         List<CameraReader.Record<Blip>> records = m_reader.getRecords();
         List<TagMeasurement> measurements = new ArrayList<>();
         for (CameraReader.Record<Blip> r : records) {
             measurements.addAll(m_translator.convert(r.camera(), r.values()));
         }
+        return measurements;
+    }
+
+    private void consumeMeasurements(List<TagMeasurement> measurements) {
         for (TagMeasurement m : measurements) {
             m_log_lag.log(() -> Takt.get() - m.timestamp);
             m_sink.accept(m.transform, m.timestamp);

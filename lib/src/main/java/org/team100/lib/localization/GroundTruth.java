@@ -58,12 +58,13 @@ public class GroundTruth {
         // Read positions and ground truth gyro (which are perfectly consistent) and
         // maintain the ground truth history.
         m_odometry = new OdometryUpdater(
-                simLog, kinodynamics, m_gyro,
-                m_history, m_modules::positions,
+                simLog, kinodynamics,
+                 m_gyro.white_noise(), m_gyro.bias_noise(),
+                m_history,
                 UnaryOperator.identity(), true);
 
         GroundTruthCache groundTruthCache = new GroundTruthCache(
-                m_odometry, m_history);
+                m_odometry, m_gyro, m_modules::positions, m_history);
 
         // Visualization of the simulated "ground truth" of the robot pose.
         new RobotPoseVisualization(

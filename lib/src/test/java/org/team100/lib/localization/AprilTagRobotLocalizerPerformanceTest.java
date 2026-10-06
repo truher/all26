@@ -54,7 +54,7 @@ class AprilTagRobotLocalizerPerformanceTest {
         Camera camera = Camera.UNKNOWN;
         // run forever so i can use the profiler
         while (true)
-            localizer.perValue(camera, blips);
+            localizer.m_translator.perValue(camera, blips);
     }
 
     @Test

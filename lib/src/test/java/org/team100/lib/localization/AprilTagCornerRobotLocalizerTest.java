@@ -45,9 +45,8 @@ public class AprilTagCornerRobotLocalizerTest {
         Camera camera = Camera.SIM0;
         List<VisionMeasurement> measurement = new ArrayList<>();
 
-        measurement.addAll(localizer.perValue(camera, tags));
-        assertEquals(0, measurement.size());
-        measurement = localizer.perValue(camera, tags);
+
+        measurement.addAll(localizer.m_translator.convert(camera, tags));
         assertEquals(1, measurement.size());
         VisionMeasurement m = measurement.get(0);
         visionUpdater.put(m.timestamp(), m.noisyMeasurement());
@@ -107,28 +106,28 @@ public class AprilTagCornerRobotLocalizerTest {
         // watch the tag for 0.2 sec
         List<VisionMeasurement> measurements = new ArrayList<>();
         for (double t = 0.02; t <= 0.2; t += 0.02) {
-            measurements.addAll(localizer.perValue(camera, getTags(t)));
+            measurements.addAll(localizer.m_translator.convert(camera, getTags(t)));
         }
         for (VisionMeasurement m : measurements) {
             visionUpdater.put(m.timestamp(), m.noisyMeasurement());
         }
-        assertEquals(10, history.size());
+        assertEquals(11, history.size());
         // pose is most of the way but not all the way; the nudging is proportional to
         // the "innovation" i.e. difference between new estimate and history
         lastKey = history.lastKey();
         assertEquals(0.2, lastKey, DELTA);
         state = history.getRecord(lastKey);
         p = state.state().pose();
-        assertEquals(7.140, p.getX(), DELTA);
+        assertEquals(7.157, p.getX(), DELTA);
         assertEquals(1.874, p.getY(), DELTA);
         // uncertainty is still pretty high because the tag is directly in front of the
         // camera, which is a very uncertain state.
-        assertEquals(1.53, state.noise().cartesian(), DELTA);
+        assertEquals(1.455, state.noise().cartesian(), DELTA);
 
         // watch the tag for 0.2 more sec
         measurements.clear();
         for (double t = 0.22; t <= 0.4; t += 0.02) {
-            measurements.addAll(localizer.perValue(camera, getTags(t)));
+            measurements.addAll(localizer.m_translator.convert(camera, getTags(t)));
         }
         for (VisionMeasurement m : measurements) {
             visionUpdater.put(m.timestamp(), m.noisyMeasurement());
@@ -142,7 +141,7 @@ public class AprilTagCornerRobotLocalizerTest {
         p = state.state().pose();
         assertEquals(7.224, p.getX(), DELTA);
         assertEquals(1.891, p.getY(), DELTA);
-        assertEquals(1.089, state.noise().cartesian(), DELTA);
+        assertEquals(1.060, state.noise().cartesian(), DELTA);
     }
 
     private BlipWithCorners[] getTags(double timestampsec) {

@@ -3,13 +3,13 @@ package org.team100.lib.localization;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.DoubleConsumer;
 import java.util.function.Supplier;
 
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.geometry.Metrics;
-import org.team100.lib.localization.NudgingVisionUpdater.VisionMeasurement;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleLogger;
@@ -34,7 +34,9 @@ public class AprilTagCornerRobotLocalizer {
 
     private final CameraReader<BlipWithCorners> m_reader;
     final AprilTagCornerTranslator m_translator;
-    private final VisionUpdater m_visionUpdater;
+    private final VisionEstimator m_visionUpdater;
+    private final DoubleConsumer m_replayer;
+    private final SwerveHistory m_history;
 
     private final Pose2dLogger m_log_pose;
     /**
@@ -52,13 +54,17 @@ public class AprilTagCornerRobotLocalizer {
     public AprilTagCornerRobotLocalizer(
             LoggerFactory parent,
             AprilTagFieldLayoutWithCorrectOrientation layout,
-            VisionUpdater visionUpdater,
+            VisionEstimator visionUpdater,
+            DoubleConsumer replayer,
+            SwerveHistory history,
             Supplier<Optional<Alliance>> alliance) {
         LoggerFactory log = parent.type(this);
         m_reader = new CameraReader<>("vision", "blips_with_corners",
                 StructBuffer.create(BlipWithCorners.struct));
         m_translator = new AprilTagCornerTranslator(log, layout, alliance);
         m_visionUpdater = visionUpdater;
+        m_replayer = replayer;
+        m_history = history;
         m_log_pose = log.pose2dLogger(Level.TRACE, "pose");
         m_log_lag = log.doubleLogger(Level.TRACE, "lag");
     }
@@ -70,7 +76,11 @@ public class AprilTagCornerRobotLocalizer {
 
     private void consumeMeasurement(List<VisionMeasurement> filteredMeasurements) {
         for (VisionMeasurement m : filteredMeasurements) {
-            m_visionUpdater.put(m.timestamp(), m.noisyMeasurement());
+            SwerveState state = m_visionUpdater.estimate(m.timestamp(), m.noisyMeasurement());
+            if (state != null && !m_history.tooOld(m.timestamp())) {
+                m_history.put(m.timestamp(), state);
+                m_replayer.accept(m.timestamp());
+            }
         }
     }
 

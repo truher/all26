@@ -10,7 +10,6 @@ import java.util.function.Supplier;
 import org.team100.lib.camera.Camera;
 import org.team100.lib.camera.Offset;
 import org.team100.lib.geometry.Metrics;
-import org.team100.lib.localization.NudgingVisionUpdater.VisionMeasurement;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleLogger;
@@ -59,7 +58,7 @@ public class AprilTagTranslator {
     /**
      * Compute the robot pose and put it in the pose estimator.
      */
-    List<VisionMeasurement> perValue(Camera camera, Blip[] blips) {
+    List<VisionMeasurement> convert(Camera camera, Blip[] blips) {
         Transform3d cameraOffset = Offset.get(camera).offset();
 
         // Fetch the alliance (not available immediately after startup).

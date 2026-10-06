@@ -35,7 +35,7 @@ public class FusedEstimator implements StateEstimator {
     private final SwerveLocal m_swerveLocal;
     private final SwerveHistory m_history;
     private final AprilTagCornerRobotLocalizer m_localizer;
-    private final OdometryUpdater m_odometryUpdate;
+    private final OdometryEstimator m_odometryEstimate;
     private final SideEffect m_cache;
 
     public FusedEstimator(LoggerFactory driveLog,
@@ -56,20 +56,21 @@ public class FusedEstimator implements StateEstimator {
                 Pose2d.kZero,
                 IsotropicNoiseSE2.high(),
                 Takt.get());
-        m_odometryUpdate = new OdometryUpdater(
+        m_odometryEstimate = new OdometryEstimator(
                 driveLog,
                 swerveKinodynamics,
                 gyro.white_noise(),
                 gyro.bias_noise(),
-                m_history,
+                m_history::lowerEntry,
                 odometryNoise,
                 false);
-        NudgingVisionUpdater visionUpdater = new NudgingVisionUpdater(
-                driveLog, m_history, m_odometryUpdate::replay);
+        OdometryReplayer or = new OdometryReplayer(m_history, m_odometryEstimate);
+        NudgingVisionEstimator visionUpdater = new NudgingVisionEstimator(
+                driveLog, m_history::getRecord);
         m_localizer = new AprilTagCornerRobotLocalizer(
                 driveLog,
                 layout,
-                visionUpdater,
+                visionUpdater, or::replay, m_history,
                 DriverStation::getAlliance);
         m_cache = Cache.ofSideEffect(this::update);
     }
@@ -78,7 +79,7 @@ public class FusedEstimator implements StateEstimator {
         // these mutate history.
         double timestamp = Takt.get();
         m_localizer.update();
-        SwerveState s = m_odometryUpdate.estimate(
+        SwerveState s = m_odometryEstimate.estimate(
                 timestamp,
                 m_gyro.getYawNWU(),
                 m_swerveLocal.positions());

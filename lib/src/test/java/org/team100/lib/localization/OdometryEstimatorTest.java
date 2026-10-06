@@ -21,7 +21,7 @@ import org.team100.lib.uncertainty.VariableR1;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 
-public class OdometryUpdaterTest {
+public class OdometryEstimatorTest {
     private static final boolean DEBUG = false;
     private static final double DELTA = 0.001;
     private static final LoggerFactory log = new TestLoggerFactory(new TestPrimitiveLogger());
@@ -42,9 +42,10 @@ public class OdometryUpdaterTest {
                 Pose2d.kZero,
                 IsotropicNoiseSE2.high(),
                 0);
-        OdometryUpdater ou = new OdometryUpdater(
-                log, kinodynamics, gyro.white_noise(),gyro.bias_noise(), history,
-                 UnaryOperator.identity(), true);
+        OdometryEstimator ou = new OdometryEstimator(
+                log, kinodynamics, gyro.white_noise(), 
+                gyro.bias_noise(), history::lowerEntry,
+                UnaryOperator.identity(), true);
         // previous state is at zero, but uncertain
         StateSE2 sampleState = new StateSE2();
         IsotropicNoiseSE2 stateNoise = IsotropicNoiseSE2.fromStdDev(1, 1);
@@ -102,9 +103,9 @@ public class OdometryUpdaterTest {
                 Pose2d.kZero,
                 IsotropicNoiseSE2.high(),
                 0);
-        OdometryUpdater ou = new OdometryUpdater(
-                log, kinodynamics, gyro.white_noise(),gyro.bias_noise(), history,
-                 UnaryOperator.identity(), true);
+        OdometryEstimator ou = new OdometryEstimator(
+                log, kinodynamics, gyro.white_noise(), gyro.bias_noise(), history::lowerEntry,
+                UnaryOperator.identity(), true);
 
         // previous state is at zero, pretty sure.
         StateSE2 sampleState = new StateSE2();
@@ -149,9 +150,10 @@ public class OdometryUpdaterTest {
                 Pose2d.kZero,
                 IsotropicNoiseSE2.high(),
                 0);
-        OdometryUpdater ou = new OdometryUpdater(
-                log, kinodynamics, gyro.white_noise(),gyro.bias_noise(), history,
-                 UnaryOperator.identity(), true);
+        OdometryEstimator ou = new OdometryEstimator(
+                log, kinodynamics, gyro.white_noise(),
+                gyro.bias_noise(), history::lowerEntry,
+                UnaryOperator.identity(), true);
 
         // previous state is at zero, pretty sure.
         StateSE2 sampleState = new StateSE2();
@@ -215,9 +217,10 @@ public class OdometryUpdaterTest {
                 Pose2d.kZero,
                 IsotropicNoiseSE2.high(),
                 0);
-        OdometryUpdater ou = new OdometryUpdater(
-                log, kinodynamics, gyro.white_noise(),gyro.bias_noise(), history,
-                 UnaryOperator.identity(), true);
+        OdometryEstimator ou = new OdometryEstimator(
+                log, kinodynamics, gyro.white_noise(),
+                gyro.bias_noise(), history::lowerEntry,
+                UnaryOperator.identity(), true);
 
         // previous state is at zero, pretty sure.
         StateSE2 sampleState = new StateSE2();

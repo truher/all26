@@ -28,7 +28,7 @@ public class GroundTruth {
     private final SwerveModuleCollection m_modules;
     private final SimulatedGyro m_gyro;
     private final SwerveHistory m_history;
-    private final OdometryUpdater m_odometry;
+    private final OdometryEstimator m_odometry;
     private final SimulatedTagCornerDetector m_tagSim;
     private final SimulatedTargetWriter m_targetSim;
 
@@ -57,10 +57,10 @@ public class GroundTruth {
 
         // Read positions and ground truth gyro (which are perfectly consistent) and
         // maintain the ground truth history.
-        m_odometry = new OdometryUpdater(
+        m_odometry = new OdometryEstimator(
                 simLog, kinodynamics,
-                 m_gyro.white_noise(), m_gyro.bias_noise(),
-                m_history,
+                m_gyro.white_noise(), m_gyro.bias_noise(),
+                m_history::lowerEntry,
                 UnaryOperator.identity(), true);
 
         GroundTruthCache groundTruthCache = new GroundTruthCache(

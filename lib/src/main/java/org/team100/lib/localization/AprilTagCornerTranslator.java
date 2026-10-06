@@ -11,7 +11,6 @@ import org.team100.lib.camera.Camera;
 import org.team100.lib.camera.Offset;
 import org.team100.lib.geometry.GeometryUtil;
 import org.team100.lib.geometry.Metrics;
-import org.team100.lib.localization.NudgingVisionUpdater.VisionMeasurement;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleLogger;

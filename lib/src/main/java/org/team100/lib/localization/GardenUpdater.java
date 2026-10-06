@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import org.team100.lib.coherence.Takt;
-import org.team100.lib.localization.NudgingVisionUpdater.VisionMeasurement;
 import org.team100.lib.sensor.gyro.Gyro;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 

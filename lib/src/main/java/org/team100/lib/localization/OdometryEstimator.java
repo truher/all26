@@ -1,7 +1,7 @@
 package org.team100.lib.localization;
 
-import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.DoubleFunction;
 import java.util.function.UnaryOperator;
 
 import org.team100.lib.experiments.Experiment;
@@ -26,19 +26,19 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 
 /**
- * Updates SwerveModelHistory with new odometry by selecting the most-recent
+ * Makes a SwerveState estimate with new odometry by selecting the most-recent
  * pose and applying the pose delta represented by the odometry, with the gyro
  * mixed in.
- * 
- * Note we use methods on the specific history implementation; the interface
- * won't work here.
  */
-public class OdometryUpdater {
+public class OdometryEstimator {
     private static final boolean DEBUG = false;
 
     private final SwerveKinodynamics m_kinodynamics;
     private final double m_gyroWhiteNoise;
-    private final SwerveHistory m_history;
+    /**
+     * History entry before timestamp, the initial value for integrating odometry.
+     */
+    private final DoubleFunction<Entry<Double, SwerveState>> m_lowerEntry;
     /**
      * Noise source for simulation.
      * For a real robot, use UnaryOperator.identity().
@@ -59,20 +59,22 @@ public class OdometryUpdater {
     private final IsotropicNoiseSE2Logger m_log_updateNoise;
     private final IsotropicNoiseSE2Logger m_log_newNoise;
 
-    public boolean m_debug = false;
-
-    public OdometryUpdater(
+    /**
+     * The double function must return the entry *before* the supplied timestamp,
+     * since we integrate odometry after that.
+     */
+    public OdometryEstimator(
             LoggerFactory parent,
             SwerveKinodynamics kinodynamics,
             double whiteNoise, // gyro white noise
             double biasNoise, // gyro bias noise
-            SwerveHistory history,
+            DoubleFunction<Entry<Double, SwerveState>> lowerEntry, // history entry before timestamp
             UnaryOperator<Twist2d> noise,
             boolean alwaysUpdate) {
         LoggerFactory log = parent.type(this);
         m_kinodynamics = kinodynamics;
         m_gyroWhiteNoise = whiteNoise;
-        m_history = history;
+        m_lowerEntry = lowerEntry;
         m_noise = noise;
         m_alwaysUpdate = alwaysUpdate;
         m_gyroBiasFusor = new CovarianceInflation(0.02, biasNoise);
@@ -85,7 +87,7 @@ public class OdometryUpdater {
     ////////////////////////////////////////////////////
 
     /**
-     * Estimate a SwerveState at the specified time, based on the measured
+     * Estimate SwerveState at the specified time, based on the measured
      * yaw and positions.
      * 
      * There is no history replay here, though it won't fail if you give it
@@ -101,18 +103,18 @@ public class OdometryUpdater {
      * 
      * Can return null if it's not possible to make an estimate.
      * 
-     * @param currentTimeS Takt time, seconds
-     * @param gyroYaw      Verbatim gyro measurement
-     * @param positions    Verbatim drive measurement
+     * @param timestamp Takt time, seconds
+     * @param gyroYaw   Verbatim gyro measurement
+     * @param positions Verbatim drive measurement
      */
     SwerveState estimate(
-            double currentTimeS,
+            double timestamp,
             Rotation2d gyroYaw,
             SwerveModulePositions positions) {
 
         // The entry right before this one, the basis for integration.
         // Never interpolated.
-        Entry<Double, SwerveState> lowerEntry = m_history.lowerEntry(currentTimeS);
+        Entry<Double, SwerveState> lowerEntry = m_lowerEntry.apply(timestamp);
 
         if (lowerEntry == null) {
             // System.out.println("lower entry is null");
@@ -121,7 +123,7 @@ public class OdometryUpdater {
             return null;
         }
 
-        double dt = currentTimeS - lowerEntry.getKey();
+        double dt = timestamp - lowerEntry.getKey();
 
         SwerveState previousState = lowerEntry.getValue();
         if (dt < 0.0001) {
@@ -130,9 +132,9 @@ public class OdometryUpdater {
             return null;
         }
 
-        if (m_debug)
+        if (DEBUG)
             System.out.printf("=== compute for current time %6.3f sample time %6.3f dt %6.3f\n",
-                    currentTimeS, lowerEntry.getKey(), dt);
+                    timestamp, lowerEntry.getKey(), dt);
 
         return newState(previousState, dt, gyroYaw, positions);
     }
@@ -169,7 +171,7 @@ public class OdometryUpdater {
         // Fuse the previous and new bias estimates.
         VariableR1 newGyroBiasEstimateRad_S = m_gyroBiasFusor.fuse(
                 previousState.gyroBias(), gyroBiasMeasurementRad_S);
-        if (m_debug)
+        if (DEBUG)
             System.out.printf("=== gyro bias previous %s measurement %s result %s\n",
                     previousState.gyroBias(),
                     gyroBiasMeasurementRad_S,
@@ -258,33 +260,15 @@ public class OdometryUpdater {
             modulePositionDelta = SwerveModuleDeltas.ZERO;
         }
         if (DEBUG) {
-            System.out.printf("OdometryUpdater modulePositionDelta %s\n", modulePositionDelta);
+            System.out.printf("OdometryEstimator modulePositionDelta %s\n", modulePositionDelta);
         }
         Twist2d twist = m_kinodynamics.getKinematics().forward(modulePositionDelta);
         // Add noise, if in simulation (otherwise, this is a no-op).
         twist = m_noise.apply(twist);
         if (DEBUG) {
-            System.out.printf("OdometryUpdater twist %s\n", StrUtil.twistStr(twist));
+            System.out.printf("OdometryEstimator twist %s\n", StrUtil.twistStr(twist));
         }
         return twist;
-    }
-
-    /** Replay odometry after the sample time. */
-    public void replay(double sampleTime) {
-        if (m_debug)
-            System.out.printf("==== REPLAY FOR TIME %f\n", sampleTime);
-        // Note the exclusive tailmap: we don't see the entry at timestamp.
-        for (Map.Entry<Double, SwerveState> entry : m_history.exclusiveTailMap(sampleTime).entrySet()) {
-            double timestamp = entry.getKey();
-            SwerveState value = entry.getValue();
-            Rotation2d gyroYaw = value.gyroYaw();
-            SwerveModulePositions positions = value.positions();
-            SwerveState s = estimate(timestamp, gyroYaw, positions);
-            if (s != null)
-                m_history.put(timestamp, s);
-        }
-        if (m_debug)
-            System.out.printf("==== DONE REPLAYING FOR TIME %f\n", sampleTime);
     }
 
 }

@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 import org.junit.jupiter.api.Test;
-import org.team100.lib.localization.NudgingVisionUpdater.VisionMeasurement;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
@@ -39,13 +38,14 @@ public class GardenUpdaterTest {
                 Pose2d.kZero,
                 IsotropicNoiseSE2.high(),
                 0);
-        OdometryUpdater ou = new OdometryUpdater(
-                log, kinodynamics, gyro.white_noise(), gyro.bias_noise(), history,
+        OdometryEstimator ou = new OdometryEstimator(
+                log, kinodynamics, gyro.white_noise(),
+                gyro.bias_noise(), history::lowerEntry,
                 UnaryOperator.identity(), true);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(log, history::getRecord);
 
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(log, history, ou::replay);
-
-        HistoryGardener gardener = new HistoryGardener(history, ou, vu);
+        HistoryGardener gardener = new HistoryGardener(history, ou, or::replay, vu);
 
         vision = new VisionMeasurement(0.01, new NoisyPose2d(new Pose2d(), IsotropicNoiseSE2.fromStdDev(1, 1)));
 

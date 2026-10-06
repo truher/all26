@@ -128,14 +128,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0);
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, 4e-4, 1e-5, history,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, history, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
         SwerveState s = ou.estimate(0, Rotation2d.kZero, positionZero);
         if (s != null)
             history.put(0, s);
@@ -154,7 +155,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         // big vision update
         final IsotropicNoiseSE2 visionMeasurementStdDevs = IsotropicNoiseSE2.fromStdDev(0.5, Double.MAX_VALUE);
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        vu.put(0.00, noisyMeasurement);
+        s = vu.estimate(0.00, noisyMeasurement);
+        history.put(0.00, s);
+        or.replay(0);
         // position slides over there
         verify(0.038, 0.102, history, 0.00);
         verifyBias(0, 1, history, 0);
@@ -180,14 +183,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0);
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, 4e-4, 1e-5, history,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, history, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
         SwerveState s = ou.estimate(0, Rotation2d.kZero, positionZero);
         if (s != null)
             history.put(0, s);
@@ -206,7 +210,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // big vision update, but later
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        vu.put(0.02, noisyMeasurement);
+        s = vu.estimate(0.02, noisyMeasurement);
+        history.put(0.02, s);
+        or.replay(0.02);
         // initial position is unchanged
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
@@ -234,15 +240,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0);
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, 4e-4, 1e-5, history,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
-
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, history, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
         SwerveState s = ou.estimate(0, Rotation2d.kZero, positionZero);
         if (s != null)
             history.put(0, s);
@@ -260,7 +266,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // big vision update, even later
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionNoise);
-        vu.put(0.04, noisyMeasurement);
+        s = vu.estimate(0.04, noisyMeasurement);
+        history.put(0.04, s);
+        or.replay(0.04);
         // initial position is unchanged
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
@@ -294,14 +302,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0);
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, 4e-4, 1e-5, history,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, history, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
 
         // initial pose = 0
         verify(0, 0.1, history, 0.00);
@@ -318,7 +327,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // now vision says we're one meter away, so pose goes towards that
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        vu.put(0.01, noisyMeasurement);
+        s = vu.estimate(0.01, noisyMeasurement);
+        history.put(0.01, s);
+        or.replay(0.01);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.038, 0.101, history, 0.01);
@@ -354,7 +365,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // here's the delayed update from above, which moves the estimate to 0.305 and
         // then the odometry is applied on top of that, yielding 0.405.
-        vu.put(0.015, noisyMeasurement);
+        s = vu.estimate(0.015, noisyMeasurement);
+        history.put(0.015, s);
+        or.replay(0.015);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.077, 0.103, history, 0.015);
@@ -374,7 +387,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.177, 0.104, history, 0.08);
 
         // a little earlier than the previous estimate does nothing
-        vu.put(0.014, noisyMeasurement);
+        s = vu.estimate(0.014, noisyMeasurement);
+        history.put(0.014, s);
+        or.replay(0.014);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         // notices the vision input a bit earlier
@@ -389,7 +404,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.207, 0.105, history, 0.06);
 
         // a little later than the previous estimate works normally.
-        vu.put(0.016, noisyMeasurement);
+        s = vu.estimate(0.016, noisyMeasurement);
+        history.put(0.016, s);
+        or.replay(0.016);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.107, 0.104, history, 0.014);
@@ -428,14 +445,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0);
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, 4e-4, 1e-5, history,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, history, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
 
         // initial pose = 0
         verify(0.000, 0.1, history, 0.00);
@@ -458,7 +476,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // now vision says we're one meter away, so pose goes towards that
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        vu.put(0.01, noisyMeasurement);
+        s = vu.estimate(0.01, noisyMeasurement);
+        history.put(0.01, s);
+        or.replay(0.01);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.038, 0.102, history, 0.02);
@@ -499,7 +519,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // here's the delayed update from above, which moves the estimate and
         // then the odometry is applied on top of that.
-        vu.put(0.015, noisyMeasurement);
+        s = vu.estimate(0.015, noisyMeasurement);
+        history.put(0.015, s);
+        or.replay(0.015);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.077, 0.103, history, 0.02);
@@ -518,7 +540,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.177, 0.103, history, 0.08);
 
         // a little earlier than the previous estimate does nothing.
-        vu.put(0.014, noisyMeasurement);
+        s = vu.estimate(0.014, noisyMeasurement);
+        history.put(0.014, s);
+        or.replay(0.014);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.107, 0.104, history, 0.02);
@@ -527,7 +551,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.207, 0.104, history, 0.08);
 
         // a little later than the previous estimate works normally.
-        vu.put(0.016, noisyMeasurement);
+        s = vu.estimate(0.016, noisyMeasurement);
+        history.put(0.016, s);
+        or.replay(0.016);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.144, 0.105, history, 0.02);
@@ -563,14 +589,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0);
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, 4e-4, 1e-5, history,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, history, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
 
         verify(0.000, 0.1, history, 0.00);
         verify(0.000, 0.1, history, 0.02);
@@ -588,7 +615,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.1, history, 0.08);
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        vu.put(0.02, noisyMeasurement);
+        s = vu.estimate(0.02, noisyMeasurement);
+        history.put(0.02, s);
+        or.replay(0.02);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.038, 0.102, history, 0.02);
@@ -596,7 +625,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.038, 0.102, history, 0.06);
         verify(0.038, 0.102, history, 0.08);
 
-        vu.put(0.04, noisyMeasurement);
+        s = vu.estimate(0.04, noisyMeasurement);
+        history.put(0.04, s);
+        or.replay(0.04);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.038, 0.102, history, 0.02);
@@ -604,7 +635,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.077, 0.103, history, 0.06);
         verify(0.077, 0.103, history, 0.08);
 
-        vu.put(0.06, noisyMeasurement);
+        s = vu.estimate(0.06, noisyMeasurement);
+        history.put(0.06, s);
+        or.replay(0.06);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.038, 0.102, history, 0.02);
@@ -629,14 +662,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0);
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, 4e-4, 1e-5, history,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, history, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
 
         verify(0.000, 0.1, history, 0.00);
         verify(0.000, 0.1, history, 0.02);
@@ -654,7 +688,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.1, history, 0.08);
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        vu.put(0.02, noisyMeasurement);
+        s = vu.estimate(0.02, noisyMeasurement);
+        history.put(0.02, s);
+        or.replay(0.02);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.010, 0.100, history, 0.02);
@@ -662,7 +698,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.010, 0.100, history, 0.06);
         verify(0.010, 0.100, history, 0.08);
 
-        vu.put(0.04, noisyMeasurement);
+        s = vu.estimate(0.04, noisyMeasurement);
+        history.put(0.04, s);
+        or.replay(0.04);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.010, 0.100, history, 0.02);
@@ -670,7 +708,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.020, 0.100, history, 0.06);
         verify(0.020, 0.100, history, 0.08);
 
-        vu.put(0.06, noisyMeasurement);
+        s = vu.estimate(0.06, noisyMeasurement);
+        history.put(0.06, s);
+        or.replay(0.06);
         verify(0.000, 0.1, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.010, 0.100, history, 0.02);
@@ -696,14 +736,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0);
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, 4e-4, 1e-5, history,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.05, 0.05),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, history, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
 
         verify(0.000, 0.05, history, 0.00);
         verify(0.000, 0.05, history, 0.02);
@@ -721,7 +762,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.05, history, 0.08);
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        vu.put(0.02, noisyMeasurement);
+        s = vu.estimate(0.02, noisyMeasurement);
+        history.put(0.02, s);
+        or.replay(0.02);
         verify(0.000, 0.05, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.010, 0.052, history, 0.02);
@@ -729,7 +772,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.010, 0.052, history, 0.06);
         verify(0.010, 0.052, history, 0.08);
 
-        vu.put(0.04, noisyMeasurement);
+        s = vu.estimate(0.04, noisyMeasurement);
+        history.put(0.04, s);
+        or.replay(0.04);
         verify(0.000, 0.05, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.010, 0.052, history, 0.02);
@@ -737,7 +782,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.020, 0.053, history, 0.06);
         verify(0.020, 0.053, history, 0.08);
 
-        vu.put(0.06, noisyMeasurement);
+        s = vu.estimate(0.06, noisyMeasurement);
+        history.put(0.06, s);
+        or.replay(0.06);
         verify(0.000, 0.05, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.010, 0.052, history, 0.02);
@@ -765,14 +812,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0);
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, 4e-4, 1e-5, history,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.01, 0.01),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, history, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
 
         verify(0.000, 0.01, history, 0.00);
         verify(0.000, 0.01, history, 0.02);
@@ -790,7 +838,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.01, history, 0.08);
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        vu.put(0.02, noisyMeasurement);
+        s = vu.estimate(0.02, noisyMeasurement);
+        history.put(0.02, s);
+        or.replay(0.02);
         verify(0.000, 0.01, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.010, 0.017, history, 0.02);
@@ -798,7 +848,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.010, 0.017, history, 0.06);
         verify(0.010, 0.017, history, 0.08);
 
-        vu.put(0.04, noisyMeasurement);
+        s = vu.estimate(0.04, noisyMeasurement);
+        history.put(0.04, s);
+        or.replay(0.04);
         verify(0.000, 0.01, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.010, 0.017, history, 0.02);
@@ -806,7 +858,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.038, 0.029, history, 0.06);
         verify(0.038, 0.029, history, 0.08);
 
-        vu.put(0.06, noisyMeasurement);
+        s = vu.estimate(0.06, noisyMeasurement);
+        history.put(0.06, s);
+        or.replay(0.06);
         verify(0.000, 0.01, history, 0.00);
         verifyBias(0, 1, history, 0);
         verify(0.010, 0.017, history, 0.02);
@@ -882,7 +936,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forWPITest();
 
         final IsotropicNoiseSE2 visionMeasurementStdDevs = IsotropicNoiseSE2.fromStdDev(0.5, 0.5);
-        SwerveHistory estimator = new SwerveHistory(
+        SwerveHistory history = new SwerveHistory(
                 logger,
                 1, // extra long
                 Rotation2d.kZero,
@@ -892,8 +946,8 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0); // zero initial time
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics,  0.05 / Math.sqrt(0.02), 1e-5, estimator,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 0.05 / Math.sqrt(0.02), 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
 
         SwerveModulePositions positions = new SwerveModulePositions(
@@ -901,12 +955,13 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 new SwerveModulePosition100(),
                 new SwerveModulePosition100(),
                 new SwerveModulePosition100());
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, estimator, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
 
         Pose2d endingPose = new Pose2d(0, 0, Rotation2d.fromDegrees(45));
 
         // new starting pose here, so we don't actually use the earlier initial pose
-        estimator.reset(
+        history.reset(
                 positions, Pose2d.kZero, IsotropicNoiseSE2.high(),
                 0, gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));
@@ -942,11 +997,12 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 Double timestamp = visionEntry.getKey();
                 // System.out.printf("===== vision update at t=%f for timestamp %f\n",
                 // t, timestamp);
-                vu.put(
-                        timestamp,
-                        new NoisyPose2d(
-                                visionEntry.getValue(),
-                                visionMeasurementStdDevs));
+                NoisyPose2d m = new NoisyPose2d(
+                        visionEntry.getValue(),
+                        visionMeasurementStdDevs);
+                SwerveState s = vu.estimate(timestamp, m);
+                history.put(timestamp, s);
+                or.replay(timestamp);
             }
 
             ChassisSpeeds chassisSpeeds = new ChassisSpeeds(
@@ -981,8 +1037,8 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
             SwerveState s = ou.estimate(t, gyro.getYawNWU(), positions);
             if (s != null)
-                estimator.put(t, s);
-            StateSE2 xHat = estimator.get(t);
+                history.put(t, s);
+            StateSE2 xHat = history.get(t);
 
             double error = groundTruthState.poseMeters.getTranslation().getDistance(
                     xHat.pose().getTranslation());
@@ -1008,7 +1064,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         }
 
-        Pose2d estimatedEndingPose = estimator.get(t).pose();
+        Pose2d estimatedEndingPose = history.get(t).pose();
         assertEquals(
                 endingPose.getX(), estimatedEndingPose.getX(), 0.08, "Incorrect Final X");
         assertEquals(
@@ -1037,7 +1093,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         Gyro gyro = new MockGyro();
 
         final IsotropicNoiseSE2 visionMeasurementStdDevs = IsotropicNoiseSE2.fromStdDev(0.9, 0.9);
-        SwerveHistory estimator = new SwerveHistory(
+        SwerveHistory history = new SwerveHistory(
                 logger,
                 0.2,
                 Rotation2d.kZero,
@@ -1047,19 +1103,20 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0); // zero initial time
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, 4e-4, 1e-5, estimator,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
-        estimator.reset(
+        history.reset(
                 positionZero, new Pose2d(1, 2, Rotation2d.fromDegrees(270)),
                 IsotropicNoiseSE2.high(),
                 0, gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, estimator, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
 
         SwerveState s = ou.estimate(0, gyro.getYawNWU(), positionZero);
         if (s != null)
-            estimator.put(0, s);
+            history.put(0, s);
 
         var visionMeasurements = new Pose2d[] {
                 new Pose2d(0, 0, Rotation2d.fromDegrees(0)),
@@ -1069,14 +1126,16 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         for (int i = 0; i < 1000; i++) {
             for (var measurement : visionMeasurements) {
-                vu.put(0.00, new NoisyPose2d(
+                s = vu.estimate(0.00, new NoisyPose2d(
                         measurement, visionMeasurementStdDevs));
+                history.put(0.00, s);
+                or.replay(0);
             }
         }
 
         for (var measurement : visionMeasurements) {
             // at time zero the whole time
-            Pose2d estimatedPose = estimator.get(0).pose();
+            Pose2d estimatedPose = history.get(0).pose();
             var dx = Math.abs(measurement.getX() - estimatedPose.getX());
             var dy = Math.abs(measurement.getY() - estimatedPose.getY());
             var dtheta = Math.abs(
@@ -1092,7 +1151,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forWPITest();
         Gyro gyro = new MockGyro();
 
-        var estimator = new SwerveHistory(
+        SwerveHistory history = new SwerveHistory(
                 logger,
                 0.2,
                 Rotation2d.kZero,
@@ -1102,16 +1161,17 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 IsotropicNoiseSE2.high(),
                 0); // zero initial time
 
-        OdometryUpdater ou = new OdometryUpdater(
-                logger, kinodynamics, 4e-4, 1e-5, estimator,
+        OdometryEstimator ou = new OdometryEstimator(
+                logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
                 UnaryOperator.identity(), true);
 
-        estimator.reset(
+        history.reset(
                 positionZero, Pose2d.kZero,
                 IsotropicNoiseSE2.high(),
                 0, gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(logger, estimator, ou::replay);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
 
         double time = 0;
 
@@ -1119,20 +1179,24 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         for (; time < 4; time += 0.02) {
             SwerveState s = ou.estimate(time, gyro.getYawNWU(), positionZero);
             if (s != null)
-                estimator.put(time, s);
+                history.put(time, s);
         }
 
-        Pose2d odometryPose = estimator.get(time).pose();
+        Pose2d odometryPose = history.get(time).pose();
 
         // Apply a vision measurement made 3 seconds ago
         // This test passes if this does not cause a ConcurrentModificationException.
-        vu.put(
+        SwerveState s = vu.estimate(
                 1,
                 new NoisyPose2d(
                         new Pose2d(new Translation2d(10, 10), new Rotation2d(0.1)),
                         IsotropicNoiseSE2.fromStdDev(0.1, 0.1)));
+        if (s != null && !history.tooOld(1))
+            history.put(1, s);
 
-        Pose2d visionPose = estimator.get(time).pose();
+        or.replay(1);
+
+        Pose2d visionPose = history.get(time).pose();
 
         assertEquals(odometryPose.getX(), visionPose.getX(), DELTA);
         assertEquals(odometryPose.getY(), visionPose.getY(), DELTA);

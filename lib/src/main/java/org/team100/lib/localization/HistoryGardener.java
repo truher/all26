@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.function.DoubleConsumer;
 
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.NoisyPose2d;
@@ -21,17 +22,20 @@ public class HistoryGardener {
     private final NavigableMap<Double, Odo> m_pendingOdo;
 
     private final SwerveHistory m_history;
-    private final OdometryUpdater m_odometryUpdater;
-    private final NudgingVisionUpdater m_visionUpdater;
+    private final OdometryEstimator m_OdometryEstimator;
+    private final DoubleConsumer m_replayer;
+    private final NudgingVisionEstimator m_visionUpdater;
 
     public HistoryGardener(
             SwerveHistory history,
-            OdometryUpdater odometryUpdater,
-            NudgingVisionUpdater visionUpdater) {
+            OdometryEstimator OdometryEstimator,
+            DoubleConsumer replayer,
+            NudgingVisionEstimator visionUpdater) {
         m_pendingVision = new ConcurrentSkipListMap<>();
         m_pendingOdo = new ConcurrentSkipListMap<>();
         m_history = history;
-        m_odometryUpdater = odometryUpdater;
+        m_OdometryEstimator = OdometryEstimator;
+        m_replayer = replayer;
         m_visionUpdater = visionUpdater;
     }
 
@@ -60,24 +64,34 @@ public class HistoryGardener {
 
         while (odo != null && vision != null) {
             if (odo.getKey() < vision.getKey()) {
-                SwerveState s = m_odometryUpdater.estimate(odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
+                SwerveState s = m_OdometryEstimator.estimate(
+                        odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
                 if (s != null)
                     m_history.put(odo.getKey(), s);
                 odo = odoIter.hasNext() ? odoIter.next() : null;
             } else {
-                m_visionUpdater.put(vision.getKey(), vision.getValue());
+                SwerveState s = m_visionUpdater.estimate(vision.getKey(), vision.getValue());
+                if (s != null && !m_history.tooOld(vision.getKey())) {
+                    m_history.put(vision.getKey(), s);
+                    m_replayer.accept(vision.getKey());
+                }
                 vision = visionIter.hasNext() ? visionIter.next() : null;
             }
         }
         // catch the remaining; one of these will work.
         while (odo != null) {
-            SwerveState s = m_odometryUpdater.estimate(odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
+            SwerveState s = m_OdometryEstimator.estimate(
+                    odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
             if (s != null)
                 m_history.put(odo.getKey(), s);
             odo = odoIter.hasNext() ? odoIter.next() : null;
         }
         while (vision != null) {
-            m_visionUpdater.put(vision.getKey(), vision.getValue());
+            SwerveState s = m_visionUpdater.estimate(vision.getKey(), vision.getValue());
+            if (s != null && !m_history.tooOld(vision.getKey())) {
+                m_history.put(vision.getKey(), s);
+                m_replayer.accept(vision.getKey());
+            }
             vision = visionIter.hasNext() ? visionIter.next() : null;
         }
 

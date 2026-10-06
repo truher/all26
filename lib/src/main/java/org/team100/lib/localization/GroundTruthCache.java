@@ -16,13 +16,13 @@ import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
  */
 public class GroundTruthCache {
     private final SwerveHistory m_history;
-    private final OdometryUpdater m_updater;
+    private final OdometryEstimator m_updater;
     private final Gyro m_gyro;
     private final Supplier<SwerveModulePositions> m_positions;
     private final SideEffect m_cache;
 
     public GroundTruthCache(
-            OdometryUpdater odometry,
+            OdometryEstimator odometry,
             Gyro gyro,
             Supplier<SwerveModulePositions> positions,
             SwerveHistory history) {

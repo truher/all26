@@ -3,13 +3,13 @@ package org.team100.lib.localization;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.DoubleConsumer;
 import java.util.function.Supplier;
 
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.geometry.Metrics;
-import org.team100.lib.localization.NudgingVisionUpdater.VisionMeasurement;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleLogger;
@@ -33,8 +33,10 @@ public class AprilTagRobotLocalizer {
     /** Discard results further than this from the previous one. */
     private static final double VISION_CHANGE_TOLERANCE_M = 0.25;
     private final CameraReader<Blip> m_reader;
-    final AprilTagTranslator m_translator;
-    private final VisionUpdater m_visionUpdater;
+    private final AprilTagTranslator m_translator;
+    private final VisionEstimator m_visionUpdater;
+    private final DoubleConsumer m_replayer;
+    private final SwerveHistory m_history;
 
     // LOGGERS
 
@@ -62,18 +64,19 @@ public class AprilTagRobotLocalizer {
     public AprilTagRobotLocalizer(
             LoggerFactory parent,
             AprilTagFieldLayoutWithCorrectOrientation layout,
-            VisionUpdater visionUpdater,
+            VisionEstimator visionUpdater,
+            DoubleConsumer replayer,
+            SwerveHistory history,
             Supplier<Optional<Alliance>> alliance) {
         LoggerFactory log = parent.type(this);
         m_reader = new CameraReader<>("vision", "blips",
                 StructBuffer.create(Blip.struct));
         m_translator = new AprilTagTranslator(log, layout, alliance);
-
         m_visionUpdater = visionUpdater;
-
+        m_replayer = replayer;
+        m_history = history;
         m_log_pose = log.pose2dLogger(Level.TRACE, "pose");
         m_log_lag = log.doubleLogger(Level.TRACE, "lag");
-
     }
 
     public void update() {
@@ -127,7 +130,11 @@ public class AprilTagRobotLocalizer {
 
     private void consumeMeasurements(List<VisionMeasurement> filteredMeasurements) {
         for (VisionMeasurement m : filteredMeasurements) {
-            m_visionUpdater.put(m.timestamp(), m.noisyMeasurement());
+            SwerveState state = m_visionUpdater.estimate(m.timestamp(), m.noisyMeasurement());
+            if (state != null && !m_history.tooOld(m.timestamp())) {
+                m_history.put(m.timestamp(), state);
+                m_replayer.accept(m.timestamp());
+            }
         }
     }
 
@@ -135,7 +142,7 @@ public class AprilTagRobotLocalizer {
         List<CameraReader.Record<Blip>> records = m_reader.getRecords();
         List<VisionMeasurement> measurements = new ArrayList<>();
         for (CameraReader.Record<Blip> r : records) {
-            measurements.addAll(m_translator.perValue(r.camera(), r.values()));
+            measurements.addAll(m_translator.convert(r.camera(), r.values()));
         }
         return measurements;
     }

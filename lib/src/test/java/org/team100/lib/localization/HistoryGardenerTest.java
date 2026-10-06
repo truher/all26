@@ -36,13 +36,14 @@ public class HistoryGardenerTest {
                 Pose2d.kZero,
                 IsotropicNoiseSE2.high(),
                 0);
-        OdometryUpdater ou = new OdometryUpdater(
-                log, kinodynamics, gyro.white_noise(),gyro.bias_noise(), history,
-                 UnaryOperator.identity(), true);
+        OdometryEstimator ou = new OdometryEstimator(
+                log, kinodynamics, gyro.white_noise(),
+                gyro.bias_noise(), history::lowerEntry,
+                UnaryOperator.identity(), true);
+        OdometryReplayer or = new OdometryReplayer(history, ou);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(log, history::getRecord);
 
-        NudgingVisionUpdater vu = new NudgingVisionUpdater(log, history, ou::replay);
-
-        HistoryGardener gardener = new HistoryGardener(history, ou, vu);
+        HistoryGardener gardener = new HistoryGardener(history, ou, or::replay, vu);
 
         gardener.putOdometry(0.00, Rotation2d.kZero, positions);
         gardener.putOdometry(0.02, Rotation2d.kZero, positions);

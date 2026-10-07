@@ -1,6 +1,8 @@
 package org.team100.lib.localization;
 
+import java.util.List;
 import java.util.Map;
+import java.util.function.DoubleConsumer;
 import java.util.function.UnaryOperator;
 
 import org.team100.lib.coherence.Cache;
@@ -34,8 +36,10 @@ public class FusedEstimator implements StateEstimator {
     private final Gyro m_gyro;
     private final SwerveLocal m_swerveLocal;
     private final SwerveHistory m_history;
-    private final AprilTagCornerRobotLocalizer m_localizer;
+    private final AprilTagCornerReader m_tagReader;
+    private final NudgingVisionEstimator m_visionUpdater;
     private final OdometryEstimator m_odometryEstimate;
+    private final DoubleConsumer m_replayer;
     private final SideEffect m_cache;
 
     public FusedEstimator(LoggerFactory driveLog,
@@ -65,26 +69,36 @@ public class FusedEstimator implements StateEstimator {
                 odometryNoise,
                 false);
         OdometryReplayer or = new OdometryReplayer(m_history, m_odometryEstimate);
-        NudgingVisionEstimator visionUpdater = new NudgingVisionEstimator(
+        m_replayer = or::replay;
+        m_visionUpdater = new NudgingVisionEstimator(
                 driveLog, m_history::getRecord);
-        m_localizer = new AprilTagCornerRobotLocalizer(
-                driveLog,
-                layout,
-                visionUpdater, or::replay, m_history,
-                DriverStation::getAlliance);
+        m_tagReader = new AprilTagCornerReader(
+                driveLog, layout, DriverStation::getAlliance);
         m_cache = Cache.ofSideEffect(this::update);
     }
 
     void update() {
         // these mutate history.
         double timestamp = Takt.get();
-        m_localizer.update();
+        // m_localizer.update();
+        List<VisionMeasurement> filteredMeasurements = m_tagReader.read();
+        consumeMeasurement(filteredMeasurements);
         SwerveState s = m_odometryEstimate.estimate(
                 timestamp,
                 m_gyro.getYawNWU(),
                 m_swerveLocal.positions());
         if (s != null)
             m_history.put(timestamp, s);
+    }
+
+    private void consumeMeasurement(List<VisionMeasurement> filteredMeasurements) {
+        for (VisionMeasurement m : filteredMeasurements) {
+            SwerveState state = m_visionUpdater.estimate(m.timestamp(), m.noisyMeasurement());
+            if (state != null && !m_history.tooOld(m.timestamp())) {
+                m_history.put(m.timestamp(), state);
+                m_replayer.accept(m.timestamp());
+            }
+        }
     }
 
     public Map<Double, SwerveState> all() {
@@ -147,7 +161,7 @@ public class FusedEstimator implements StateEstimator {
      */
     @Override
     public void setHeedRadiusM(double heedRadiusM) {
-        m_localizer.setHeedRadiusM(heedRadiusM);
+        m_tagReader.setHeedRadiusM(heedRadiusM);
     }
 
 }

@@ -22,6 +22,7 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 
+/** Translate camera "blip" input into robot pose measurements. */
 public class AprilTagTranslator {
     private static final boolean DEBUG = false;
     private final Supplier<Optional<Alliance>> m_alliance;
@@ -56,7 +57,7 @@ public class AprilTagTranslator {
     }
 
     /**
-     * Compute the robot pose and put it in the pose estimator.
+     * Given a list of blips, return a list of pose measurements.
      */
     List<VisionMeasurement> convert(Camera camera, Blip[] blips) {
         Transform3d cameraOffset = Offset.get(camera).offset();

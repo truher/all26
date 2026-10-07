@@ -13,10 +13,7 @@ import org.team100.lib.camera.Camera;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
-import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.testing.Timeless;
-import org.team100.lib.uncertainty.IsotropicNoiseSE2;
-import org.team100.lib.uncertainty.VariableR1;
 
 import edu.wpi.first.hal.AllianceStationID;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -32,7 +29,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 
-class AprilTagRobotLocalizerTest implements Timeless {
+class AprilTagReaderTest implements Timeless {
     private static final double DELTA = 0.01;
     private static final LoggerFactory logger = new TestLoggerFactory(new TestPrimitiveLogger());
 
@@ -41,21 +38,10 @@ class AprilTagRobotLocalizerTest implements Timeless {
         AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation(
                 "2025-reefscape.json");
 
-        MockVisionUpdater visionUpdater = new MockVisionUpdater();
-
-        SwerveHistory history = new SwerveHistory(
-                logger,
-                0.2,
-                Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1),
-                SwerveModulePositions.kZero(),
-                Pose2d.kZero,
-                IsotropicNoiseSE2.high(),
-                0);
-
-        AprilTagRobotLocalizer localizer = new AprilTagRobotLocalizer(
-                logger, layout, visionUpdater, t -> {
-                }, history, DriverStation::getAlliance);
+        AprilTagTranslator translator = new AprilTagTranslator(
+                logger, layout, DriverStation::getAlliance);
+        AprilTagReader reader = new AprilTagReader(
+                logger, translator);
 
         // client instance
         NetworkTableInstance inst = NetworkTableInstance.create();
@@ -77,13 +63,11 @@ class AprilTagRobotLocalizerTest implements Timeless {
         Thread.sleep(200);
         inst.flush();
 
-        assertTrue(visionUpdater.poseEstimate.isEmpty());
         // localizer needs alliance
         DriverStationSim.setAllianceStationId(AllianceStationID.Blue1);
         DriverStationSim.notifyNewData();
-        localizer.update();
-        // skip first update
-        assertTrue(visionUpdater.poseEstimate.isEmpty());
+        List<VisionMeasurement> measurements = reader.read();
+        assertTrue(measurements.isEmpty());
 
         // blip id=1
         // which is at (16.697, 0.655, 1.486), (0, 0, -0.94) in our coordinates
@@ -95,9 +79,10 @@ class AprilTagRobotLocalizerTest implements Timeless {
         Thread.sleep(200);
         inst.flush();
 
-        localizer.update();
-        assertEquals(1, visionUpdater.poseEstimate.size());
-        Pose2d pose = visionUpdater.poseEstimate.get(0);
+        measurements = reader.read();
+        assertEquals(1, measurements.size());
+
+        Pose2d pose = measurements.get(0).noisyMeasurement().pose();
 
         // 1m away at -0.94 rad means 0.59 in x
         assertEquals(16.107, pose.getX(), DELTA);

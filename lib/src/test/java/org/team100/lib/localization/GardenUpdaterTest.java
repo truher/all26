@@ -45,11 +45,13 @@ public class GardenUpdaterTest {
         OdometryReplayer or = new OdometryReplayer(history, ou);
         NudgingVisionEstimator vu = new NudgingVisionEstimator(log, history::getRecord);
 
-        HistoryGardener gardener = new HistoryGardener(history, ou, or::replay, vu);
+        HistoryGardener gardener = new HistoryGardener(history, ou, or, vu);
 
-        vision = new VisionMeasurement(0.01, new NoisyPose2d(new Pose2d(), IsotropicNoiseSE2.fromStdDev(1, 1)));
+        vision = new VisionMeasurement(
+                0.01, new NoisyPose2d(new Pose2d(), IsotropicNoiseSE2.fromStdDev(1, 1)));
 
-        GardenUpdater gu = new GardenUpdater(gyro, () -> positions, () -> List.of(vision), gardener);
+        GardenUpdater gu = new GardenUpdater(
+                gyro, () -> positions, () -> List.of(vision), gardener);
 
         gu.update(0.02);
 

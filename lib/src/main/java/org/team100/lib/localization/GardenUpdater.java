@@ -3,7 +3,6 @@ package org.team100.lib.localization;
 import java.util.List;
 import java.util.function.Supplier;
 
-import org.team100.lib.coherence.Takt;
 import org.team100.lib.sensor.gyro.Gyro;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 
@@ -30,12 +29,11 @@ public class GardenUpdater {
         m_gardener = gardener;
     }
 
-    /** Called by the cache. */
-    public void update() {
-        update(Takt.get());
-    }
-
-    /** For testing. */
+    /**
+     * Add current measurements for odometry and gyro.
+     * Add pending vision measurements.
+     * Sweep the garden.
+     */
     public void update(double timestamp) {
         // Odometry measurement has one value per update at the current time
         SwerveModulePositions positions = m_positions.get();

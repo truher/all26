@@ -1,8 +1,6 @@
 package org.team100.lib.localization;
 
-import java.util.List;
 import java.util.Map;
-import java.util.function.DoubleConsumer;
 import java.util.function.UnaryOperator;
 
 import org.team100.lib.coherence.Cache;
@@ -37,9 +35,7 @@ public class FusedEstimator implements StateEstimator {
     private final SwerveLocal m_swerveLocal;
     private final SwerveHistory m_history;
     private final AprilTagCornerReader m_tagReader;
-    private final NudgingVisionEstimator m_visionUpdater;
-    private final OdometryEstimator m_odometryEstimate;
-    private final DoubleConsumer m_replayer;
+    private final GardenUpdater m_updater;
     private final SideEffect m_cache;
 
     public FusedEstimator(LoggerFactory driveLog,
@@ -60,7 +56,7 @@ public class FusedEstimator implements StateEstimator {
                 Pose2d.kZero,
                 IsotropicNoiseSE2.high(),
                 Takt.get());
-        m_odometryEstimate = new OdometryEstimator(
+        OdometryEstimator odometryEstimate = new OdometryEstimator(
                 driveLog,
                 swerveKinodynamics,
                 gyro.white_noise(),
@@ -68,37 +64,20 @@ public class FusedEstimator implements StateEstimator {
                 m_history::lowerEntry,
                 odometryNoise,
                 false);
-        OdometryReplayer or = new OdometryReplayer(m_history, m_odometryEstimate);
-        m_replayer = or::replay;
-        m_visionUpdater = new NudgingVisionEstimator(
+        OdometryReplayer or = new OdometryReplayer(m_history, odometryEstimate);
+        NudgingVisionEstimator visionEstimate = new NudgingVisionEstimator(
                 driveLog, m_history::getRecord);
         m_tagReader = new AprilTagCornerReader(
                 driveLog, layout, DriverStation::getAlliance);
+        HistoryGardener gardener = new HistoryGardener(
+                m_history, odometryEstimate, or, visionEstimate);
+        m_updater = new GardenUpdater(
+                m_gyro, m_swerveLocal::positions, m_tagReader::read, gardener);
         m_cache = Cache.ofSideEffect(this::update);
     }
 
     void update() {
-        // these mutate history.
-        double timestamp = Takt.get();
-        // m_localizer.update();
-        List<VisionMeasurement> filteredMeasurements = m_tagReader.read();
-        consumeMeasurement(filteredMeasurements);
-        SwerveState s = m_odometryEstimate.estimate(
-                timestamp,
-                m_gyro.getYawNWU(),
-                m_swerveLocal.positions());
-        if (s != null)
-            m_history.put(timestamp, s);
-    }
-
-    private void consumeMeasurement(List<VisionMeasurement> filteredMeasurements) {
-        for (VisionMeasurement m : filteredMeasurements) {
-            SwerveState state = m_visionUpdater.estimate(m.timestamp(), m.noisyMeasurement());
-            if (state != null && !m_history.tooOld(m.timestamp())) {
-                m_history.put(m.timestamp(), state);
-                m_replayer.accept(m.timestamp());
-            }
-        }
+        m_updater.update(Takt.get());
     }
 
     public Map<Double, SwerveState> all() {
@@ -116,8 +95,6 @@ public class FusedEstimator implements StateEstimator {
     @Override
     public StateSE2 get(double timestampS) {
         // run our dependencies if they haven't already
-        // m_localizerCache.run();
-        // m_odometryCache.run();
         m_cache.run();
         final StateSE2 state;
         if (Experiments.INSTANCE.enabled(Experiment.ImputeVelocity)) {
@@ -151,8 +128,6 @@ public class FusedEstimator implements StateEstimator {
                 Takt.get(),
                 m_gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));
-        // m_localizerCache.reset();
-        // m_odometryCache.reset();
         m_cache.reset();
     }
 

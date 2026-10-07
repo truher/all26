@@ -43,7 +43,7 @@ public class HistoryGardenerTest {
         OdometryReplayer or = new OdometryReplayer(history, ou);
         NudgingVisionEstimator vu = new NudgingVisionEstimator(log, history::getRecord);
 
-        HistoryGardener gardener = new HistoryGardener(history, ou, or::replay, vu);
+        HistoryGardener gardener = new HistoryGardener(history, ou, or, vu);
 
         gardener.putOdometry(0.00, Rotation2d.kZero, positions);
         gardener.putOdometry(0.02, Rotation2d.kZero, positions);

@@ -4,7 +4,6 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.function.DoubleConsumer;
 
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.NoisyPose2d;
@@ -23,20 +22,20 @@ public class HistoryGardener {
 
     private final SwerveHistory m_history;
     private final OdometryEstimator m_OdometryEstimator;
-    private final DoubleConsumer m_replayer;
+    private final OdometryReplayer m_replayer;
     private final NudgingVisionEstimator m_visionUpdater;
 
     public HistoryGardener(
             SwerveHistory history,
             OdometryEstimator OdometryEstimator,
-            DoubleConsumer replayer,
-            NudgingVisionEstimator visionUpdater) {
+            OdometryReplayer replayer,
+            NudgingVisionEstimator visionEstimate) {
         m_pendingVision = new ConcurrentSkipListMap<>();
         m_pendingOdo = new ConcurrentSkipListMap<>();
         m_history = history;
         m_OdometryEstimator = OdometryEstimator;
         m_replayer = replayer;
-        m_visionUpdater = visionUpdater;
+        m_visionUpdater = visionEstimate;
     }
 
     /** Add pending odometry measurement. */
@@ -73,7 +72,7 @@ public class HistoryGardener {
                 SwerveState s = m_visionUpdater.estimate(vision.getKey(), vision.getValue());
                 if (s != null && !m_history.tooOld(vision.getKey())) {
                     m_history.put(vision.getKey(), s);
-                    m_replayer.accept(vision.getKey());
+                    m_replayer.replay(vision.getKey());
                 }
                 vision = visionIter.hasNext() ? visionIter.next() : null;
             }
@@ -90,7 +89,7 @@ public class HistoryGardener {
             SwerveState s = m_visionUpdater.estimate(vision.getKey(), vision.getValue());
             if (s != null && !m_history.tooOld(vision.getKey())) {
                 m_history.put(vision.getKey(), s);
-                m_replayer.accept(vision.getKey());
+                m_replayer.replay(vision.getKey());
             }
             vision = visionIter.hasNext() ? visionIter.next() : null;
         }

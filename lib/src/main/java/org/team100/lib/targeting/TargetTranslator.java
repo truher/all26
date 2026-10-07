@@ -3,10 +3,11 @@ package org.team100.lib.targeting;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.DoubleFunction;
 
 import org.team100.lib.camera.Camera;
 import org.team100.lib.camera.Offset;
-import org.team100.lib.localization.StateSampler;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.targeting.Targets.TargetMeasurement;
 
 import edu.wpi.first.math.geometry.Pose2d;
@@ -23,9 +24,9 @@ public class TargetTranslator {
     private static final double MAX_DISTANCE = 4.0;
 
     /** state = f(takt seconds) from history. */
-    private final StateSampler m_history;
+    private final DoubleFunction<StateSE2> m_history;
 
-    public TargetTranslator(StateSampler history) {
+    public TargetTranslator(DoubleFunction<StateSE2> history) {
         m_history = history;
     }
 
@@ -35,7 +36,7 @@ public class TargetTranslator {
             // server timestamp in sec
             double timeSec = (double) sight.getTimestamp() / 1e6;
 
-            Pose2d robotPose = m_history.get(timeSec).pose();
+            Pose2d robotPose = m_history.apply(timeSec).pose();
             Transform3d cameraOffset = Offset.get(camera).offset();
             Optional<Translation2d> ot = TargetLocalizer.cameraRotToFieldRelative(
                     robotPose,

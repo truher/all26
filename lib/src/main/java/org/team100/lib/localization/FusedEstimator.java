@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import org.team100.lib.coherence.Cache;
-import org.team100.lib.coherence.SideEffect;
+import org.team100.lib.coherence.ObjectCache;
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
@@ -26,6 +26,9 @@ import edu.wpi.first.wpilibj.DriverStation;
  * Provides state estimates after updating vision and odometry.
  * 
  * The underlying updaters use "Fusors" and replay.
+ * 
+ * The result is stored as an immutable copy, which is a step
+ * towards the GTSAM way, where the computation is elsewhere.
  */
 public class FusedEstimator implements StateEstimator {
     private static final boolean DEBUG = false;
@@ -36,7 +39,7 @@ public class FusedEstimator implements StateEstimator {
     private final SwerveHistory m_history;
     private final AprilTagCornerReader m_tagReader;
     private final GardenUpdater m_updater;
-    private final SideEffect m_cache;
+    private final ObjectCache<ImmutableSwerveHistory> m_immutable;
 
     public FusedEstimator(LoggerFactory driveLog,
             LoggerFactory fieldLogger,
@@ -73,15 +76,19 @@ public class FusedEstimator implements StateEstimator {
                 m_history, odometryEstimate, or, visionEstimate);
         m_updater = new GardenUpdater(
                 m_gyro, m_swerveLocal::positions, m_tagReader::read, gardener);
-        m_cache = Cache.ofSideEffect(this::update);
+        m_immutable = Cache.of(this::makeImmutable);
     }
 
-    void update() {
+    /** Update the history and then make a copy */
+    ImmutableSwerveHistory makeImmutable() {
+        // mutates history
         m_updater.update(Takt.get());
+        return m_history.immutableCopy();
     }
 
     public Map<Double, SwerveState> all() {
-        return m_history.exclusiveTailMap(0);
+        ImmutableSwerveHistory h = m_immutable.get();
+        return h.all();
     }
 
     /**
@@ -95,19 +102,19 @@ public class FusedEstimator implements StateEstimator {
     @Override
     public StateSE2 get(double timestampS) {
         // run our dependencies if they haven't already
-        m_cache.run();
+        ImmutableSwerveHistory h = m_immutable.get();
         final StateSE2 state;
         if (Experiments.INSTANCE.enabled(Experiment.ImputeVelocity)) {
             // Use consecutive poses
-            StateSE2 state0 = m_history.get(timestampS - DT);
-            StateSE2 state1 = m_history.get(timestampS);
+            StateSE2 state0 = h.get(timestampS - DT);
+            StateSE2 state1 = h.get(timestampS);
             VelocitySE2 v = VelocitySE2.velocity(
                     state0.pose(),
                     state1.pose(), DT);
             state = new StateSE2(state1.pose(), v);
         } else {
             // Use the history value
-            state = m_history.get(timestampS);
+            state = h.get(timestampS);
         }
         if (DEBUG) {
             System.out.printf("FreshSwerveEstimate.update() estimated pose: %s\n", state);
@@ -128,7 +135,7 @@ public class FusedEstimator implements StateEstimator {
                 Takt.get(),
                 m_gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));
-        m_cache.reset();
+        m_immutable.reset();
     }
 
     /**

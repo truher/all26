@@ -10,9 +10,8 @@ import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 
 /**
- * Run the ground truth odometry updater at the right time.
- * 
- * Similar to FreshSwerveEstimate.
+ * Use noise-free odometry, alone, to compute the simulated robot ground-truth
+ * pose.
  */
 public class GroundTruthCache {
     private final SwerveHistory m_history;
@@ -44,7 +43,6 @@ public class GroundTruthCache {
     }
 
     public StateSE2 apply(double timestampS) {
-        // m_odometry.run();
         m_cache.run();
         return m_history.get(timestampS);
     }

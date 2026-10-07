@@ -3,6 +3,7 @@ package org.team100.lib.localization;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.DoubleFunction;
 import java.util.function.Supplier;
 
 import org.team100.lib.camera.Camera;
@@ -14,6 +15,7 @@ import org.team100.lib.localization.AprilTagVisualizer.Measurement;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleLogger;
+import org.team100.lib.state.StateSE2;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -27,7 +29,7 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 public class AprilTagVisualizationTranslator {
     private static final boolean DEBUG = false;
 
-    private final StateSampler m_history;
+    private final DoubleFunction<StateSE2> m_history;
     private final Supplier<Optional<Alliance>> m_alliance;
     private final AprilTagFieldLayoutWithCorrectOrientation m_layout;
     private final PoseFromCorners m_estimator;
@@ -35,11 +37,10 @@ public class AprilTagVisualizationTranslator {
 
     public AprilTagVisualizationTranslator(
             LoggerFactory parent,
-            StateSampler history,
+            DoubleFunction<StateSE2> history,
             AprilTagFieldLayoutWithCorrectOrientation layout,
             Supplier<Optional<Alliance>> alliance) {
         LoggerFactory log = parent.type(this);
-
         m_history = history;
         m_alliance = alliance;
         m_layout = layout;
@@ -102,7 +103,7 @@ public class AprilTagVisualizationTranslator {
         // Because the camera delay is much more than the odometry delay, we're always
         // trying to write history from several cycles ago (followed by replay). It's ok
         // for new odometry to be the last thing.
-        return m_history.get(timestamp).pose();
+        return m_history.apply(timestamp).pose();
     }
 
     /**

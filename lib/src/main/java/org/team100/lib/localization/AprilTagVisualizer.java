@@ -3,6 +3,7 @@ package org.team100.lib.localization;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.DoubleFunction;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
 
@@ -11,6 +12,7 @@ import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleArrayLogger;
 import org.team100.lib.network.CameraReader;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.util.TrailingHistory;
 
 import edu.wpi.first.math.geometry.Pose3d;
@@ -45,7 +47,7 @@ public class AprilTagVisualizer {
     public AprilTagVisualizer(
             LoggerFactory parent,
             LoggerFactory fieldLogger,
-            StateSampler history,
+            DoubleFunction<StateSE2> history,
             AprilTagFieldLayoutWithCorrectOrientation layout,
             Supplier<Optional<Alliance>> alliance) {
         LoggerFactory log = parent.type(this);

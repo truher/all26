@@ -3,6 +3,7 @@ package org.team100.lib.targeting;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.DoubleFunction;
 import java.util.stream.DoubleStream;
 
 import org.team100.lib.coherence.Cache;
@@ -10,13 +11,13 @@ import org.team100.lib.coherence.SideEffect;
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.geometry.r2.CentroidR2;
 import org.team100.lib.geometry.r2.NearR2;
-import org.team100.lib.localization.StateSampler;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleArrayLogger;
 import org.team100.lib.logging.LoggerFactory.DoubleLogger;
 import org.team100.lib.logging.LoggerFactory.IntLogger;
 import org.team100.lib.network.CameraReader;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.util.CoalescingCollection;
 import org.team100.lib.util.TrailingHistory;
 
@@ -55,7 +56,7 @@ public class Targets {
 
     private final TargetTranslator m_translator;
     /** state = f(takt seconds) from history. */
-    private final StateSampler m_history;
+    private final DoubleFunction<StateSE2> m_history;
     /** Accumulation of targets we see; this is really for logging only. */
     private final TrailingHistory<Translation2d> m_allTargets;
     /** Coalesced targets */
@@ -71,7 +72,7 @@ public class Targets {
             LoggerFactory parent,
             LoggerFactory fieldLogger,
             double maxSightAge,
-            StateSampler history) {
+            DoubleFunction<StateSE2> history) {
         m_reader = new CameraReader<>("objectVision", "targets",
                 StructBuffer.create(Target.struct));
         LoggerFactory log = parent.type(this);
@@ -131,7 +132,7 @@ public class Targets {
         // Show the targets on the Field2d widget.
 
         // compute the closest target
-        Pose2d robotPose = m_history.get(Takt.get()).pose();
+        Pose2d robotPose = m_history.apply(Takt.get()).pose();
         m_closestTarget = ObjectPicker.closestObject(m_targets.getAll(), robotPose);
 
         // Show the closest target on the field2d widget.

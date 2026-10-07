@@ -101,7 +101,7 @@ public class Machinery {
                 estimate,
                 swerveLocal);
         m_tagViz = new AprilTagVisualizer(
-                driveLog, fieldLogger, m_drive::getState, layout, DriverStation::getAlliance);
+                driveLog, fieldLogger, estimate::get, layout, DriverStation::getAlliance);
         new RobotPoseVisualization(
                 fieldLogger, () -> m_drive.getState(), "robot");
         new SwerveHistoryVisualization(fieldLogger, estimate);
@@ -126,7 +126,7 @@ public class Machinery {
 
         // Targeting from 2025: the cameras are looking for game pieces.
 
-        m_targets = new Targets(driveLog, fieldLogger, 0.2, (t) -> m_drive.getState(t));
+        m_targets = new Targets(driveLog, fieldLogger, 0.2, estimate::get);
 
         ////////////////////////////////////////////////////////////
         //

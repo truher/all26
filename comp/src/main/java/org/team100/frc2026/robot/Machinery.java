@@ -48,7 +48,6 @@ import edu.wpi.first.wpilibj2.command.Commands;
  * that the Binder and Auton classes may want to use.
  */
 public class Machinery {
-    private final RobotPoseVisualization m_robotViz;
     private final AprilTagVisualizer m_tagViz;
     private final SwerveModuleCollection m_modules;
     private final GroundTruth m_groundTruth;
@@ -103,7 +102,7 @@ public class Machinery {
                 swerveLocal);
         m_tagViz = new AprilTagVisualizer(
                 driveLog, fieldLogger, m_drive::getState, layout, DriverStation::getAlliance);
-        m_robotViz = new RobotPoseVisualization(
+        new RobotPoseVisualization(
                 fieldLogger, () -> m_drive.getState(), "robot");
         new SwerveHistoryVisualization(fieldLogger, estimate);
 

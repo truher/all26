@@ -1,5 +1,7 @@
 package org.team100.lib.localization;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
@@ -14,11 +16,12 @@ import org.team100.lib.uncertainty.VariableR1;
 import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.math.geometry.Rotation2d;
 
-public class HistoryGardenerTest {
+public class GardenUpdaterTest {
     private static final LoggerFactory log = new TestLoggerFactory(new TestPrimitiveLogger());
     private static final SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forRealisticTest();
 
     private SwerveModulePositions positions;
+    private VisionMeasurement vision;
 
     @Test
     void test0() {
@@ -42,10 +45,13 @@ public class HistoryGardenerTest {
 
         HistoryGardener gardener = new HistoryGardener(history, ou, or, vu);
 
-        gardener.putOdometry(0.00, Rotation2d.kZero, positions);
-        gardener.putOdometry(0.02, Rotation2d.kZero, positions);
-        gardener.putVision(0.01, new NoisyPose2d(new Pose2d(), IsotropicNoiseSE2.fromStdDev(1, 1)));
-        gardener.sweep();
+        vision = new VisionMeasurement(
+                0.01, new NoisyPose2d(new Pose2d(), IsotropicNoiseSE2.fromStdDev(1, 1)));
+
+        GardenUpdater gu = new GardenUpdater(
+                gyro, () -> positions, () -> List.of(vision), gardener);
+
+        gu.update(0.02);
 
         history.dump();
     }

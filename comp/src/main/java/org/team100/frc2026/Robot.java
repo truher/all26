@@ -16,6 +16,7 @@ import org.team100.lib.logging.LogPoller;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.Logging;
 import org.team100.lib.logging.RobotLog;
+import org.team100.lib.motor.ctre.CTREStartup;
 import org.team100.lib.network.Sync;
 import org.team100.lib.util.Startup;
 import org.team100.lib.visualization.AutonVisualization;
@@ -45,6 +46,7 @@ public class Robot extends TimedRobot100 {
 
     public Robot() {
         Startup.start();
+        CTREStartup.start();
         try {
             Point2 p = new Point2(4, 5);
             System.out.printf("GTSAM p %f %f\n", p.x(), p.y());

@@ -76,4 +76,9 @@ public class StateEstimatorProxy implements StateEstimator {
         };
     }
 
+    @Override
+    public void close() {
+        m_chooser.close();
+    }
+
 }

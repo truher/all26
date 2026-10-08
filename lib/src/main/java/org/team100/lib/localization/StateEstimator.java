@@ -27,4 +27,6 @@ public interface StateEstimator {
 
     /** Timestamped estimates. */
     Map<Double, SwerveState> all();
+
+    void close();
 }

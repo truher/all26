@@ -144,4 +144,8 @@ public class FusedEstimator implements StateEstimator {
         m_tagReader.setHeedRadiusM(heedRadiusM);
     }
 
+    @Override
+    public void close() {
+    }
+
 }

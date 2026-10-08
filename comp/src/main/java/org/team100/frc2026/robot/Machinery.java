@@ -50,6 +50,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 public class Machinery {
     private final SwerveModuleCollection m_modules;
     private final GroundTruth m_groundTruth;
+    private final StateEstimator m_proxyEstimator;
 
     public final TrajectoryVisualization m_trajectoryViz;
     public final SwerveKinodynamics m_swerveKinodynamics;
@@ -94,11 +95,11 @@ public class Machinery {
                 layout,
                 gyro,
                 swerveLocal);
-        StateEstimator proxyEstimator = new StateEstimatorProxy(
+        m_proxyEstimator = new StateEstimatorProxy(
                 fusedEstimate, new NoEstimate());
         m_drive = new SwerveDriveSubsystem(
                 driveLog,
-                proxyEstimator,
+                m_proxyEstimator,
                 swerveLocal);
         new AprilTagVisualizer(
                 driveLog, fieldLogger, m_drive::getState, layout,
@@ -222,6 +223,7 @@ public class Machinery {
     public void close() {
         m_modules.close();
         m_solver.close();
+        m_proxyEstimator.close();
     }
 
 }

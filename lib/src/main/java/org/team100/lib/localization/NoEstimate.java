@@ -29,4 +29,8 @@ public class NoEstimate implements StateEstimator {
         return new TreeMap<>();
     }
 
+    @Override
+    public void close() {
+    }
+
 }

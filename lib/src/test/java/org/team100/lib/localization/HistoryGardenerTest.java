@@ -1,7 +1,5 @@
 package org.team100.lib.localization;
 
-import java.util.function.UnaryOperator;
-
 import org.junit.jupiter.api.Test;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
@@ -39,7 +37,7 @@ public class HistoryGardenerTest {
         OdometryEstimator ou = new OdometryEstimator(
                 log, kinodynamics, gyro.white_noise(),
                 gyro.bias_noise(), history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         OdometryReplayer or = new OdometryReplayer(history, ou);
         NudgingVisionEstimator vu = new NudgingVisionEstimator(log, history::getRecord);
 

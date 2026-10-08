@@ -69,13 +69,13 @@ public class OdometryEstimator {
             double whiteNoise, // gyro white noise
             double biasNoise, // gyro bias noise
             DoubleFunction<Entry<Double, SwerveState>> lowerEntry, // history entry before timestamp
-            UnaryOperator<Twist2d> noise,
+            boolean noisy, // if true, add noise; used for simulation
             boolean alwaysUpdate) {
         LoggerFactory log = parent.type(this);
         m_kinodynamics = kinodynamics;
         m_gyroWhiteNoise = whiteNoise;
         m_lowerEntry = lowerEntry;
-        m_noise = noise;
+        m_noise = noisy ? new AddOdometryNoise() : UnaryOperator.identity();
         m_alwaysUpdate = alwaysUpdate;
         m_gyroBiasFusor = new CovarianceInflation(0.02, biasNoise);
         m_rotationFusor = new CovarianceInflation(0.02, 0.003);

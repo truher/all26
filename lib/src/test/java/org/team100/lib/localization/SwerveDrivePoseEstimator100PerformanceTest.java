@@ -3,7 +3,6 @@ package org.team100.lib.localization;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Optional;
-import java.util.function.UnaryOperator;
 
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
@@ -76,7 +75,7 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, gyro.white_noise(),
                 gyro.bias_noise(), history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         history.reset(
                 positions, Pose2d.kZero, IsotropicNoiseSE2.high(),
                 0, gyro.getYawNWU(),

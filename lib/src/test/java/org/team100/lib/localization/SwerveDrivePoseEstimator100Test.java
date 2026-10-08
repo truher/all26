@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.TreeMap;
-import java.util.function.UnaryOperator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -130,7 +129,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
@@ -185,7 +184,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
@@ -242,7 +241,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
@@ -304,7 +303,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
@@ -447,7 +446,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
@@ -591,7 +590,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
@@ -664,7 +663,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
@@ -738,7 +737,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.05, 0.05),
                 0, Rotation2d.kZero,
@@ -814,7 +813,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         history.reset(
                 positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.01, 0.01),
                 0, Rotation2d.kZero,
@@ -948,7 +947,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 0.05 / Math.sqrt(0.02), 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
 
         SwerveModulePositions positions = new SwerveModulePositions(
                 new SwerveModulePosition100(),
@@ -1105,7 +1104,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
         history.reset(
                 positionZero, new Pose2d(1, 2, Rotation2d.fromDegrees(270)),
                 IsotropicNoiseSE2.high(),
@@ -1163,7 +1162,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5, history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
 
         history.reset(
                 positionZero, Pose2d.kZero,

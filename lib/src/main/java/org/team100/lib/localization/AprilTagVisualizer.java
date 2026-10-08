@@ -9,6 +9,7 @@ import java.util.stream.DoubleStream;
 
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.logging.Level;
+import org.team100.lib.logging.LogPoller;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleArrayLogger;
 import org.team100.lib.network.CameraReader;
@@ -59,9 +60,10 @@ public class AprilTagVisualizer {
         NetworkTableInstance inst = NetworkTableInstance.getDefault();
         m_pub_tags = inst.getStructArrayTopic("tags", Pose3d.struct).publish();
         m_log_allTags = fieldLogger.doubleArrayLogger(Level.DEBUG, "all tags");
+        LogPoller.register(this::update);
     }
 
-    public void update() {
+    private void update() {
         List<Measurement> measurements = read();
         consumeMeasurements(measurements);
     }

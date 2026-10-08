@@ -1,7 +1,6 @@
 package org.team100.lib.localization;
 
 import java.util.Map;
-import java.util.function.UnaryOperator;
 
 import org.team100.lib.coherence.Cache;
 import org.team100.lib.coherence.ObjectCache;
@@ -19,7 +18,6 @@ import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.uncertainty.VariableR1;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.wpilibj.DriverStation;
 
 /**
@@ -44,7 +42,7 @@ public class FusedEstimator implements StateEstimator {
     public FusedEstimator(LoggerFactory driveLog,
             LoggerFactory fieldLogger,
             SwerveKinodynamics swerveKinodynamics,
-            UnaryOperator<Twist2d> odometryNoise,
+            boolean noisy,
             AprilTagFieldLayoutWithCorrectOrientation layout,
             Gyro gyro,
             SwerveLocal swerveLocal) {
@@ -65,7 +63,7 @@ public class FusedEstimator implements StateEstimator {
                 gyro.white_noise(),
                 gyro.bias_noise(),
                 m_history::lowerEntry,
-                odometryNoise,
+                noisy,
                 false);
         OdometryReplayer or = new OdometryReplayer(m_history, odometryEstimate);
         NudgingVisionEstimator visionEstimate = new NudgingVisionEstimator(
@@ -100,7 +98,7 @@ public class FusedEstimator implements StateEstimator {
      * arbitrarily smooth.
      */
     @Override
-    public StateSE2 get(double timestampS) {
+    public StateSE2 getState(double timestampS) {
         // run our dependencies if they haven't already
         ImmutableSwerveHistory h = m_immutable.get();
         final StateSE2 state;

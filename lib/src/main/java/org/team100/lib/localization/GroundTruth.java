@@ -1,7 +1,5 @@
 package org.team100.lib.localization;
 
-import java.util.function.UnaryOperator;
-
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
@@ -61,7 +59,7 @@ public class GroundTruth {
                 simLog, kinodynamics,
                 m_gyro.white_noise(), m_gyro.bias_noise(),
                 m_history::lowerEntry,
-                UnaryOperator.identity(), true);
+                false, true);
 
         GroundTruthCache groundTruthCache = new GroundTruthCache(
                 m_odometry, m_gyro, m_modules::positions, m_history);

@@ -47,7 +47,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
  * This should contain all the hardware of the robot: all the subsystems etc
  * that the Binder and Auton classes may want to use.
  */
-public class Machinery {
+public class Machinery implements AutoCloseable {
     private final AprilTagVisualizer m_tagViz;
     private final SwerveModuleCollection m_modules;
     private final GroundTruth m_groundTruth;
@@ -218,6 +218,7 @@ public class Machinery {
     /**
      * Keeps the tests from conflicting via the use of simulated HAL ports.
      */
+    @Override
     public void close() {
         m_modules.close();
         m_solver.close();

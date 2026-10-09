@@ -67,36 +67,35 @@ public class DoubleCircleAuton implements AnnotatedCommand {
         TrajectorySE2Factory trajectoryFactory = new TrajectorySE2Factory(new_constraints);
         PathSE2Factory pathFactory = new PathSE2Factory();
         planner = new TrajectorySE2Planner(pathFactory, trajectoryFactory);
-        DriveWithTrajectoryFunctionWithOverride bigLoop = new DriveWithTrajectoryFunctionWithOverride(
+        DriveWithTrajectoryFunctionWithOverride navigate = new DriveWithTrajectoryFunctionWithOverride(
                 log,
                 machinery.m_drive,
                 controller,
                 machinery.m_trajectoryViz,
                 this::t1, m_solver,
                 this::inAllianceZone);
-
+        Command extendWhenInNeutralZone = toggle(
+                this::inNeutralZone,
+                machinery.m_intakeExtend.goToExtendedPositionEndlessly(),
+                machinery.m_intakeExtend.goToRetractedPosition());
+        Command rollWhenExtended = toggle(
+                this::intakeExtended,
+                machinery.m_intake.intake(),
+                machinery.m_intake.stop());
+        // this doesn't intake because of the parallel requirement issue.
+        Command shootWhenInAllianceZone = toggle(
+                this::inAllianceZone,
+                parallel(
+                        // machinery.m_intake.intake(),
+                        machinery.m_shooter.auto()),
+                parallel(
+                        // machinery.m_intake.intake(),
+                        machinery.m_shooter.stop()));
         command = parallel(
-                // navigate
-                bigLoop,
-                // extend when in neutral zone
-                toggle(
-                        this::inNeutralZone,
-                        machinery.m_intakeExtend.goToExtendedPositionEndlessly(),
-                        machinery.m_intakeExtend.goToRetractedPosition()),
-                // roll when extended
-                toggle(
-                        this::intakeExtended,
-                        machinery.m_intake.intake(),
-                        machinery.m_intake.stop()),
-                // shoot when in alliance zone
-                toggle(
-                        this::inAllianceZone,
-                        parallel(
-                                machinery.m_intake.intake(),
-                                machinery.m_shooter.auto()),
-                        parallel(
-                                machinery.m_intake.intake(),
-                                machinery.m_shooter.stop())));
+                navigate,
+                extendWhenInNeutralZone,
+                rollWhenExtended,
+                shootWhenInAllianceZone);
     }
 
     @Override

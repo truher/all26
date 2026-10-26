@@ -48,8 +48,9 @@ public class SwerveHistory implements StateSampler {
         m_log_timestamp = parent.type(this).doubleLogger(Level.TRACE, "sample timestamp");
         SwerveStateInterpolator interpolator = new SwerveStateInterpolator();
         StateSE2 state = new StateSE2(initialPoseMeters, VelocitySE2.ZERO);
+        LocalizerEstimate estimate = new LocalizerEstimate(state, noise, gyroBias);
         SwerveState initialState = new SwerveState(
-                state, noise, modulePositions, gyroAngle, gyroBias, null);
+                estimate, modulePositions, gyroAngle, null);
         m_poseBuffer = new TimeInterpolatableBuffer100<>(
                 interpolator, bufferDuration, timestampSeconds, initialState);
     }
@@ -70,7 +71,8 @@ public class SwerveHistory implements StateSampler {
     @Override
     public StateSE2 get(double timestampSeconds) {
         m_log_timestamp.log(() -> timestampSeconds);
-        return m_poseBuffer.get(timestampSeconds).state();
+        LocalizerEstimate estimate = m_poseBuffer.get(timestampSeconds).estimate();
+        return estimate.state();
     }
 
     /** Empty the buffer and add the given measurements. */
@@ -82,12 +84,11 @@ public class SwerveHistory implements StateSampler {
             Rotation2d gyroYaw,
             VariableR1 gyroBias) {
         StateSE2 newState = new StateSE2(pose, VelocitySE2.ZERO);
+        LocalizerEstimate estimate = new LocalizerEstimate(newState, noise, gyroBias);
         SwerveState state = new SwerveState(
-                newState,
-                noise,
+                estimate,
                 modulePositions,
                 gyroYaw,
-                gyroBias,
                 null);
         m_poseBuffer.reset(timestampSeconds, state);
     }

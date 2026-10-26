@@ -3,6 +3,7 @@ package org.team100.lib.localization.fused;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
+import org.team100.lib.localization.LocalizerEstimate;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
@@ -191,8 +192,9 @@ public class NudgingVisionUpdaterTest {
         SwerveModulePositions positions = SwerveModulePositions.kZero();
         Rotation2d yaw = new Rotation2d();
         VariableR1 bias = VariableR1.fromVariance(0, 0.001);
+        LocalizerEstimate estimate1 = new LocalizerEstimate(sampleState, stateNoise, bias);
         SwerveState sample = new SwerveState(
-                sampleState, stateNoise, positions, yaw, bias, null);
+                estimate1, positions, yaw, null);
 
         // camera thinks we're at 1, and it's pretty sure.
         Pose2d visionPose = new Pose2d(1, 0, new Rotation2d());
@@ -202,11 +204,12 @@ public class NudgingVisionUpdaterTest {
         // result is close to the vision estimate, with its variance.
         NudgingVisionEstimator vu = new NudgingVisionEstimator(log, null);
         SwerveState newState = vu.newState(sample, measurement);
-        assertEquals(1, newState.state().pose().getX(), DELTA);
-        assertEquals(0, newState.state().pose().getY(), DELTA);
-        assertEquals(0, newState.state().pose().getRotation().getRadians(), DELTA);
-        assertEquals(0.01, newState.noise().cartesian(), DELTA);
-        assertEquals(0.01, newState.noise().rotation(), DELTA);
+        LocalizerEstimate estimate = newState.estimate();
+        assertEquals(1, estimate.state().pose().getX(), DELTA);
+        assertEquals(0, estimate.state().pose().getY(), DELTA);
+        assertEquals(0, estimate.state().pose().getRotation().getRadians(), DELTA);
+        assertEquals(0.01, estimate.noise().cartesian(), DELTA);
+        assertEquals(0.01, estimate.noise().rotation(), DELTA);
     }
 
     @Test
@@ -217,8 +220,8 @@ public class NudgingVisionUpdaterTest {
         SwerveModulePositions positions = SwerveModulePositions.kZero();
         Rotation2d yaw = new Rotation2d();
         VariableR1 bias = VariableR1.fromVariance(0, 0.001);
-        SwerveState sample = new SwerveState(
-                sampleState, stateNoise, positions, yaw, bias, null);
+        LocalizerEstimate estimate1 = new LocalizerEstimate(sampleState, stateNoise, bias);
+        SwerveState sample = new SwerveState(estimate1, positions, yaw, null);
 
         // camera thinks we're at 1, and it's pretty sure.
         Pose2d visionPose = new Pose2d(1, 0, new Rotation2d());
@@ -229,11 +232,12 @@ public class NudgingVisionUpdaterTest {
         // rotation result is more confident, since history and camera agree.
         NudgingVisionEstimator vu = new NudgingVisionEstimator(log, null);
         SwerveState newState = vu.newState(sample, measurement);
-        assertEquals(0.5, newState.state().pose().getX(), DELTA);
-        assertEquals(0, newState.state().pose().getY(), DELTA);
-        assertEquals(0, newState.state().pose().getRotation().getRadians(), DELTA);
-        assertEquals(0.071, newState.noise().cartesian(), DELTA);
-        assertEquals(0.007, newState.noise().rotation(), DELTA);
+        LocalizerEstimate estimate = newState.estimate();
+        assertEquals(0.5, estimate.state().pose().getX(), DELTA);
+        assertEquals(0, estimate.state().pose().getY(), DELTA);
+        assertEquals(0, estimate.state().pose().getRotation().getRadians(), DELTA);
+        assertEquals(0.071, estimate.noise().cartesian(), DELTA);
+        assertEquals(0.007, estimate.noise().rotation(), DELTA);
     }
 
 }

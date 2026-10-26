@@ -31,15 +31,8 @@ public class SwerveStateInterpolator implements Interpolator<SwerveState> {
             return endValue;
         }
 
-        StateSE2 startState = startValue.state();
-        StateSE2 endState = endValue.state();
-
-        // Interpolate the state.
-        StateSE2 stateLerp = startState.interpolate(endState, t);
-
-        // Interpolate the noise.
-        IsotropicNoiseSE2 noiseLerp = startValue.noise().interpolate(
-                endValue.noise(), t);
+        LocalizerEstimate startEstimate = startValue.estimate();
+        LocalizerEstimate endEstimate = endValue.estimate();
 
         // Interpolate the wheel positions.
         SwerveModulePositions startPositions = startValue.positions();
@@ -50,18 +43,15 @@ public class SwerveStateInterpolator implements Interpolator<SwerveState> {
         Rotation2d gyroLerp = startValue.gyroYaw().interpolate(
                 endValue.gyroYaw(), t);
 
-        // Interpolate the gyro bias estimate.
-        VariableR1 gyroBiasLerp = startValue.gyroBias().interpolate(
-                endValue.gyroBias(), t);
-
         NoisyPose2d measurementLerp = null;
         if (startValue.visionMeasurement() != null && endValue.visionMeasurement() != null) {
             measurementLerp = startValue.visionMeasurement()
                     .interpolate(endValue.visionMeasurement(), t);
         }
 
+        LocalizerEstimate estimate = startEstimate.interpolate(endEstimate, t);
         return new SwerveState(
-                stateLerp, noiseLerp, wheelLerp, gyroLerp, gyroBiasLerp, measurementLerp);
+                estimate, wheelLerp, gyroLerp, measurementLerp);
     }
 
 }

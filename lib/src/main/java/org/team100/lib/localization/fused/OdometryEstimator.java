@@ -9,6 +9,7 @@ import org.team100.lib.experiments.Experiments;
 import org.team100.lib.fusion.CovarianceInflation;
 import org.team100.lib.fusion.Fusor;
 import org.team100.lib.geometry.se2.VelocitySE2;
+import org.team100.lib.localization.LocalizerEstimate;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.localization.simulation.AddOdometryNoise;
 import org.team100.lib.logging.Level;
@@ -149,9 +150,15 @@ public class OdometryEstimator {
             double dt,
             Rotation2d gyroYaw,
             SwerveModulePositions positions) {
+        LocalizerEstimate previousEstimate = previousState.estimate();
+        StateSE2 previousStateSe2 = previousEstimate.state();
+        IsotropicNoiseSE2 previousNoise = previousEstimate.noise();
+        VariableR1 previousBias = previousEstimate.gyroBias();
+
         if (DEBUG) {
             System.out.printf("previous x %.6f y %.6f\n",
-                    previousState.state().pose().getX(), previousState.state().pose().getY());
+                    previousStateSe2.pose().getX(),
+                    previousStateSe2.pose().getY());
         }
         // The SE2 "twist" increment between the previous and current poses.
         Twist2d twist = twistFromOdometry(positions, previousState.positions());
@@ -172,10 +179,10 @@ public class OdometryEstimator {
 
         // Fuse the previous and new bias estimates.
         VariableR1 newGyroBiasEstimateRad_S = m_gyroBiasFusor.fuse(
-                previousState.gyroBias(), gyroBiasMeasurementRad_S);
+                previousBias, gyroBiasMeasurementRad_S);
         if (DEBUG)
             System.out.printf("=== gyro bias previous %s measurement %s result %s\n",
-                    previousState.gyroBias(),
+                    previousBias,
                     gyroBiasMeasurementRad_S,
                     newGyroBiasEstimateRad_S);
 
@@ -197,10 +204,10 @@ public class OdometryEstimator {
         twist = new Twist2d(twist.dx, twist.dy, fusedRotationIncrement.mean());
 
         // The new pose is the twist applied to the old pose.
-        Pose2d newPose = previousState.state().pose().exp(twist);
+        Pose2d newPose = previousStateSe2.pose().exp(twist);
 
         // Compute a new velocity using backward finite difference.
-        VelocitySE2 velocity = VelocitySE2.velocity(previousState.state().pose(), newPose, dt);
+        VelocitySE2 velocity = VelocitySE2.velocity(previousStateSe2.pose(), newPose, dt);
 
         StateSE2 newState = new StateSE2(newPose, velocity);
 
@@ -212,21 +219,16 @@ public class OdometryEstimator {
         // just the sum of their variances. So if you drive around for
         // awhile without seeing any tags, the variance will grow
         // without bound.
-        IsotropicNoiseSE2 noise = previousState.noise().plus(n0);
+        IsotropicNoiseSE2 noise = previousNoise.plus(n0);
 
-        m_log_prevNoise.log(() -> previousState.noise());
+        m_log_prevNoise.log(() -> previousNoise);
         m_log_updateNoise.log(() -> n0);
         m_log_newNoise.log(() -> noise);
 
         // The result is the new state, with verbatim measurements (to use next time).
         // There is no vision measurement here, so it's null.
-        return new SwerveState(
-                newState,
-                noise,
-                positions,
-                gyroYaw,
-                newGyroBiasEstimateRad_S,
-                null);
+        LocalizerEstimate estimate = new LocalizerEstimate(newState, noise, newGyroBiasEstimateRad_S);
+        return new SwerveState(estimate, positions, gyroYaw, null);
     }
 
     /**

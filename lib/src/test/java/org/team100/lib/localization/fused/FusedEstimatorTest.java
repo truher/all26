@@ -107,24 +107,24 @@ public class FusedEstimatorTest implements Timeless {
         TestUtil.verify(
                 new VelocitySE2(0, 0, 0),
                 VelocitySE2.velocity(
-                        states.get(0).state().pose(),
-                        states.get(1).state().pose(), dt));
+                        states.get(0).estimate().state().pose(),
+                        states.get(1).estimate().state().pose(), dt));
         // next states do move
         TestUtil.verify(
                 new VelocitySE2(1, 0, 0),
                 VelocitySE2.velocity(
-                        states.get(1).state().pose(),
-                        states.get(2).state().pose(), dt));
+                        states.get(1).estimate().state().pose(),
+                        states.get(2).estimate().state().pose(), dt));
         TestUtil.verify(
                 new VelocitySE2(1, 0, 0),
                 VelocitySE2.velocity(
-                        states.get(2).state().pose(),
-                        states.get(3).state().pose(), dt));
+                        states.get(2).estimate().state().pose(),
+                        states.get(3).estimate().state().pose(), dt));
         TestUtil.verify(
                 new VelocitySE2(1, 0, 0),
                 VelocitySE2.velocity(
-                        states.get(3).state().pose(),
-                        states.get(4).state().pose(), dt));
+                        states.get(3).estimate().state().pose(),
+                        states.get(4).estimate().state().pose(), dt));
 
         drive.close();
     }
@@ -197,24 +197,24 @@ public class FusedEstimatorTest implements Timeless {
         TestUtil.verify(
                 new VelocitySE2(0, 0, 0),
                 VelocitySE2.velocity(
-                        states.get(0).state().pose(),
-                        states.get(1).state().pose(), dt));
+                        states.get(0).estimate().state().pose(),
+                        states.get(1).estimate().state().pose(), dt));
         // next states do move
         TestUtil.verify(
                 new VelocitySE2(0.991, 0.064, 0.993), // ???
                 VelocitySE2.velocity(
-                        states.get(1).state().pose(),
-                        states.get(2).state().pose(), dt));
+                        states.get(1).estimate().state().pose(),
+                        states.get(2).estimate().state().pose(), dt));
         TestUtil.verify(
                 new VelocitySE2(1, 0.02, 1),
                 VelocitySE2.velocity(
-                        states.get(2).state().pose(),
-                        states.get(3).state().pose(), dt));
+                        states.get(2).estimate().state().pose(),
+                        states.get(3).estimate().state().pose(), dt));
         TestUtil.verify(
                 new VelocitySE2(1, 0.04, 1),
                 VelocitySE2.velocity(
-                        states.get(3).state().pose(),
-                        states.get(4).state().pose(), dt));
+                        states.get(3).estimate().state().pose(),
+                        states.get(4).estimate().state().pose(), dt));
 
         drive.close();
     }

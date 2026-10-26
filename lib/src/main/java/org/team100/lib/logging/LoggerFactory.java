@@ -16,6 +16,7 @@ import org.team100.lib.geometry.se2.AccelerationSE2;
 import org.team100.lib.geometry.se2.DeltaSE2;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.geometry.se2.WaypointSE2;
+import org.team100.lib.localization.LocalizerEstimate;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.localization.network.Blip;
 import org.team100.lib.logging.primitive.PrimitiveLogger;
@@ -1187,12 +1188,14 @@ public class LoggerFactory {
         public void log(Supplier<SwerveState> vals) {
             if (!allow(m_level))
                 return;
-            SwerveState val = vals.get();
-            m_state.log(val::state);
-            m_noise.log(val::noise);
-            m_positions.log(val::positions);
-            m_gyroYaw.log(val::gyroYaw);
-            m_gyroBias.log(val::gyroBias);
+            SwerveState s = vals.get();
+            LocalizerEstimate e = s.estimate();
+            m_state.log(e::state);
+            m_noise.log(e::noise);
+            m_gyroBias.log(e::gyroBias);
+
+            m_positions.log(s::positions);
+            m_gyroYaw.log(s::gyroYaw);
         }
 
     }

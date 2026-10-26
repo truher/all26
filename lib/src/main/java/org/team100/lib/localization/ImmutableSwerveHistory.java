@@ -30,7 +30,8 @@ public class ImmutableSwerveHistory implements StateSampler {
 
     /** Interpolates. */
     public StateSE2 get(double timestampSeconds) {
-        return m_poseBuffer.get(timestampSeconds).state();
+        LocalizerEstimate estimate = m_poseBuffer.get(timestampSeconds).estimate();
+        return estimate.state();
     }
 
     /** Return all entries. This is for visualization. */

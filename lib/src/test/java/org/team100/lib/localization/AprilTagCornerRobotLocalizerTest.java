@@ -83,11 +83,12 @@ public class AprilTagCornerRobotLocalizerTest {
         double lastKey = history.lastKey();
         assertEquals(0, lastKey, DELTA);
         SwerveState state = history.getRecord(lastKey);
-        Pose2d p = state.state().pose();
+        LocalizerEstimate estimate = state.estimate();
+        Pose2d p = estimate.state().pose();
         assertEquals(0, p.getX(), DELTA);
         assertEquals(0, p.getY(), DELTA);
         // high uncertainty
-        assertEquals(10, state.noise().cartesian(), DELTA);
+        assertEquals(10, estimate.noise().cartesian(), DELTA);
 
         // no replayer
         NudgingVisionEstimator visionUpdater = new NudgingVisionEstimator(
@@ -111,12 +112,13 @@ public class AprilTagCornerRobotLocalizerTest {
         lastKey = history.lastKey();
         assertEquals(0.2, lastKey, DELTA);
         state = history.getRecord(lastKey);
-        p = state.state().pose();
+        LocalizerEstimate estimate2 = state.estimate();
+        p = estimate2.state().pose();
         assertEquals(7.157, p.getX(), DELTA);
         assertEquals(1.874, p.getY(), DELTA);
         // uncertainty is still pretty high because the tag is directly in front of the
         // camera, which is a very uncertain state.
-        assertEquals(1.455, state.noise().cartesian(), DELTA);
+        assertEquals(1.455, estimate2.noise().cartesian(), DELTA);
 
         // watch the tag for 0.2 more sec
         measurements.clear();
@@ -133,10 +135,11 @@ public class AprilTagCornerRobotLocalizerTest {
         // pose is closer now but still not that close, because of the high uncertainty
         // the nudger doesn't nudge very hard.
         state = history.getRecord(lastKey);
-        p = state.state().pose();
+        LocalizerEstimate estimate3 = state.estimate();
+        p = estimate3.state().pose();
         assertEquals(7.224, p.getX(), DELTA);
         assertEquals(1.891, p.getY(), DELTA);
-        assertEquals(1.060, state.noise().cartesian(), DELTA);
+        assertEquals(1.060, estimate3.noise().cartesian(), DELTA);
     }
 
     private BlipWithCorners[] getTags(double timestampsec) {

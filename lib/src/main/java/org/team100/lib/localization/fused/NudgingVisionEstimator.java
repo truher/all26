@@ -5,6 +5,7 @@ import java.util.function.DoubleFunction;
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.fusion.CovarianceInflation;
 import org.team100.lib.fusion.Fusor;
+import org.team100.lib.localization.LocalizerEstimate;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
@@ -98,13 +99,16 @@ public class NudgingVisionEstimator implements VisionEstimator {
      * Uses the verbatim measurement.
      */
     SwerveState newState(SwerveState sample, NoisyPose2d measurement) {
-        NoisyPose2d nudged = nudge(sample.noisyPose(), measurement);
-        return new SwerveState(
-                new StateSE2(nudged.pose(), sample.velocity()),
+        LocalizerEstimate sampleEstimate = sample.estimate();
+        NoisyPose2d nudged = nudge(sampleEstimate.noisyPose(), measurement);
+        LocalizerEstimate estimate = new LocalizerEstimate(
+                new StateSE2(nudged.pose(), sampleEstimate.velocity()),
                 nudged.noise(),
+                sampleEstimate.gyroBias());
+        return new SwerveState(
+                estimate,
                 sample.positions(),
                 sample.gyroYaw(),
-                sample.gyroBias(),
                 measurement);
     }
 

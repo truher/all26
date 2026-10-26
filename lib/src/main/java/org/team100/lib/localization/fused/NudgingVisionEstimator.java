@@ -82,7 +82,12 @@ public class NudgingVisionEstimator implements VisionEstimator {
         // This is always interpolated.
         SwerveState sample = m_sampler.apply(timestamp);
         // Nudge the sample towards the measurement.
-        SwerveState newState = newState(sample, noisyMeasurement);
+        LocalizerEstimate estimate = newState(sample, noisyMeasurement);
+        SwerveState newState = new SwerveState(
+                estimate,
+                sample.positions(),
+                sample.gyroYaw(),
+                noisyMeasurement);
         m_logState.log(() -> newState);
         return newState;
     }
@@ -98,18 +103,14 @@ public class NudgingVisionEstimator implements VisionEstimator {
      * 
      * Uses the verbatim measurement.
      */
-    SwerveState newState(SwerveState sample, NoisyPose2d measurement) {
+    LocalizerEstimate newState(SwerveState sample, NoisyPose2d measurement) {
         LocalizerEstimate sampleEstimate = sample.estimate();
         NoisyPose2d nudged = nudge(sampleEstimate.noisyPose(), measurement);
         LocalizerEstimate estimate = new LocalizerEstimate(
                 new StateSE2(nudged.pose(), sampleEstimate.velocity()),
                 nudged.noise(),
                 sampleEstimate.gyroBias());
-        return new SwerveState(
-                estimate,
-                sample.positions(),
-                sample.gyroYaw(),
-                measurement);
+        return estimate;
     }
 
     /**

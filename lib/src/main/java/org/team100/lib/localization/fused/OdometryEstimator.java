@@ -139,18 +139,24 @@ public class OdometryEstimator {
             System.out.printf("=== compute for current time %6.3f sample time %6.3f dt %6.3f\n",
                     timestamp, lowerEntry.getKey(), dt);
 
-        return newState(previousState, dt, gyroYaw, positions);
+        LocalizerEstimate estimate = newState(
+                previousState.estimate(),
+                previousState.positions(),
+                previousState.gyroYaw(),
+                dt, gyroYaw, positions);
+        return new SwerveState(estimate, positions, gyroYaw, null);
     }
 
     /**
      * Compute the new state, based on the previous state.
      */
-    SwerveState newState(
-            SwerveState previousState,
+    LocalizerEstimate newState(
+            LocalizerEstimate previousEstimate,
+            SwerveModulePositions previousPositions,
+            Rotation2d previousYaw,
             double dt,
             Rotation2d gyroYaw,
             SwerveModulePositions positions) {
-        LocalizerEstimate previousEstimate = previousState.estimate();
         StateSE2 previousStateSe2 = previousEstimate.state();
         IsotropicNoiseSE2 previousNoise = previousEstimate.noise();
         VariableR1 previousBias = previousEstimate.gyroBias();
@@ -161,10 +167,10 @@ public class OdometryEstimator {
                     previousStateSe2.pose().getY());
         }
         // The SE2 "twist" increment between the previous and current poses.
-        Twist2d twist = twistFromOdometry(positions, previousState.positions());
+        Twist2d twist = twistFromOdometry(positions, previousPositions);
 
         // The verbatim gyro increment, with an uncertainty estimate.
-        VariableR1 gyroIncrementRad = getGyroMeasurementRad(dt, gyroYaw, previousState.gyroYaw());
+        VariableR1 gyroIncrementRad = getGyroMeasurementRad(dt, gyroYaw, previousYaw);
 
         // Estimate for uncertainty in the odometry increment.
         IsotropicNoiseSE2 odometryNoise = OdometryNoise.get(twist);
@@ -227,8 +233,7 @@ public class OdometryEstimator {
 
         // The result is the new state, with verbatim measurements (to use next time).
         // There is no vision measurement here, so it's null.
-        LocalizerEstimate estimate = new LocalizerEstimate(newState, noise, newGyroBiasEstimateRad_S);
-        return new SwerveState(estimate, positions, gyroYaw, null);
+        return new LocalizerEstimate(newState, noise, newGyroBiasEstimateRad_S);
     }
 
     /**

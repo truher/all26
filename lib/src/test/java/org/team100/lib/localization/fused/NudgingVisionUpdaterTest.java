@@ -203,8 +203,7 @@ public class NudgingVisionUpdaterTest {
 
         // result is close to the vision estimate, with its variance.
         NudgingVisionEstimator vu = new NudgingVisionEstimator(log, null);
-        SwerveState newState = vu.newState(sample, measurement);
-        LocalizerEstimate estimate = newState.estimate();
+        LocalizerEstimate estimate = vu.newState(sample, measurement);
         assertEquals(1, estimate.state().pose().getX(), DELTA);
         assertEquals(0, estimate.state().pose().getY(), DELTA);
         assertEquals(0, estimate.state().pose().getRotation().getRadians(), DELTA);
@@ -231,8 +230,7 @@ public class NudgingVisionUpdaterTest {
         // cartesian result is in the middle, with more variance.
         // rotation result is more confident, since history and camera agree.
         NudgingVisionEstimator vu = new NudgingVisionEstimator(log, null);
-        SwerveState newState = vu.newState(sample, measurement);
-        LocalizerEstimate estimate = newState.estimate();
+        LocalizerEstimate estimate = vu.newState(sample, measurement);
         assertEquals(0.5, estimate.state().pose().getX(), DELTA);
         assertEquals(0, estimate.state().pose().getY(), DELTA);
         assertEquals(0, estimate.state().pose().getRotation().getRadians(), DELTA);

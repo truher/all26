@@ -9,6 +9,11 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.team100.lib.camera.Camera;
+import org.team100.lib.localization.fused.AprilTagCornerTranslator;
+import org.team100.lib.localization.fused.NudgingVisionEstimator;
+import org.team100.lib.localization.fused.VisionMeasurement;
+import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.network.BlipWithCorners;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;

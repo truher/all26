@@ -3,6 +3,10 @@ package org.team100.lib.localization;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.team100.lib.localization.fused.NudgingVisionEstimator;
+import org.team100.lib.localization.fused.OdometryEstimator;
+import org.team100.lib.localization.fused.OdometryReplayer;
+import org.team100.lib.localization.fused.VisionMeasurement;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;

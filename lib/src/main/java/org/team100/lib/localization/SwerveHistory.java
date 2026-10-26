@@ -74,7 +74,7 @@ public class SwerveHistory implements StateSampler {
     }
 
     /** Empty the buffer and add the given measurements. */
-    void reset(
+    public void reset(
             SwerveModulePositions modulePositions,
             Pose2d pose,
             IsotropicNoiseSE2 noise,
@@ -100,14 +100,14 @@ public class SwerveHistory implements StateSampler {
      * @param timestamp time, seconds
      * @param state     from odometry or vision
      */
-    void put(double timestamp, SwerveState state) {
+    public void put(double timestamp, SwerveState state) {
         if (DEBUG)
             System.out.printf("SwerveHistory.put() %f %s\n", timestamp, state);
         m_poseBuffer.put(timestamp, state);
     }
 
     /** Entry for time strictly before timestamp. Never interpolated. */
-    Entry<Double, SwerveState> lowerEntry(double timestamp) {
+    public Entry<Double, SwerveState> lowerEntry(double timestamp) {
         return m_poseBuffer.lowerEntry(timestamp);
     }
 
@@ -116,7 +116,7 @@ public class SwerveHistory implements StateSampler {
      * timestamp matches a known timestamp exactly. Otherwise returns an
      * interpolated value. Don't use this method outside this package.
      */
-    SwerveState getRecord(double timestamp) {
+    public SwerveState getRecord(double timestamp) {
         return m_poseBuffer.get(timestamp);
     }
 

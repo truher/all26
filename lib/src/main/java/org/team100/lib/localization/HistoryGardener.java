@@ -5,6 +5,9 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import org.team100.lib.localization.fused.NudgingVisionEstimator;
+import org.team100.lib.localization.fused.OdometryEstimator;
+import org.team100.lib.localization.fused.OdometryReplayer;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.NoisyPose2d;
 

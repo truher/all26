@@ -13,7 +13,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 
 /**
- * Estimates for oosition and velocity in SE2, with noise, and gyro bias.
+ * Estimates for position and velocity in SE2, with noise, and gyro bias.
  * 
  * Measurements of gyro and wheels, and, optionally,
  */
@@ -41,7 +41,7 @@ public class SwerveState {
     /** Verbatim measurement from camera, null for odometry-derived entries. */
     private final NoisyPose2d m_visionMeasurement;
 
-    SwerveState(
+    public SwerveState(
             StateSE2 state,
             IsotropicNoiseSE2 noise,
             SwerveModulePositions positions,

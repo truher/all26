@@ -8,6 +8,9 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.team100.lib.camera.Camera;
+import org.team100.lib.localization.fused.AprilTagTranslator;
+import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.network.Blip;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;

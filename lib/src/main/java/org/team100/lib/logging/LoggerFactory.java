@@ -17,6 +17,7 @@ import org.team100.lib.geometry.se2.DeltaSE2;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.geometry.se2.WaypointSE2;
 import org.team100.lib.localization.LocalizerEstimate;
+import org.team100.lib.localization.OdoGyroMeasurement;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.localization.network.Blip;
 import org.team100.lib.logging.primitive.PrimitiveLogger;
@@ -1190,12 +1191,12 @@ public class LoggerFactory {
                 return;
             SwerveState s = vals.get();
             LocalizerEstimate e = s.estimate();
+            OdoGyroMeasurement m = s.measurement();
             m_state.log(e::state);
             m_noise.log(e::noise);
             m_gyroBias.log(e::gyroBias);
-
-            m_positions.log(s::positions);
-            m_gyroYaw.log(s::gyroYaw);
+            m_positions.log(m::odo);
+            m_gyroYaw.log(m::gyro);
         }
 
     }

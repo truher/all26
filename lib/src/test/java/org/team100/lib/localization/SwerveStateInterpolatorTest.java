@@ -30,7 +30,7 @@ public class SwerveStateInterpolatorTest {
         Rotation2d gyroYaw0 = new Rotation2d();
         VariableR1 gyroBias = VariableR1.fromVariance(0, 0.001);
         LocalizerEstimate estimate0 = new LocalizerEstimate(s0, n0, gyroBias);
-        SwerveState r0 = new SwerveState(estimate0, p0, gyroYaw0, null);
+        SwerveState r0 = new SwerveState(estimate0, new OdoGyroMeasurement(gyroYaw0, p0));
 
         StateSE2 s1 = new StateSE2(new StateR1(), new StateR1(), new StateR1(1, 1));
         IsotropicNoiseSE2 n1 = IsotropicNoiseSE2.fromStdDev(1, 1);
@@ -49,7 +49,7 @@ public class SwerveStateInterpolatorTest {
         // current speed is 1 rad/s
         VariableR1 gyroBias2 = VariableR1.fromVariance(0, 1);
         LocalizerEstimate estimate1 = new LocalizerEstimate(s1, n1, gyroBias2);
-        SwerveState r1 = new SwerveState(estimate1, p1, gyroYaw1, null);
+        SwerveState r1 = new SwerveState(estimate1, new OdoGyroMeasurement(gyroYaw1, p1));
 
         {
             // t=0 should return r0. note "t" is not time
@@ -57,7 +57,7 @@ public class SwerveStateInterpolatorTest {
             LocalizerEstimate estimate = lerp.estimate();
             assertEquals(0, estimate.state().theta().x(), 0.001);
             assertEquals(0, estimate.state().theta().v(), 0.001);
-            assertEquals(0, lerp.gyroYaw().getRadians(), 0.001);
+            assertEquals(0, lerp.measurement().gyro().getRadians(), 0.001);
 
         }
         {
@@ -66,7 +66,7 @@ public class SwerveStateInterpolatorTest {
             LocalizerEstimate estimate = lerp.estimate();
             assertEquals(1, estimate.state().theta().x(), 0.001);
             assertEquals(1, estimate.state().theta().v(), 0.001);
-            assertEquals(1, lerp.gyroYaw().getRadians(), 0.001);
+            assertEquals(1, lerp.measurement().gyro().getRadians(), 0.001);
         }
         {
             // t=0.5 is just halfway there.
@@ -74,7 +74,7 @@ public class SwerveStateInterpolatorTest {
             LocalizerEstimate estimate = lerp.estimate();
             assertEquals(0.5, estimate.state().theta().x(), 0.001);
             assertEquals(0.5, estimate.state().theta().v(), 0.001);
-            assertEquals(0.5, lerp.gyroYaw().getRadians(), 0.001);
+            assertEquals(0.5, lerp.measurement().gyro().getRadians(), 0.001);
         }
     }
 
@@ -91,7 +91,7 @@ public class SwerveStateInterpolatorTest {
         Rotation2d gyroYaw0 = new Rotation2d();
         VariableR1 gyroBias = VariableR1.fromVariance(0, 1);
         LocalizerEstimate estimate0 = new LocalizerEstimate(s0, n0, gyroBias);
-        SwerveState r0 = new SwerveState(estimate0, p0, gyroYaw0, null);
+        SwerveState r0 = new SwerveState(estimate0, new OdoGyroMeasurement(gyroYaw0, p0));
 
         StateSE2 s1 = new StateSE2(new StateR1(), new StateR1(), new StateR1(1, 1));
         IsotropicNoiseSE2 n1 = IsotropicNoiseSE2.fromStdDev(1, 1);
@@ -109,8 +109,7 @@ public class SwerveStateInterpolatorTest {
         // current speed is 1 rad/s
         VariableR1 gyroBias2 = VariableR1.fromVariance(0, 1);
         LocalizerEstimate estimate1 = new LocalizerEstimate(s1, n1, gyroBias2);
-        SwerveState r1 = new SwerveState(estimate1, p1, gyroYaw1, null);
-
+        SwerveState r1 = new SwerveState(estimate1, new OdoGyroMeasurement(gyroYaw1, p1));
 
         {
             // t=0 should return r0. note "t" is not time
@@ -118,7 +117,7 @@ public class SwerveStateInterpolatorTest {
             LocalizerEstimate estimate = lerp.estimate();
             assertEquals(0, estimate.state().theta().x(), 0.001);
             assertEquals(0, estimate.state().theta().v(), 0.001);
-            assertEquals(0, lerp.gyroYaw().getRadians(), 0.001);
+            assertEquals(0, lerp.measurement().gyro().getRadians(), 0.001);
         }
         {
             // t=1 should return r1. note this is a special case.
@@ -126,7 +125,7 @@ public class SwerveStateInterpolatorTest {
             LocalizerEstimate estimate = lerp.estimate();
             assertEquals(1, estimate.state().theta().x(), 0.001);
             assertEquals(1, estimate.state().theta().v(), 0.001);
-            assertEquals(1, lerp.gyroYaw().getRadians(), 0.001);
+            assertEquals(1, lerp.measurement().gyro().getRadians(), 0.001);
         }
         {
             // t=0.5
@@ -136,7 +135,7 @@ public class SwerveStateInterpolatorTest {
             LocalizerEstimate estimate = lerp.estimate();
             assertEquals(0.5, estimate.state().theta().x(), 0.001);
             assertEquals(0.5, estimate.state().theta().v(), 0.001);
-            assertEquals(0.5, lerp.gyroYaw().getRadians(), 0.001);
+            assertEquals(0.5, lerp.measurement().gyro().getRadians(), 0.001);
         }
     }
 

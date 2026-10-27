@@ -47,7 +47,6 @@ public class GroundTruth {
 
         // History of ground-truth poses is based only on odometry.
         m_history = new SwerveHistory(
-                simLog,
                 0.2,
                 m_gyro.getYawNWU(),
                 VariableR1.fromStdDev(0, 1),

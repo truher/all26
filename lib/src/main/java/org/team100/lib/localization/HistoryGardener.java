@@ -17,11 +17,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
  * Centralized batched pose-estimation updates.
  */
 public class HistoryGardener {
-    record Odo(Rotation2d gyro, SwerveModulePositions odo) {
-    }
-
     private final NavigableMap<Double, NoisyPose2d> m_pendingVision;
-    private final NavigableMap<Double, Odo> m_pendingOdo;
+    private final NavigableMap<Double, OdoGyroMeasurement> m_pendingOdo;
 
     private final SwerveHistory m_history;
     private final OdometryEstimator m_OdometryEstimator;
@@ -46,7 +43,7 @@ public class HistoryGardener {
             double timeSec,
             Rotation2d gyroYaw,
             SwerveModulePositions positions) {
-        m_pendingOdo.put(timeSec, new Odo(gyroYaw, positions));
+        m_pendingOdo.put(timeSec, new OdoGyroMeasurement(gyroYaw, positions));
     }
 
     /** Add pending vision measurement. */
@@ -58,67 +55,71 @@ public class HistoryGardener {
 
     /** Handle pending updates in time order. */
     public void sweep() {
-        Iterator<Entry<Double, Odo>> odoIter = m_pendingOdo.entrySet().iterator();
+        Iterator<Entry<Double, OdoGyroMeasurement>> odoIter = m_pendingOdo.entrySet().iterator();
         Iterator<Entry<Double, NoisyPose2d>> visionIter = m_pendingVision.entrySet().iterator();
 
-        Entry<Double, Odo> odo = odoIter.hasNext() ? odoIter.next() : null;
+        Entry<Double, OdoGyroMeasurement> odo = odoIter.hasNext() ? odoIter.next() : null;
         Entry<Double, NoisyPose2d> vision = visionIter.hasNext() ? visionIter.next() : null;
 
         while (odo != null && vision != null) {
-            if (odo.getKey() < vision.getKey()) {
-                Entry<Double, SwerveState> lowerEntry = m_history.lowerEntry(odo.getKey());
+            double visionTimestamp = vision.getKey();
+            NoisyPose2d visionMeasurement = vision.getValue();
+            double odoTimestamp = odo.getKey();
+            OdoGyroMeasurement odoMeasurement = odo.getValue();
+            if (odoTimestamp < visionTimestamp) {
+                Entry<Double, SwerveState> lowerEntry = m_history.swerveStateLowerEntry(odoTimestamp);
                 if (lowerEntry != null) {
                     LocalizerEstimate e = m_OdometryEstimator.estimate(
                             lowerEntry.getKey(), lowerEntry.getValue(),
-                            odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
-                    SwerveState s = new SwerveState(
-                            e, odo.getValue().odo,
-                            odo.getValue().gyro, null);
+                            odoTimestamp, odoMeasurement);
+                    SwerveState s = new SwerveState(e, odoMeasurement);
                     if (e != null)
-                        m_history.put(odo.getKey(), s);
+                        m_history.put(odoTimestamp, s);
                 }
                 odo = odoIter.hasNext() ? odoIter.next() : null;
             } else {
-                SwerveState sample = m_history.getRecord(vision.getKey());
-                LocalizerEstimate estimate = m_visionUpdater.estimate(sample, vision.getValue());
+                SwerveState sample = m_history.getSwerveState(visionTimestamp);
+                LocalizerEstimate sampleEstimate = m_history.getLocalizerEstimate(visionTimestamp);
+                LocalizerEstimate estimate = m_visionUpdater.estimate(
+                        sampleEstimate, visionMeasurement);
                 SwerveState s = new SwerveState(
                         estimate,
-                        sample.positions(),
-                        sample.gyroYaw(),
-                        vision.getValue());
-                if (estimate != null && !m_history.tooOld(vision.getKey())) {
-                    m_history.put(vision.getKey(), s);
-                    m_replayer.replay(vision.getKey());
+                        sample.measurement());
+                if (estimate != null && !m_history.tooOld(visionTimestamp)) {
+                    m_history.put(visionTimestamp, s);
+                    m_replayer.replay(visionTimestamp);
                 }
                 vision = visionIter.hasNext() ? visionIter.next() : null;
             }
         }
         // catch the remaining; one of these will work.
         while (odo != null) {
-            Entry<Double, SwerveState> lowerEntry = m_history.lowerEntry(odo.getKey());
+            double odoTimestamp = odo.getKey();
+            OdoGyroMeasurement odoMeasurement = odo.getValue();
+            Entry<Double, SwerveState> lowerEntry = m_history.swerveStateLowerEntry(odoTimestamp);
             if (lowerEntry != null) {
                 LocalizerEstimate e = m_OdometryEstimator.estimate(
                         lowerEntry.getKey(), lowerEntry.getValue(),
-                        odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
-                SwerveState s = new SwerveState(e, odo.getValue().odo,
-                        odo.getValue().gyro, null);
+                        odoTimestamp, odoMeasurement);
+                SwerveState s = new SwerveState(e, odoMeasurement);
                 if (e != null)
-                    m_history.put(odo.getKey(), s);
+                    m_history.put(odoTimestamp, s);
             }
             odo = odoIter.hasNext() ? odoIter.next() : null;
         }
         while (vision != null) {
-            SwerveState sample = m_history.getRecord(vision.getKey());
+            double visionTimestamp = vision.getKey();
+            NoisyPose2d visionMeasurement = vision.getValue();
+            SwerveState sample = m_history.getSwerveState(visionTimestamp);
+            LocalizerEstimate sampleEstimate = m_history.getLocalizerEstimate(visionTimestamp);
             LocalizerEstimate estimate = m_visionUpdater.estimate(
-                    sample, vision.getValue());
+                    sampleEstimate, visionMeasurement);
             SwerveState s = new SwerveState(
                     estimate,
-                    sample.positions(),
-                    sample.gyroYaw(),
-                    vision.getValue());
-            if (estimate != null && !m_history.tooOld(vision.getKey())) {
-                m_history.put(vision.getKey(), s);
-                m_replayer.replay(vision.getKey());
+                    sample.measurement());
+            if (estimate != null && !m_history.tooOld(visionTimestamp)) {
+                m_history.put(visionTimestamp, s);
+                m_replayer.replay(visionTimestamp);
             }
             vision = visionIter.hasNext() ? visionIter.next() : null;
         }

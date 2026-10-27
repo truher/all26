@@ -13,7 +13,6 @@ import org.team100.lib.config.CurrentLimit;
 import org.team100.lib.framework.TimedRobot100;
 import org.team100.lib.geometry.se2.ChassisAcceleration;
 import org.team100.lib.geometry.se2.VelocitySE2;
-import org.team100.lib.localization.SwerveState;
 import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
@@ -98,33 +97,33 @@ public class FusedEstimatorTest implements Timeless {
                         new VelocitySE2(1.0, 0, 0)),
                 estimate.getState(Takt.get()));
 
-        Map<Double, SwerveState> all = estimate.all();
+        Map<Double, StateSE2> all = estimate.all();
         assertEquals(5, all.size());
-        List<SwerveState> states = new ArrayList<>(all.values());
+        List<StateSE2> states = new ArrayList<>(all.values());
 
         // derive velocities from the poses
         // first state doesn't move
         TestUtil.verify(
                 new VelocitySE2(0, 0, 0),
                 VelocitySE2.velocity(
-                        states.get(0).estimate().state().pose(),
-                        states.get(1).estimate().state().pose(), dt));
+                        states.get(0).pose(),
+                        states.get(1).pose(), dt));
         // next states do move
         TestUtil.verify(
                 new VelocitySE2(1, 0, 0),
                 VelocitySE2.velocity(
-                        states.get(1).estimate().state().pose(),
-                        states.get(2).estimate().state().pose(), dt));
+                        states.get(1).pose(),
+                        states.get(2).pose(), dt));
         TestUtil.verify(
                 new VelocitySE2(1, 0, 0),
                 VelocitySE2.velocity(
-                        states.get(2).estimate().state().pose(),
-                        states.get(3).estimate().state().pose(), dt));
+                        states.get(2).pose(),
+                        states.get(3).pose(), dt));
         TestUtil.verify(
                 new VelocitySE2(1, 0, 0),
                 VelocitySE2.velocity(
-                        states.get(3).estimate().state().pose(),
-                        states.get(4).estimate().state().pose(), dt));
+                        states.get(3).pose(),
+                        states.get(4).pose(), dt));
 
         drive.close();
     }
@@ -188,33 +187,33 @@ public class FusedEstimatorTest implements Timeless {
                         new VelocitySE2(1.0, 0.04, 1.0)),
                 estimate.getState(Takt.get()));
 
-        Map<Double, SwerveState> all = estimate.all();
+        Map<Double, StateSE2> all = estimate.all();
         assertEquals(5, all.size());
-        List<SwerveState> states = new ArrayList<>(all.values());
+        List<StateSE2> states = new ArrayList<>(all.values());
 
         // derive velocities from the poses
         // first state doesn't move
         TestUtil.verify(
                 new VelocitySE2(0, 0, 0),
                 VelocitySE2.velocity(
-                        states.get(0).estimate().state().pose(),
-                        states.get(1).estimate().state().pose(), dt));
+                        states.get(0).pose(),
+                        states.get(1).pose(), dt));
         // next states do move
         TestUtil.verify(
                 new VelocitySE2(0.991, 0.064, 0.993), // ???
                 VelocitySE2.velocity(
-                        states.get(1).estimate().state().pose(),
-                        states.get(2).estimate().state().pose(), dt));
+                        states.get(1).pose(),
+                        states.get(2).pose(), dt));
         TestUtil.verify(
                 new VelocitySE2(1, 0.02, 1),
                 VelocitySE2.velocity(
-                        states.get(2).estimate().state().pose(),
-                        states.get(3).estimate().state().pose(), dt));
+                        states.get(2).pose(),
+                        states.get(3).pose(), dt));
         TestUtil.verify(
                 new VelocitySE2(1, 0.04, 1),
                 VelocitySE2.velocity(
-                        states.get(3).estimate().state().pose(),
-                        states.get(4).estimate().state().pose(), dt));
+                        states.get(3).pose(),
+                        states.get(4).pose(), dt));
 
         drive.close();
     }

@@ -25,8 +25,8 @@ public interface StateEstimator {
      */
     void setHeedRadiusM(double heedRadiusM);
 
-    /** Timestamped estimates. */
-    Map<Double, SwerveState> all();
+    /** Timestamped StateSE2 estimates, for visualization. */
+    Map<Double, StateSE2> all();
 
     void close();
 }

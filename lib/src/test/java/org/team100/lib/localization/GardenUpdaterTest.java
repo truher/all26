@@ -33,7 +33,6 @@ public class GardenUpdaterTest {
         MockGyro gyro = new MockGyro();
         positions = SwerveModulePositions.kZero();
         SwerveHistory history = new SwerveHistory(
-                log,
                 0.2,
                 Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1),

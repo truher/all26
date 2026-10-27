@@ -7,6 +7,7 @@ import org.team100.lib.coherence.Cache;
 import org.team100.lib.coherence.SideEffect;
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.localization.LocalizerEstimate;
+import org.team100.lib.localization.OdoGyroMeasurement;
 import org.team100.lib.localization.SwerveHistory;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.localization.fused.OdometryEstimator;
@@ -40,14 +41,15 @@ public class GroundTruthCache {
     void update() {
         double timestamp = Takt.get();
 
-        Entry<Double, SwerveState> lowerEntry = m_history.lowerEntry(timestamp);
+        Entry<Double, SwerveState> lowerEntry = m_history.swerveStateLowerEntry(timestamp);
         if (lowerEntry != null) {
-            LocalizerEstimate e = m_updater.estimate(
-                    lowerEntry.getKey(), lowerEntry.getValue(),
-                    timestamp,
+            OdoGyroMeasurement measurement = new OdoGyroMeasurement(
                     m_gyro.getYawNWU(),
                     m_positions.get());
-            SwerveState s = new SwerveState(e, m_positions.get(), m_gyro.getYawNWU(), null);
+            LocalizerEstimate e = m_updater.estimate(
+                    lowerEntry.getKey(), lowerEntry.getValue(),
+                    timestamp, measurement);
+            SwerveState s = new SwerveState(e, measurement);
 
             if (s != null)
                 m_history.put(timestamp, s);

@@ -3,7 +3,6 @@ package org.team100.lib.localization.fused;
 import org.team100.lib.fusion.CovarianceInflation;
 import org.team100.lib.fusion.Fusor;
 import org.team100.lib.localization.LocalizerEstimate;
-import org.team100.lib.localization.SwerveState;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.IsotropicNoiseSE2Logger;
@@ -54,12 +53,12 @@ public class NudgingVisionEstimator {
      * The nudged noise may be more, or less, than the sample noise.
      * 
      * 
-     * @param sample           Interpolated history at the same time as the
-     *                         measurement.
-     * @param measurement Robot pose from vision.
+     * @param sampleEstimate Interpolated history at the same time as the
+     *                       measurement.
+     * @param measurement    Robot pose from vision.
      */
-    public LocalizerEstimate estimate(SwerveState sample, NoisyPose2d measurement) {
-        LocalizerEstimate sampleEstimate = sample.estimate();
+    public LocalizerEstimate estimate(
+            LocalizerEstimate sampleEstimate, NoisyPose2d measurement) {
         NoisyPose2d nudged = nudge(sampleEstimate.noisyPose(), measurement);
         LocalizerEstimate estimate = new LocalizerEstimate(
                 new StateSE2(nudged.pose(), sampleEstimate.velocity()),
@@ -111,7 +110,7 @@ public class NudgingVisionEstimator {
             // there's no angle
             newTranslation = samplePose.getTranslation();
         }
-        
+
         // rotation
 
         Rotation2d deltaRotation = measurementPose.getRotation().minus(samplePose.getRotation());

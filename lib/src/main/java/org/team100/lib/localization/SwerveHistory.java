@@ -4,9 +4,6 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 
 import org.team100.lib.geometry.se2.VelocitySE2;
-import org.team100.lib.logging.Level;
-import org.team100.lib.logging.LoggerFactory;
-import org.team100.lib.logging.LoggerFactory.DoubleLogger;
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
@@ -30,13 +27,11 @@ import edu.wpi.first.math.geometry.Rotation2d;
  * older than about 200 ms.
  */
 public class SwerveHistory implements StateSampler {
-    private static final boolean DEBUG = false;
     private final double m_bufferDuration;
-    private final DoubleLogger m_log_timestamp;
     private final TimeInterpolatableBuffer100<SwerveState> m_poseBuffer;
+    private final TimeInterpolatableBuffer100<LocalizerEstimate> m_estimates;
 
     public SwerveHistory(
-            LoggerFactory parent,
             double bufferDuration,
             Rotation2d gyroAngle,
             VariableR1 gyroBias,
@@ -45,21 +40,18 @@ public class SwerveHistory implements StateSampler {
             IsotropicNoiseSE2 noise,
             double timestampSeconds) {
         m_bufferDuration = bufferDuration;
-        m_log_timestamp = parent.type(this).doubleLogger(Level.TRACE, "sample timestamp");
         StateSE2 state = new StateSE2(initialPoseMeters, VelocitySE2.ZERO);
         LocalizerEstimate estimate = new LocalizerEstimate(state, noise, gyroBias);
+        m_estimates = new TimeInterpolatableBuffer100<>(
+                bufferDuration, timestampSeconds, estimate);
         SwerveState initialState = new SwerveState(
-                estimate, modulePositions, gyroAngle, null);
+                estimate, new OdoGyroMeasurement(gyroAngle, modulePositions));
         m_poseBuffer = new TimeInterpolatableBuffer100<>(
                 bufferDuration, timestampSeconds, initialState);
     }
 
     public ImmutableSwerveHistory immutableCopy() {
-        return new ImmutableSwerveHistory(m_poseBuffer.entrySet(), m_bufferDuration);
-    }
-
-    public SwerveState getExact(double t) {
-        return m_poseBuffer.getExact(t);
+        return new ImmutableSwerveHistory(m_estimates.entrySet(), m_bufferDuration);
     }
 
     /**
@@ -69,9 +61,7 @@ public class SwerveHistory implements StateSampler {
      */
     @Override
     public StateSE2 get(double timestampSeconds) {
-        m_log_timestamp.log(() -> timestampSeconds);
-        LocalizerEstimate estimate = m_poseBuffer.get(timestampSeconds).estimate();
-        return estimate.state();
+        return m_estimates.get(timestampSeconds).state();
     }
 
     /** Empty the buffer and add the given measurements. */
@@ -84,11 +74,10 @@ public class SwerveHistory implements StateSampler {
             VariableR1 gyroBias) {
         StateSE2 newState = new StateSE2(pose, VelocitySE2.ZERO);
         LocalizerEstimate estimate = new LocalizerEstimate(newState, noise, gyroBias);
+        m_estimates.reset(timestampSeconds, estimate);
         SwerveState state = new SwerveState(
                 estimate,
-                modulePositions,
-                gyroYaw,
-                null);
+                new OdoGyroMeasurement(gyroYaw, modulePositions));
         m_poseBuffer.reset(timestampSeconds, state);
     }
 
@@ -101,14 +90,17 @@ public class SwerveHistory implements StateSampler {
      * @param state     from odometry or vision
      */
     public void put(double timestamp, SwerveState state) {
-        if (DEBUG)
-            System.out.printf("SwerveHistory.put() %f %s\n", timestamp, state);
+        m_estimates.put(timestamp, state.estimate());
         m_poseBuffer.put(timestamp, state);
     }
 
     /** Entry for time strictly before timestamp. Never interpolated. */
-    public Entry<Double, SwerveState> lowerEntry(double timestamp) {
+    public Entry<Double, SwerveState> swerveStateLowerEntry(double timestamp) {
         return m_poseBuffer.lowerEntry(timestamp);
+    }
+
+    public Entry<Double, LocalizerEstimate> localizerEstimateLowerEntry(double timestamp) {
+        return m_estimates.lowerEntry(timestamp);
     }
 
     /**
@@ -116,8 +108,12 @@ public class SwerveHistory implements StateSampler {
      * timestamp matches a known timestamp exactly. Otherwise returns an
      * interpolated value. Don't use this method outside this package.
      */
-    public SwerveState getRecord(double timestamp) {
+    public SwerveState getSwerveState(double timestamp) {
         return m_poseBuffer.get(timestamp);
+    }
+
+    public LocalizerEstimate getLocalizerEstimate(double timestamp) {
+        return m_estimates.get(timestamp);
     }
 
     boolean tooOld(double timestamp) {
@@ -125,7 +121,7 @@ public class SwerveHistory implements StateSampler {
     }
 
     /** SwerveStates strictly later than the timestamp. */
-    public SortedMap<Double, SwerveState> exclusiveTailMap(double timestamp) {
+    public SortedMap<Double, SwerveState> swerveStateExclusiveTailMap(double timestamp) {
         return m_poseBuffer.tailMap(timestamp, false);
     }
 
@@ -139,6 +135,7 @@ public class SwerveHistory implements StateSampler {
 
     /** Print the buffer contents. */
     void dump() {
+        m_estimates.dump();
         m_poseBuffer.dump();
     }
 

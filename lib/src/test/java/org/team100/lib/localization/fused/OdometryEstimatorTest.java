@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.team100.lib.localization.LocalizerEstimate;
+import org.team100.lib.localization.OdoGyroMeasurement;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
@@ -27,7 +28,6 @@ public class OdometryEstimatorTest {
     private static final LoggerFactory log = new TestLoggerFactory(new TestPrimitiveLogger());
     private static final SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forRealisticTest();
 
-
     @Test
     void testNewState1() {
         MockGyro gyro = new MockGyro();
@@ -43,16 +43,16 @@ public class OdometryEstimatorTest {
         // high bias sigma compared to the real value
         VariableR1 bias = VariableR1.fromStdDev(0, 0.001);
         LocalizerEstimate estimate1 = new LocalizerEstimate(sampleState, stateNoise, bias);
-        SwerveState sample = new SwerveState(estimate1, positions, yaw, null);
+        SwerveState sample = new SwerveState(estimate1, new OdoGyroMeasurement(yaw, positions));
 
         // measurements haven't moved
         Rotation2d gyroYaw = new Rotation2d();
 
         // result shouldn't move.
         LocalizerEstimate estimate = ou.newState(
-                sample.estimate(), sample.positions(), sample.gyroYaw(),
-                0.02, gyroYaw, positions);
-        SwerveState newState = new SwerveState(estimate, positions, gyroYaw, null);
+                sample.estimate(), sample.measurement().odo(), sample.measurement().gyro(),
+                0.02, new OdoGyroMeasurement(gyroYaw, positions));
+        SwerveState newState = new SwerveState(estimate, new OdoGyroMeasurement(gyroYaw, positions));
         assertEquals(0, estimate.state().pose().getX(), 1e-6);
         assertEquals(0, estimate.state().pose().getY(), 1e-6);
         assertEquals(0, estimate.state().pose().getRotation().getRadians(), 1e-6);
@@ -69,18 +69,18 @@ public class OdometryEstimatorTest {
         assertEquals(0.000943, estimate.gyroBias().sigma(), 1e-6);
         // do it again
         estimate = ou.newState(
-                newState.estimate(), newState.positions(), newState.gyroYaw(),
-                0.02, gyroYaw, positions);
-        newState = new SwerveState(estimate, positions, gyroYaw, null);
+                newState.estimate(), newState.measurement().odo(), newState.measurement().gyro(),
+                0.02, new OdoGyroMeasurement(gyroYaw, positions));
+        newState = new SwerveState(estimate, new OdoGyroMeasurement(gyroYaw, positions));
         // now the gyro bias is improved
         LocalizerEstimate estimate2 = newState.estimate();
         assertEquals(0.000894, estimate2.gyroBias().sigma(), 1e-6);
         // a few more times
         for (int i = 0; i < 50; ++i) {
             estimate = ou.newState(
-                    newState.estimate(), newState.positions(), newState.gyroYaw(),
-                    0.02, gyroYaw, positions);
-            newState = new SwerveState(estimate, positions, gyroYaw, null);
+                    newState.estimate(), newState.measurement().odo(), newState.measurement().gyro(),
+                    0.02, new OdoGyroMeasurement(gyroYaw, positions));
+            newState = new SwerveState(estimate, new OdoGyroMeasurement(gyroYaw, positions));
             if (DEBUG) {
                 LocalizerEstimate estimate3 = newState.estimate();
                 System.out.println(estimate3.gyroBias().sigma());
@@ -106,7 +106,7 @@ public class OdometryEstimatorTest {
         Rotation2d yaw = new Rotation2d();
         VariableR1 bias = VariableR1.fromStdDev(0, 0.001);
         LocalizerEstimate estimate1 = new LocalizerEstimate(sampleState, stateNoise, bias);
-        SwerveState sample = new SwerveState(estimate1, positions, yaw, null);
+        SwerveState sample = new SwerveState(estimate1, new OdoGyroMeasurement(yaw, positions));
 
         // 0.1m ahead (this is max speed)
         Rotation2d gyroYaw = new Rotation2d();
@@ -119,8 +119,8 @@ public class OdometryEstimatorTest {
         // result shouldn't be 0.1 ahead
         // high speed means considerable added variance
         LocalizerEstimate estimate = ou.newState(
-                sample.estimate(), sample.positions(), sample.gyroYaw(),
-                0.02, gyroYaw, positions);
+                sample.estimate(), sample.measurement().odo(), sample.measurement().gyro(),
+                0.02, new OdoGyroMeasurement(gyroYaw, positions));
         assertEquals(0.1, estimate.state().pose().getX(), DELTA);
         assertEquals(0, estimate.state().pose().getY(), DELTA);
         assertEquals(0, estimate.state().pose().getRotation().getRadians(), DELTA);
@@ -147,7 +147,7 @@ public class OdometryEstimatorTest {
         // initial bias estimate is zero
         VariableR1 bias = VariableR1.fromStdDev(0, 0.001);
         LocalizerEstimate estimate1 = new LocalizerEstimate(sampleState, stateNoise, bias);
-        SwerveState sample = new SwerveState(estimate1, positions, yaw, null);
+        SwerveState sample = new SwerveState(estimate1, new OdoGyroMeasurement(yaw, positions));
 
         // odometry says we're not rotating, but the gyro thinks we are.
         // this is 0.02 rad in 0.02 s so the bias is 1 rad/s
@@ -159,9 +159,9 @@ public class OdometryEstimatorTest {
                 new SwerveModulePosition100(0.1, Optional.of(Rotation2d.kZero)));
 
         LocalizerEstimate estimate = ou.newState(
-                sample.estimate(), sample.positions(), sample.gyroYaw(),
-                0.02, gyroYaw, positions);
-        SwerveState newState = new SwerveState(estimate, positions, gyroYaw, null);
+                sample.estimate(), sample.measurement().odo(), sample.measurement().gyro(),
+                0.02, new OdoGyroMeasurement(gyroYaw, positions));
+        SwerveState newState = new SwerveState(estimate, new OdoGyroMeasurement(gyroYaw, positions));
         assertEquals(0.1, estimate.state().pose().getX(), DELTA);
         assertEquals(0, estimate.state().pose().getY(), DELTA);
         // odo is not that trustworthy since it's so fast
@@ -179,9 +179,9 @@ public class OdometryEstimatorTest {
         for (int i = 2; i < 100; ++i) {
             gyroYaw = new Rotation2d(0.02 * i);
             estimate = ou.newState(
-                    newState.estimate(), newState.positions(), newState.gyroYaw(),
-                    0.02, gyroYaw, positions);
-            newState = new SwerveState(estimate, positions, gyroYaw, null);
+                    newState.estimate(), newState.measurement().odo(), newState.measurement().gyro(),
+                    0.02, new OdoGyroMeasurement(gyroYaw, positions));
+            newState = new SwerveState(estimate, new OdoGyroMeasurement(gyroYaw, positions));
         }
         LocalizerEstimate estimate2 = newState.estimate();
         assertEquals(0.1, estimate2.state().pose().getX(), DELTA);
@@ -210,7 +210,7 @@ public class OdometryEstimatorTest {
         Rotation2d yaw = new Rotation2d();
         VariableR1 bias = VariableR1.fromStdDev(0, 0.001);
         LocalizerEstimate estimate1 = new LocalizerEstimate(sampleState, stateNoise, bias);
-        SwerveState sample = new SwerveState(estimate1, positions, yaw, null);
+        SwerveState sample = new SwerveState(estimate1, new OdoGyroMeasurement(yaw, positions));
 
         // much slower, so odometry is more trustworthy.
         Rotation2d gyroYaw = new Rotation2d(0.02);
@@ -221,8 +221,8 @@ public class OdometryEstimatorTest {
                 new SwerveModulePosition100(0.01, Optional.of(Rotation2d.kZero)));
 
         LocalizerEstimate estimate = ou.newState(
-                sample.estimate(), sample.positions(), sample.gyroYaw(),
-                0.02, gyroYaw, positions);
+                sample.estimate(), sample.measurement().odo(), sample.measurement().gyro(),
+                0.02, new OdoGyroMeasurement(gyroYaw, positions));
         assertEquals(0.01, estimate.state().pose().getX(), DELTA);
         assertEquals(0, estimate.state().pose().getY(), DELTA);
         // we don't really believe the gyro

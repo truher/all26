@@ -68,7 +68,7 @@ public class StateEstimatorProxy implements StateEstimator {
     }
 
     @Override
-    public Map<Double, SwerveState> all() {
+    public Map<Double, StateSE2> all() {
         return switch (m_choice) {
             case A -> m_A.all();
             case B -> m_B.all();

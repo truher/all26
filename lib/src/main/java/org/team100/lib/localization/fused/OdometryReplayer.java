@@ -6,9 +6,6 @@ import java.util.Map.Entry;
 import org.team100.lib.localization.LocalizerEstimate;
 import org.team100.lib.localization.SwerveHistory;
 import org.team100.lib.localization.SwerveState;
-import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
-
-import edu.wpi.first.math.geometry.Rotation2d;
 
 /**
  * Replay odometry after the sample time, modifying the history.
@@ -27,17 +24,15 @@ public class OdometryReplayer {
         if (DEBUG)
             System.out.printf("==== REPLAY FOR TIME %f\n", sampleTime);
         // Note the exclusive tailmap: we don't see the entry at timestamp.
-        for (Map.Entry<Double, SwerveState> entry : m_history.exclusiveTailMap(sampleTime).entrySet()) {
+        for (Map.Entry<Double, SwerveState> entry : m_history.swerveStateExclusiveTailMap(sampleTime).entrySet()) {
             double timestamp = entry.getKey();
             SwerveState value = entry.getValue();
-            Rotation2d gyroYaw = value.gyroYaw();
-            SwerveModulePositions positions = value.positions();
-            Entry<Double, SwerveState> lowerEntry = m_history.lowerEntry(timestamp);
+            Entry<Double, SwerveState> lowerEntry = m_history.swerveStateLowerEntry(timestamp);
             if (lowerEntry != null) {
                 LocalizerEstimate e = m_updater.estimate(
                         lowerEntry.getKey(), lowerEntry.getValue(),
-                        timestamp, gyroYaw, positions);
-                SwerveState s = new SwerveState(e, positions, gyroYaw, null);
+                        timestamp, value.measurement());
+                SwerveState s = new SwerveState(e, value.measurement());
                 if (e != null)
                     m_history.put(timestamp, s);
             }

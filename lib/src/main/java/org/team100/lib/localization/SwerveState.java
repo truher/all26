@@ -2,10 +2,6 @@ package org.team100.lib.localization;
 
 import java.util.Objects;
 
-import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
-import org.team100.lib.uncertainty.NoisyPose2d;
-
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.interpolation.Interpolatable;
 
 /**
@@ -17,30 +13,13 @@ public class SwerveState implements Interpolatable<SwerveState> {
 
     private final LocalizerEstimate m_estimate;
 
-    //
-    // MEASUREMENTS
-    //
-    /**
-     * Verbatim measurement of wheel position and angle. This may be a ground-truth
-     * measurement or it may be an interpolation created to match a vision
-     * timestamp.
-     */
-    private final SwerveModulePositions m_positions;
-    /** Verbatim measurement of yaw from the gyro, uncorrected. */
-    private final Rotation2d m_gyroYaw;
-    /** Verbatim measurement from camera, null for odometry-derived entries. */
-    private final NoisyPose2d m_visionMeasurement;
+    private final OdoGyroMeasurement m_measurement;
 
     public SwerveState(
             LocalizerEstimate estimate,
-            SwerveModulePositions positions,
-            Rotation2d gyroYaw,
-            NoisyPose2d visionMeasurement) {
+            OdoGyroMeasurement measurement) {
         m_estimate = estimate;
-        // MEASUREMENTS
-        m_positions = positions;
-        m_gyroYaw = gyroYaw;
-        m_visionMeasurement = visionMeasurement;
+        m_measurement = measurement;
     }
 
     @Override
@@ -52,7 +31,7 @@ public class SwerveState implements Interpolatable<SwerveState> {
             return false;
         }
         SwerveState rec = (SwerveState) obj;
-        return Objects.equals(m_positions, rec.m_positions)
+        return Objects.equals(m_measurement, rec.m_measurement)
                 && Objects.equals(m_estimate, rec.m_estimate);
     }
 
@@ -60,29 +39,19 @@ public class SwerveState implements Interpolatable<SwerveState> {
         return m_estimate;
     }
 
-    public SwerveModulePositions positions() {
-        return m_positions;
-    }
-
-    public Rotation2d gyroYaw() {
-        return m_gyroYaw;
-    }
-
-    public NoisyPose2d visionMeasurement() {
-        return m_visionMeasurement;
+    public OdoGyroMeasurement measurement() {
+        return m_measurement;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(m_positions, m_estimate);
+        return Objects.hash(m_measurement, m_estimate);
     }
 
     @Override
     public String toString() {
         return "SwerveState [m_estimate=" + m_estimate
-                + ", m_wheelPositions=" + m_positions
-                + ", m_gyroYaw=" + m_gyroYaw
-                + ", m_visionMeasurement=" + m_visionMeasurement + "]";
+                + ", m_measurement=" + m_measurement + "]";
     }
 
     /**
@@ -101,27 +70,9 @@ public class SwerveState implements Interpolatable<SwerveState> {
             return endValue;
         }
 
-        LocalizerEstimate startEstimate = estimate();
-        LocalizerEstimate endEstimate = endValue.estimate();
-
-        // Interpolate the wheel positions.
-        SwerveModulePositions startPositions = positions();
-        SwerveModulePositions endPositions = endValue.positions();
-        SwerveModulePositions wheelLerp = startPositions.interpolate(endPositions, t);
-
-        // Interpolate the gyro measurement.
-        Rotation2d gyroLerp = gyroYaw().interpolate(
-                endValue.gyroYaw(), t);
-
-        NoisyPose2d measurementLerp = null;
-        if (visionMeasurement() != null && endValue.visionMeasurement() != null) {
-            measurementLerp = visionMeasurement()
-                    .interpolate(endValue.visionMeasurement(), t);
-        }
-
-        LocalizerEstimate estimate = startEstimate.interpolate(endEstimate, t);
-        return new SwerveState(
-                estimate, wheelLerp, gyroLerp, measurementLerp);
+        OdoGyroMeasurement odoLerp = measurement().interpolate(endValue.measurement(), t);
+        LocalizerEstimate estimateLerp = estimate().interpolate(endValue.estimate(), t);
+        return new SwerveState(estimateLerp, odoLerp);
     }
 
 }

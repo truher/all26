@@ -2,6 +2,7 @@ package org.team100.lib.localization;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.util.TimeInterpolatableBuffer100;
@@ -16,24 +17,27 @@ import org.team100.lib.util.TimeInterpolatableBuffer100;
  */
 public class ImmutableSwerveHistory implements StateSampler {
 
-    private final TimeInterpolatableBuffer100<SwerveState> m_poseBuffer;
+    private final TimeInterpolatableBuffer100<StateSE2> m_poseBuffer;
 
     public ImmutableSwerveHistory(
-            Set<Map.Entry<Double, SwerveState>> entries,
+            Set<Map.Entry<Double, LocalizerEstimate>> entries,
             double bufferDuration) {
         if (entries.isEmpty())
             throw new IllegalArgumentException();
-        m_poseBuffer = new TimeInterpolatableBuffer100<>(entries, bufferDuration);
+        m_poseBuffer = new TimeInterpolatableBuffer100<>(
+                entries.stream().map(e -> Map.entry(e.getKey(), e.getValue().state()))
+                        .collect(Collectors.toSet()),
+                bufferDuration);
     }
 
     /** Interpolates. */
+    @Override
     public StateSE2 get(double timestampSeconds) {
-        LocalizerEstimate estimate = m_poseBuffer.get(timestampSeconds).estimate();
-        return estimate.state();
+        return m_poseBuffer.get(timestampSeconds);
     }
 
     /** Return all entries. This is for visualization. */
-    public Map<Double, SwerveState> all() {
+    public Map<Double, StateSE2> all() {
         return m_poseBuffer.all();
     }
 

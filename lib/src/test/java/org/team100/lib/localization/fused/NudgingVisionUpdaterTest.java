@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 import org.team100.lib.localization.LocalizerEstimate;
+import org.team100.lib.localization.OdoGyroMeasurement;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
@@ -194,7 +195,7 @@ public class NudgingVisionUpdaterTest {
         VariableR1 bias = VariableR1.fromVariance(0, 0.001);
         LocalizerEstimate estimate1 = new LocalizerEstimate(sampleState, stateNoise, bias);
         SwerveState sample = new SwerveState(
-                estimate1, positions, yaw, null);
+                estimate1, new OdoGyroMeasurement(yaw, positions));
 
         // camera thinks we're at 1, and it's pretty sure.
         Pose2d visionPose = new Pose2d(1, 0, new Rotation2d());
@@ -203,7 +204,8 @@ public class NudgingVisionUpdaterTest {
 
         // result is close to the vision estimate, with its variance.
         NudgingVisionEstimator vu = new NudgingVisionEstimator(log);
-        LocalizerEstimate estimate = vu.estimate(sample, measurement);
+        LocalizerEstimate estimate = vu.estimate(
+                sample.estimate(), measurement);
         assertEquals(1, estimate.state().pose().getX(), DELTA);
         assertEquals(0, estimate.state().pose().getY(), DELTA);
         assertEquals(0, estimate.state().pose().getRotation().getRadians(), DELTA);
@@ -220,7 +222,7 @@ public class NudgingVisionUpdaterTest {
         Rotation2d yaw = new Rotation2d();
         VariableR1 bias = VariableR1.fromVariance(0, 0.001);
         LocalizerEstimate estimate1 = new LocalizerEstimate(sampleState, stateNoise, bias);
-        SwerveState sample = new SwerveState(estimate1, positions, yaw, null);
+        SwerveState sample = new SwerveState(estimate1, new OdoGyroMeasurement(yaw, positions));
 
         // camera thinks we're at 1, and it's pretty sure.
         Pose2d visionPose = new Pose2d(1, 0, new Rotation2d());
@@ -230,7 +232,8 @@ public class NudgingVisionUpdaterTest {
         // cartesian result is in the middle, with more variance.
         // rotation result is more confident, since history and camera agree.
         NudgingVisionEstimator vu = new NudgingVisionEstimator(log);
-        LocalizerEstimate estimate = vu.estimate(sample, measurement);
+        LocalizerEstimate estimate = vu.estimate(
+                sample.estimate(), measurement);
         assertEquals(0.5, estimate.state().pose().getX(), DELTA);
         assertEquals(0, estimate.state().pose().getY(), DELTA);
         assertEquals(0, estimate.state().pose().getRotation().getRadians(), DELTA);

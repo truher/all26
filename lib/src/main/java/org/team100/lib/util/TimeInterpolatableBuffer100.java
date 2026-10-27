@@ -106,11 +106,6 @@ public class TimeInterpolatableBuffer100<T extends Interpolatable<T>> {
         }
     }
 
-    /** Get the entry for t, if it exists, otherwise null. */
-    public T getExact(double t) {
-        return m_pastSnapshots.get(t);
-    }
-
     /**
      * Sample the buffer at the given time. May return an entry exactly, if the
      * timestamp matches a known timestamp exactly. Otherwise returns an

@@ -25,7 +25,7 @@ public class NoEstimate implements StateEstimator {
     }
 
     @Override
-    public Map<Double, SwerveState> all() {
+    public Map<Double, StateSE2> all() {
         return new TreeMap<>();
     }
 

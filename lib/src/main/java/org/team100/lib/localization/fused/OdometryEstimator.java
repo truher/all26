@@ -8,6 +8,7 @@ import org.team100.lib.fusion.CovarianceInflation;
 import org.team100.lib.fusion.Fusor;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.localization.LocalizerEstimate;
+import org.team100.lib.localization.OdoGyroMeasurement;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.localization.simulation.AddOdometryNoise;
 import org.team100.lib.logging.Level;
@@ -106,8 +107,7 @@ public class OdometryEstimator {
             double previousTimestamp,
             SwerveState previousState,
             double timestamp,
-            Rotation2d gyroYaw,
-            SwerveModulePositions positions) {
+            OdoGyroMeasurement odo) {
 
         // The entry right before this one, the basis for integration.
         // Never interpolated.
@@ -133,9 +133,10 @@ public class OdometryEstimator {
 
         return newState(
                 previousState.estimate(),
-                previousState.positions(),
-                previousState.gyroYaw(),
-                dt, gyroYaw, positions);
+                previousState.measurement().odo(),
+                previousState.measurement().gyro(),
+                dt,
+                odo);
     }
 
     /**
@@ -146,8 +147,7 @@ public class OdometryEstimator {
             SwerveModulePositions previousPositions,
             Rotation2d previousYaw,
             double dt,
-            Rotation2d gyroYaw,
-            SwerveModulePositions positions) {
+            OdoGyroMeasurement odo) {
         StateSE2 previousStateSe2 = previousEstimate.state();
         IsotropicNoiseSE2 previousNoise = previousEstimate.noise();
         VariableR1 previousBias = previousEstimate.gyroBias();
@@ -158,10 +158,10 @@ public class OdometryEstimator {
                     previousStateSe2.pose().getY());
         }
         // The SE2 "twist" increment between the previous and current poses.
-        Twist2d twist = twistFromOdometry(positions, previousPositions);
+        Twist2d twist = twistFromOdometry(odo.odo(), previousPositions);
 
         // The verbatim gyro increment, with an uncertainty estimate.
-        VariableR1 gyroIncrementRad = getGyroMeasurementRad(dt, gyroYaw, previousYaw);
+        VariableR1 gyroIncrementRad = getGyroMeasurementRad(dt, odo.gyro(), previousYaw);
 
         // Estimate for uncertainty in the odometry increment.
         IsotropicNoiseSE2 odometryNoise = OdometryNoise.get(twist);

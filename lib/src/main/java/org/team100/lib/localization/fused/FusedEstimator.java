@@ -14,7 +14,6 @@ import org.team100.lib.localization.HistoryGardener;
 import org.team100.lib.localization.ImmutableSwerveHistory;
 import org.team100.lib.localization.StateEstimator;
 import org.team100.lib.localization.SwerveHistory;
-import org.team100.lib.localization.SwerveState;
 import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.sensor.gyro.Gyro;
@@ -56,7 +55,6 @@ public class FusedEstimator implements StateEstimator {
         m_gyro = gyro;
         m_swerveLocal = swerveLocal;
         m_history = new SwerveHistory(
-                driveLog,
                 0.2,
                 gyro.getYawNWU(),
                 VariableR1.fromStdDev(0, 1),
@@ -89,9 +87,9 @@ public class FusedEstimator implements StateEstimator {
         return m_history.immutableCopy();
     }
 
-    public Map<Double, SwerveState> all() {
-        ImmutableSwerveHistory h = m_immutable.get();
-        return h.all();
+    @Override
+    public Map<Double, StateSE2> all() {
+        return m_immutable.get().all();
     }
 
     /**

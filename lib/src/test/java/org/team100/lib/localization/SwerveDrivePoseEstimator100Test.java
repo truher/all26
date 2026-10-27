@@ -61,8 +61,8 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
     private final Pose2d visionPose = new Pose2d(1, 0, Rotation2d.kZero);
 
     private static void verify(double x, double sigma, SwerveHistory history, double timestamp) {
-        SwerveState swerveState = history.getSwerveState(timestamp);
-        LocalizerEstimate estimate = swerveState.estimate();
+        // OdoGyroMeasurement swerveState = history.getSwerveState(timestamp);
+        LocalizerEstimate estimate = history.getLocalizerEstimate(timestamp);
         StateSE2 state = estimate.state();
         Pose2d pose = state.pose();
         assertEquals(x, pose.getX(), DELTA);
@@ -73,7 +73,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
     }
 
     private static void verifyBias(double mean, double sigma, SwerveHistory history, double timestamp) {
-        LocalizerEstimate estimate = history.getSwerveState(timestamp).estimate();
+        LocalizerEstimate estimate = history.getLocalizerEstimate(timestamp);
         assertEquals(mean, estimate.gyroBias().mean(), DELTA);
         assertEquals(sigma, estimate.gyroBias().sigma(), DELTA);
     }
@@ -143,16 +143,23 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         OdometryReplayer or = new OdometryReplayer(history, ou);
         NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
 
-        Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(0);
-        assertNull(lowerEntry);
+        Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(0);
+        Entry<Double, OdoGyroMeasurement> measurementLowerEntry = history.swerveStateLowerEntry(0);
+        assertNull(estimateLowerEntry);
+        assertNull(measurementLowerEntry);
 
         verify(0.000, 0.1, history, 0.00);
         verifyVelocity(0.000, history.get(0.00));
         // move 0.1 m
 
-        lowerEntry = history.swerveStateLowerEntry(0.02);
+        estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
+        measurementLowerEntry = history.swerveStateLowerEntry(0.02);
 
-        LocalizerEstimate e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(), 0.02,
+        LocalizerEstimate e = ou.estimate(
+                measurementLowerEntry.getKey(),
+                estimateLowerEntry.getValue(),
+                measurementLowerEntry.getValue(),
+                0.02,
                 new OdoGyroMeasurement(Rotation2d.kZero, position01));
         SwerveState s = new SwerveState(e, new OdoGyroMeasurement(Rotation2d.kZero, position01));
         if (e != null)
@@ -166,12 +173,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         // big vision update
         final IsotropicNoiseSE2 visionMeasurementStdDevs = IsotropicNoiseSE2.fromStdDev(0.5, Double.MAX_VALUE);
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        SwerveState sample = history.getSwerveState(0.00);
-        LocalizerEstimate estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.00);
+        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.00);
+        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.00, s);
         or.replay(0);
         // position slides over there
@@ -208,17 +213,25 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         OdometryReplayer or = new OdometryReplayer(history, ou);
         NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
 
-        Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(0);
+        Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(0);
+        Entry<Double, OdoGyroMeasurement> lowerEntry = history.swerveStateLowerEntry(0);
+        assertNull(estimateLowerEntry);
         assertNull(lowerEntry);
 
         verify(0.000, 0.1, history, 0.00);
         verifyVelocity(0.000, history.get(0.00));
+
         // 0.1 m
 
+        estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
         lowerEntry = history.swerveStateLowerEntry(0.02);
 
-        LocalizerEstimate e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
-                0.02, new OdoGyroMeasurement(Rotation2d.kZero, position01));
+        LocalizerEstimate e = ou.estimate(
+                lowerEntry.getKey(),
+                estimateLowerEntry.getValue(),
+                lowerEntry.getValue(),
+                0.02,
+                new OdoGyroMeasurement(Rotation2d.kZero, position01));
         assertNotNull(e);
         SwerveState s = new SwerveState(e, new OdoGyroMeasurement(Rotation2d.kZero, position01));
 
@@ -231,12 +244,13 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // big vision update, but later
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        SwerveState sample = history.getSwerveState(0.02);
+        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.02);
+        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.02);
         LocalizerEstimate estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
+                sampleEstimate, noisyMeasurement);
         s = new SwerveState(
                 estimate,
-                sample.measurement());
+                sample);
         history.put(0.02, s);
         or.replay(0.02);
         // initial position is unchanged
@@ -275,16 +289,25 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         OdometryReplayer or = new OdometryReplayer(history, ou);
         NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
 
-        Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(0);
+        Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(0);
+        Entry<Double, OdoGyroMeasurement> lowerEntry = history.swerveStateLowerEntry(0);
+        assertNull(estimateLowerEntry);
         assertNull(lowerEntry);
 
         verify(0.000, 0.1, history, 0.00);
         verifyVelocity(0.000, history.get(0.00));
+
         // 0.1 m
+
+        estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
         lowerEntry = history.swerveStateLowerEntry(0.02);
 
-        LocalizerEstimate e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
-                0.02, new OdoGyroMeasurement(Rotation2d.kZero, position01));
+        LocalizerEstimate e = ou.estimate(
+                lowerEntry.getKey(),
+                estimateLowerEntry.getValue(),
+                lowerEntry.getValue(),
+                0.02,
+                new OdoGyroMeasurement(Rotation2d.kZero, position01));
         assertNotNull(e);
         SwerveState s = new SwerveState(e, new OdoGyroMeasurement(Rotation2d.kZero, position01));
 
@@ -297,12 +320,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // big vision update, even later
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionNoise);
-        SwerveState sample = history.getSwerveState(0.04);
-        LocalizerEstimate estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.04);
+        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.04);
+        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.04, s);
         or.replay(0.04);
         // initial position is unchanged
@@ -354,7 +375,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         // if we try to update zero, there's nothing to compare it to,
         // so we should just ignore this update.
 
-        Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(0);
+        Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(0);
+        Entry<Double, OdoGyroMeasurement> lowerEntry = history.swerveStateLowerEntry(0);
+        assertNull(estimateLowerEntry);
         assertNull(lowerEntry);
 
         verify(0.000, 0.1, history, 0.00);
@@ -363,12 +386,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // now vision says we're one meter away, so pose goes towards that
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        SwerveState sample = history.getSwerveState(0.01);
-        LocalizerEstimate estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        SwerveState s = new SwerveState(
-                estimate,
-                sample.measurement());
+        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.01);
+        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.01);
+        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        SwerveState s = new SwerveState(estimate, sample);
         history.put(0.01, s);
         or.replay(0.01);
         verify(0.000, 0.1, history, 0.00);
@@ -384,10 +405,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         // but it's not, it's applied relative to the vision update, so there's no
         // change.
 
+        estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
         lowerEntry = history.swerveStateLowerEntry(0.02);
 
-        LocalizerEstimate e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
-                0.02, new OdoGyroMeasurement(gyro.getYawNWU(), positionZero));
+        LocalizerEstimate e = ou.estimate(
+                lowerEntry.getKey(),
+                estimateLowerEntry.getValue(),
+                lowerEntry.getValue(),
+                0.02,
+                new OdoGyroMeasurement(gyro.getYawNWU(), positionZero));
         assertNotNull(e);
         s = new SwerveState(e, new OdoGyroMeasurement(gyro.getYawNWU(), positionZero));
 
@@ -402,10 +428,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         // 0, but instead odometry is applied relative to the latest estimate, which
         // was based on vision. so the actual odometry stddev is like *zero*.
 
+        estimateLowerEntry = history.localizerEstimateLowerEntry(0.04);
         lowerEntry = history.swerveStateLowerEntry(0.04);
 
-        e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
-                0.04, new OdoGyroMeasurement(Rotation2d.kZero, position01));
+        e = ou.estimate(
+                lowerEntry.getKey(),
+                estimateLowerEntry.getValue(),
+                lowerEntry.getValue(),
+                0.04,
+                new OdoGyroMeasurement(Rotation2d.kZero, position01));
         assertNotNull(e);
         s = new SwerveState(e, new OdoGyroMeasurement(Rotation2d.kZero, position01));
 
@@ -417,12 +448,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // here's the delayed update from above, which moves the estimate to 0.305 and
         // then the odometry is applied on top of that, yielding 0.405.
-        sample = history.getSwerveState(0.015);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.015);
+        sample = history.getOdoGyroMeasurement(0.015);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.015, s);
         or.replay(0.015);
         verify(0.000, 0.1, history, 0.00);
@@ -435,10 +464,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // wheels are in the same position as the previous iteration,
 
+        estimateLowerEntry = history.localizerEstimateLowerEntry(0.06);
         lowerEntry = history.swerveStateLowerEntry(0.06);
 
-        e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
-                0.06, new OdoGyroMeasurement(Rotation2d.kZero, position01));
+        e = ou.estimate(
+                lowerEntry.getKey(),
+                estimateLowerEntry.getValue(),
+                lowerEntry.getValue(),
+                0.06,
+                new OdoGyroMeasurement(Rotation2d.kZero, position01));
         assertNotNull(e);
         s = new SwerveState(e, new OdoGyroMeasurement(Rotation2d.kZero, position01));
 
@@ -450,12 +484,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.177, 0.104, history, 0.08);
 
         // a little earlier than the previous estimate does nothing
-        sample = history.getSwerveState(0.014);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.014);
+        sample = history.getOdoGyroMeasurement(0.014);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.014, s);
         or.replay(0.014);
         verify(0.000, 0.1, history, 0.00);
@@ -472,12 +504,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.207, 0.105, history, 0.06);
 
         // a little later than the previous estimate works normally.
-        sample = history.getSwerveState(0.016);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.016);
+        sample = history.getOdoGyroMeasurement(0.016);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.016, s);
         or.replay(0.016);
         verify(0.000, 0.1, history, 0.00);
@@ -491,10 +521,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.244, 0.106, history, 0.06);
 
         // wheels not moving -> no change,
+        estimateLowerEntry = history.localizerEstimateLowerEntry(0.08);
         lowerEntry = history.swerveStateLowerEntry(0.08);
 
-        e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
-                0.08, new OdoGyroMeasurement(Rotation2d.kZero, position01));
+        e = ou.estimate(
+                lowerEntry.getKey(),
+                estimateLowerEntry.getValue(),
+                lowerEntry.getValue(),
+                0.08,
+                new OdoGyroMeasurement(Rotation2d.kZero, position01));
         assertNotNull(e);
         s = new SwerveState(e, new OdoGyroMeasurement(Rotation2d.kZero, position01));
 
@@ -543,7 +578,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         // if we try to update zero, there's nothing to compare it to,
         // so we should just ignore this update.
 
-        Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(0);
+        Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(0);
+        Entry<Double, OdoGyroMeasurement> lowerEntry = history.swerveStateLowerEntry(0);
+        assertNull(estimateLowerEntry);
         assertNull(lowerEntry);
 
         verify(0.000, 0.1, history, 0.00);
@@ -554,12 +591,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // now vision says we're one meter away, so pose goes towards that
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        SwerveState sample = history.getSwerveState(0.01);
-        LocalizerEstimate estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        SwerveState s = new SwerveState(
-                estimate,
-                sample.measurement());
+        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.01);
+        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.01);
+        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        SwerveState s = new SwerveState(estimate, sample);
         history.put(0.01, s);
         or.replay(0.01);
         verify(0.000, 0.1, history, 0.00);
@@ -578,10 +613,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         // but it's not, it's applied relative to the vision update, so there's no
         // change.
 
+        estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
         lowerEntry = history.swerveStateLowerEntry(0.02);
 
-        LocalizerEstimate e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
-                0.02, new OdoGyroMeasurement(Rotation2d.kZero, positionZero));
+        LocalizerEstimate e = ou.estimate(
+                lowerEntry.getKey(),
+                estimateLowerEntry.getValue(),
+                lowerEntry.getValue(),
+                0.02,
+                new OdoGyroMeasurement(Rotation2d.kZero, positionZero));
         s = new SwerveState(e, new OdoGyroMeasurement(Rotation2d.kZero, positionZero));
 
         if (e != null)
@@ -597,10 +637,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         // 0, but instead odometry is applied relative to the latest estimate, which
         // was based on vision. so the actual odometry stddev is like *zero*.
 
+        estimateLowerEntry = history.localizerEstimateLowerEntry(0.04);
         lowerEntry = history.swerveStateLowerEntry(0.04);
 
-        e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
-                0.04, new OdoGyroMeasurement(Rotation2d.kZero, position01));
+        e = ou.estimate(
+                lowerEntry.getKey(),
+                estimateLowerEntry.getValue(),
+                lowerEntry.getValue(),
+                0.04,
+                new OdoGyroMeasurement(Rotation2d.kZero, position01));
         s = new SwerveState(e, new OdoGyroMeasurement(Rotation2d.kZero, position01));
 
         if (e != null)
@@ -613,12 +658,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // here's the delayed update from above, which moves the estimate and
         // then the odometry is applied on top of that.
-        sample = history.getSwerveState(0.015);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.015);
+        sample = history.getOdoGyroMeasurement(0.015);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.015, s);
         or.replay(0.015);
         verify(0.000, 0.1, history, 0.00);
@@ -630,10 +673,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // wheels are in the same position as the previous iteration
 
+        estimateLowerEntry = history.localizerEstimateLowerEntry(0.06);
         lowerEntry = history.swerveStateLowerEntry(0.06);
 
-        e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
-                0.06, new OdoGyroMeasurement(Rotation2d.kZero, position01));
+        e = ou.estimate(
+                lowerEntry.getKey(),
+                estimateLowerEntry.getValue(),
+                lowerEntry.getValue(),
+                0.06,
+                new OdoGyroMeasurement(Rotation2d.kZero, position01));
         s = new SwerveState(e, new OdoGyroMeasurement(Rotation2d.kZero, position01));
 
         if (e != null)
@@ -645,12 +693,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.177, 0.103, history, 0.08);
 
         // a little earlier than the previous estimate does nothing.
-        sample = history.getSwerveState(0.014);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.014);
+        sample = history.getOdoGyroMeasurement(0.014);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.014, s);
         or.replay(0.014);
         verify(0.000, 0.1, history, 0.00);
@@ -661,12 +707,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.207, 0.104, history, 0.08);
 
         // a little later than the previous estimate works normally.
-        sample = history.getSwerveState(0.016);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.016);
+        sample = history.getOdoGyroMeasurement(0.016);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.016, s);
         or.replay(0.016);
         verify(0.000, 0.1, history, 0.00);
@@ -677,10 +721,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.244, 0.105, history, 0.08);
 
         // wheels not moving -> no change
+        estimateLowerEntry = history.localizerEstimateLowerEntry(0.08);
         lowerEntry = history.swerveStateLowerEntry(0.08);
 
-        e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
-                0.08, new OdoGyroMeasurement(Rotation2d.kZero, position01));
+        e = ou.estimate(
+                lowerEntry.getKey(),
+                estimateLowerEntry.getValue(),
+                lowerEntry.getValue(),
+                0.08,
+                new OdoGyroMeasurement(Rotation2d.kZero, position01));
         s = new SwerveState(e, new OdoGyroMeasurement(Rotation2d.kZero, position01));
 
         if (e != null)
@@ -724,7 +773,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.1, history, 0.06);
         verify(0.000, 0.1, history, 0.08);
 
-        Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(0);
+        Entry<Double, OdoGyroMeasurement> lowerEntry = history.swerveStateLowerEntry(0);
         assertNull(lowerEntry);
 
         verify(0.000, 0.1, history, 0.00);
@@ -734,12 +783,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.1, history, 0.08);
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        SwerveState sample = history.getSwerveState(0.02);
-        LocalizerEstimate estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        SwerveState s = new SwerveState(
-                estimate,
-                sample.measurement());
+        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.02);
+        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.02);
+        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        SwerveState s = new SwerveState(estimate, sample);
         history.put(0.02, s);
         or.replay(0.02);
         verify(0.000, 0.1, history, 0.00);
@@ -749,12 +796,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.038, 0.102, history, 0.06);
         verify(0.038, 0.102, history, 0.08);
 
-        sample = history.getSwerveState(0.04);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.04);
+        sample = history.getOdoGyroMeasurement(0.04);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.04, s);
         or.replay(0.04);
         verify(0.000, 0.1, history, 0.00);
@@ -764,12 +809,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.077, 0.103, history, 0.06);
         verify(0.077, 0.103, history, 0.08);
 
-        sample = history.getSwerveState(0.06);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.06);
+        sample = history.getOdoGyroMeasurement(0.06);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.06, s);
         or.replay(0.06);
         verify(0.000, 0.1, history, 0.00);
@@ -811,7 +854,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.1, history, 0.06);
         verify(0.000, 0.1, history, 0.08);
 
-        Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(0);
+        Entry<Double, OdoGyroMeasurement> lowerEntry = history.swerveStateLowerEntry(0);
 
         assertNull(lowerEntry);
 
@@ -822,12 +865,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.1, history, 0.08);
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        SwerveState sample = history.getSwerveState(0.02);
-        LocalizerEstimate estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        SwerveState s = new SwerveState(
-                estimate,
-                sample.measurement());
+        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.02);
+        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.02);
+        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        SwerveState s = new SwerveState(estimate, sample);
         history.put(0.02, s);
         or.replay(0.02);
         verify(0.000, 0.1, history, 0.00);
@@ -837,12 +878,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.010, 0.100, history, 0.06);
         verify(0.010, 0.100, history, 0.08);
 
-        sample = history.getSwerveState(0.04);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.04);
+        sample = history.getOdoGyroMeasurement(0.04);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.04, s);
         or.replay(0.04);
         verify(0.000, 0.1, history, 0.00);
@@ -852,12 +891,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.020, 0.100, history, 0.06);
         verify(0.020, 0.100, history, 0.08);
 
-        sample = history.getSwerveState(0.06);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.06);
+        sample = history.getOdoGyroMeasurement(0.06);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
 
         history.put(0.06, s);
         or.replay(0.06);
@@ -901,7 +938,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.05, history, 0.06);
         verify(0.000, 0.05, history, 0.08);
 
-        Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(0);
+        Entry<Double, OdoGyroMeasurement> lowerEntry = history.swerveStateLowerEntry(0);
         assertNull(lowerEntry);
 
         verify(0.000, 0.05, history, 0.00);
@@ -911,12 +948,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.05, history, 0.08);
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        SwerveState sample = history.getSwerveState(0.02);
-        LocalizerEstimate estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        SwerveState s = new SwerveState(
-                estimate,
-                sample.measurement());
+        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.02);
+        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.02);
+        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        SwerveState s = new SwerveState(estimate, sample);
         history.put(0.02, s);
         or.replay(0.02);
         verify(0.000, 0.05, history, 0.00);
@@ -926,12 +961,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.010, 0.052, history, 0.06);
         verify(0.010, 0.052, history, 0.08);
 
-        sample = history.getSwerveState(0.04);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.04);
+        sample = history.getOdoGyroMeasurement(0.04);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.04, s);
         or.replay(0.04);
         verify(0.000, 0.05, history, 0.00);
@@ -941,12 +974,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.020, 0.053, history, 0.06);
         verify(0.020, 0.053, history, 0.08);
 
-        sample = history.getSwerveState(0.06);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.06);
+        sample = history.getOdoGyroMeasurement(0.06);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.06, s);
         or.replay(0.06);
         verify(0.000, 0.05, history, 0.00);
@@ -991,7 +1022,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.01, history, 0.06);
         verify(0.000, 0.01, history, 0.08);
 
-        Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(0);
+        Entry<Double, OdoGyroMeasurement> lowerEntry = history.swerveStateLowerEntry(0);
         assertNull(lowerEntry);
 
         verify(0.000, 0.01, history, 0.00);
@@ -1001,12 +1032,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.000, 0.01, history, 0.08);
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        SwerveState sample = history.getSwerveState(0.02);
-        LocalizerEstimate estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        SwerveState s = new SwerveState(
-                estimate,
-                sample.measurement());
+        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.02);
+        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.02);
+        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        SwerveState s = new SwerveState(estimate, sample);
         history.put(0.02, s);
         or.replay(0.02);
         verify(0.000, 0.01, history, 0.00);
@@ -1016,12 +1045,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.010, 0.017, history, 0.06);
         verify(0.010, 0.017, history, 0.08);
 
-        sample = history.getSwerveState(0.04);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.04);
+        sample = history.getOdoGyroMeasurement(0.04);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.04, s);
         or.replay(0.04);
         verify(0.000, 0.01, history, 0.00);
@@ -1031,12 +1058,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.038, 0.029, history, 0.06);
         verify(0.038, 0.029, history, 0.08);
 
-        sample = history.getSwerveState(0.06);
-        estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        s = new SwerveState(
-                estimate,
-                sample.measurement());
+        sampleEstimate = history.getLocalizerEstimate(0.06);
+        sample = history.getOdoGyroMeasurement(0.06);
+        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        s = new SwerveState(estimate, sample);
         history.put(0.06, s);
         or.replay(0.06);
         verify(0.000, 0.01, history, 0.00);
@@ -1045,7 +1070,6 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         verify(0.038, 0.029, history, 0.04);
         verify(0.112, 0.046, history, 0.06);
         verify(0.112, 0.046, history, 0.08);
-
     }
 
     ////////////////////////////////////////
@@ -1177,12 +1201,10 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 NoisyPose2d m = new NoisyPose2d(
                         visionEntry.getValue(),
                         visionMeasurementStdDevs);
-                SwerveState sample = history.getSwerveState(timestamp);
-                LocalizerEstimate estimate = vu.estimate(
-                        sample.estimate(), m);
-                SwerveState s = new SwerveState(
-                        estimate,
-                        sample.measurement());
+                LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(timestamp);
+                OdoGyroMeasurement sample = history.getOdoGyroMeasurement(timestamp);
+                LocalizerEstimate estimate = vu.estimate(sampleEstimate, m);
+                SwerveState s = new SwerveState(estimate, sample);
                 history.put(timestamp, s);
                 or.replay(timestamp);
             }
@@ -1217,11 +1239,16 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
             positions = new SwerveModulePositions(newPositions[0], newPositions[1], newPositions[2], newPositions[3]);
 
-            Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(t);
+            Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(t);
+            Entry<Double, OdoGyroMeasurement> lowerEntry = history.swerveStateLowerEntry(t);
 
             if (lowerEntry != null) {
-                LocalizerEstimate e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
-                        t, new OdoGyroMeasurement(gyro.getYawNWU(), positions));
+                LocalizerEstimate e = ou.estimate(
+                        lowerEntry.getKey(),
+                        estimateLowerEntry.getValue(),
+                        lowerEntry.getValue(),
+                        t,
+                        new OdoGyroMeasurement(gyro.getYawNWU(), positions));
                 SwerveState s = new SwerveState(e, new OdoGyroMeasurement(gyro.getYawNWU(), positions));
 
                 if (e != null)
@@ -1302,7 +1329,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         OdometryReplayer or = new OdometryReplayer(history, ou);
         NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
 
-        Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(0);
+        Entry<Double, OdoGyroMeasurement> lowerEntry = history.swerveStateLowerEntry(0);
 
         assertNull(lowerEntry);
 
@@ -1314,14 +1341,13 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         for (int i = 0; i < 1000; i++) {
             for (var measurement : visionMeasurements) {
-                SwerveState sample = history.getSwerveState(0.00);
+                LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.00);
+                OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.00);
                 NoisyPose2d noisyMeasurement = new NoisyPose2d(
                         measurement, visionMeasurementStdDevs);
                 LocalizerEstimate estimate = vu.estimate(
-                        sample.estimate(), noisyMeasurement);
-                SwerveState s = new SwerveState(
-                        estimate,
-                        sample.measurement());
+                        sampleEstimate, noisyMeasurement);
+                SwerveState s = new SwerveState(estimate, sample);
                 history.put(0.00, s);
                 or.replay(0);
             }
@@ -1370,10 +1396,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // Add enough measurements to fill up the buffer
         for (; time < 4; time += 0.02) {
-            Entry<Double, SwerveState> lowerEntry = history.swerveStateLowerEntry(time);
+            Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(time);
+            Entry<Double, OdoGyroMeasurement> lowerEntry = history.swerveStateLowerEntry(time);
             if (lowerEntry != null) {
                 LocalizerEstimate e = ou.estimate(
-                        lowerEntry.getKey(), lowerEntry.getValue(), time,
+                        lowerEntry.getKey(),
+                        estimateLowerEntry.getValue(),
+                        lowerEntry.getValue(),
+                        time,
                         new OdoGyroMeasurement(gyro.getYawNWU(), positionZero));
                 SwerveState s = new SwerveState(e, new OdoGyroMeasurement(gyro.getYawNWU(), positionZero));
                 if (e != null)
@@ -1385,15 +1415,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // Apply a vision measurement made 3 seconds ago
         // This test passes if this does not cause a ConcurrentModificationException.
-        SwerveState sample = history.getSwerveState(1);
+        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(1);
+        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(1);
         NoisyPose2d noisyMeasurement = new NoisyPose2d(
                 new Pose2d(new Translation2d(10, 10), new Rotation2d(0.1)),
                 IsotropicNoiseSE2.fromStdDev(0.1, 0.1));
         LocalizerEstimate estimate = vu.estimate(
-                sample.estimate(), noisyMeasurement);
-        SwerveState s = new SwerveState(
-                estimate,
-                sample.measurement());
+                sampleEstimate, noisyMeasurement);
+        SwerveState s = new SwerveState(estimate, sample);
 
         if (s != null && !history.tooOld(1))
             history.put(1, s);

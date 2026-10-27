@@ -28,7 +28,11 @@ import edu.wpi.first.math.geometry.Rotation2d;
  */
 public class SwerveHistory implements StateSampler {
     private final double m_bufferDuration;
-    private final TimeInterpolatableBuffer100<SwerveState> m_poseBuffer;
+
+    // these two maps need to have the same keys all the time
+    // ... which seems bad.
+
+    private final TimeInterpolatableBuffer100<OdoGyroMeasurement> m_measurements;
     private final TimeInterpolatableBuffer100<LocalizerEstimate> m_estimates;
 
     public SwerveHistory(
@@ -44,10 +48,9 @@ public class SwerveHistory implements StateSampler {
         LocalizerEstimate estimate = new LocalizerEstimate(state, noise, gyroBias);
         m_estimates = new TimeInterpolatableBuffer100<>(
                 bufferDuration, timestampSeconds, estimate);
-        SwerveState initialState = new SwerveState(
-                estimate, new OdoGyroMeasurement(gyroAngle, modulePositions));
-        m_poseBuffer = new TimeInterpolatableBuffer100<>(
-                bufferDuration, timestampSeconds, initialState);
+        OdoGyroMeasurement measurement = new OdoGyroMeasurement(gyroAngle, modulePositions);
+        m_measurements = new TimeInterpolatableBuffer100<>(
+                bufferDuration, timestampSeconds, measurement);
     }
 
     public ImmutableSwerveHistory immutableCopy() {
@@ -75,10 +78,8 @@ public class SwerveHistory implements StateSampler {
         StateSE2 newState = new StateSE2(pose, VelocitySE2.ZERO);
         LocalizerEstimate estimate = new LocalizerEstimate(newState, noise, gyroBias);
         m_estimates.reset(timestampSeconds, estimate);
-        SwerveState state = new SwerveState(
-                estimate,
-                new OdoGyroMeasurement(gyroYaw, modulePositions));
-        m_poseBuffer.reset(timestampSeconds, state);
+        OdoGyroMeasurement measurement = new OdoGyroMeasurement(gyroYaw, modulePositions);
+        m_measurements.reset(timestampSeconds, measurement);
     }
 
     //////////////////////////////////////////////////
@@ -91,12 +92,12 @@ public class SwerveHistory implements StateSampler {
      */
     public void put(double timestamp, SwerveState state) {
         m_estimates.put(timestamp, state.estimate());
-        m_poseBuffer.put(timestamp, state);
+        m_measurements.put(timestamp, state.measurement());
     }
 
     /** Entry for time strictly before timestamp. Never interpolated. */
-    public Entry<Double, SwerveState> swerveStateLowerEntry(double timestamp) {
-        return m_poseBuffer.lowerEntry(timestamp);
+    public Entry<Double, OdoGyroMeasurement> swerveStateLowerEntry(double timestamp) {
+        return m_measurements.lowerEntry(timestamp);
     }
 
     public Entry<Double, LocalizerEstimate> localizerEstimateLowerEntry(double timestamp) {
@@ -108,8 +109,8 @@ public class SwerveHistory implements StateSampler {
      * timestamp matches a known timestamp exactly. Otherwise returns an
      * interpolated value. Don't use this method outside this package.
      */
-    public SwerveState getSwerveState(double timestamp) {
-        return m_poseBuffer.get(timestamp);
+    public OdoGyroMeasurement getOdoGyroMeasurement(double timestamp) {
+        return m_measurements.get(timestamp);
     }
 
     public LocalizerEstimate getLocalizerEstimate(double timestamp) {
@@ -117,26 +118,26 @@ public class SwerveHistory implements StateSampler {
     }
 
     boolean tooOld(double timestamp) {
-        return m_poseBuffer.tooOld(timestamp);
+        return m_measurements.tooOld(timestamp);
     }
 
     /** SwerveStates strictly later than the timestamp. */
-    public SortedMap<Double, SwerveState> swerveStateExclusiveTailMap(double timestamp) {
-        return m_poseBuffer.tailMap(timestamp, false);
+    public SortedMap<Double, OdoGyroMeasurement> swerveStateExclusiveTailMap(double timestamp) {
+        return m_measurements.tailMap(timestamp, false);
     }
 
     int size() {
-        return m_poseBuffer.size();
+        return m_measurements.size();
     }
 
     double lastKey() {
-        return m_poseBuffer.lastKey();
+        return m_measurements.lastKey();
     }
 
     /** Print the buffer contents. */
     void dump() {
         m_estimates.dump();
-        m_poseBuffer.dump();
+        m_measurements.dump();
     }
 
 }

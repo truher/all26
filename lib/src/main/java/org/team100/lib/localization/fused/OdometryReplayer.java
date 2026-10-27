@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.team100.lib.localization.LocalizerEstimate;
+import org.team100.lib.localization.OdoGyroMeasurement;
 import org.team100.lib.localization.SwerveHistory;
 import org.team100.lib.localization.SwerveState;
 
@@ -24,15 +25,20 @@ public class OdometryReplayer {
         if (DEBUG)
             System.out.printf("==== REPLAY FOR TIME %f\n", sampleTime);
         // Note the exclusive tailmap: we don't see the entry at timestamp.
-        for (Map.Entry<Double, SwerveState> entry : m_history.swerveStateExclusiveTailMap(sampleTime).entrySet()) {
+        for (Map.Entry<Double, OdoGyroMeasurement> entry : m_history.swerveStateExclusiveTailMap(sampleTime)
+                .entrySet()) {
             double timestamp = entry.getKey();
-            SwerveState value = entry.getValue();
-            Entry<Double, SwerveState> lowerEntry = m_history.swerveStateLowerEntry(timestamp);
-            if (lowerEntry != null) {
+            OdoGyroMeasurement value = entry.getValue();
+            Entry<Double, LocalizerEstimate> estimateLowerEntry = m_history.localizerEstimateLowerEntry(timestamp);
+            Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history.swerveStateLowerEntry(timestamp);
+            if (estimateLowerEntry != null && measurementLowerEntry != null) {
                 LocalizerEstimate e = m_updater.estimate(
-                        lowerEntry.getKey(), lowerEntry.getValue(),
-                        timestamp, value.measurement());
-                SwerveState s = new SwerveState(e, value.measurement());
+                        measurementLowerEntry.getKey(),
+                        estimateLowerEntry.getValue(),
+                        measurementLowerEntry.getValue(),
+                        timestamp,
+                        value);
+                SwerveState s = new SwerveState(e, value);
                 if (e != null)
                     m_history.put(timestamp, s);
             }

@@ -41,14 +41,18 @@ public class GroundTruthCache {
     void update() {
         double timestamp = Takt.get();
 
-        Entry<Double, SwerveState> lowerEntry = m_history.swerveStateLowerEntry(timestamp);
-        if (lowerEntry != null) {
+        Entry<Double, LocalizerEstimate> estimateLowerEntry = m_history.localizerEstimateLowerEntry(timestamp);
+        Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history.swerveStateLowerEntry(timestamp);
+        if (measurementLowerEntry != null) {
             OdoGyroMeasurement measurement = new OdoGyroMeasurement(
                     m_gyro.getYawNWU(),
                     m_positions.get());
             LocalizerEstimate e = m_updater.estimate(
-                    lowerEntry.getKey(), lowerEntry.getValue(),
-                    timestamp, measurement);
+                    measurementLowerEntry.getKey(),
+                    estimateLowerEntry.getValue(),
+                    measurementLowerEntry.getValue(),
+                    timestamp,
+                    measurement);
             SwerveState s = new SwerveState(e, measurement);
 
             if (s != null)

@@ -81,8 +81,7 @@ public class AprilTagCornerRobotLocalizerTest {
         assertEquals(1, history.size());
         double lastKey = history.lastKey();
         assertEquals(0, lastKey, DELTA);
-        SwerveState state = history.getSwerveState(lastKey);
-        LocalizerEstimate estimate = state.estimate();
+        LocalizerEstimate estimate = history.getLocalizerEstimate(lastKey);
         Pose2d p = estimate.state().pose();
         assertEquals(0, p.getX(), DELTA);
         assertEquals(0, p.getY(), DELTA);
@@ -101,13 +100,11 @@ public class AprilTagCornerRobotLocalizerTest {
             measurements.addAll(m_translator.convert(camera, getTags(t)));
         }
         for (VisionMeasurement m : measurements) {
-            SwerveState sample = history.getSwerveState(m.timestamp());
+            LocalizerEstimate sample = history.getLocalizerEstimate(m.timestamp());
+            OdoGyroMeasurement measurement = history.getOdoGyroMeasurement(m.timestamp());
             LocalizerEstimate estimate3 = visionUpdater.estimate(
-                    sample.estimate(), m.noisyMeasurement());
-            SwerveState s = new SwerveState(
-                    estimate3,
-                    sample.measurement());
-
+                    sample, m.noisyMeasurement());
+            SwerveState s = new SwerveState(estimate3, measurement);
             history.put(m.timestamp(), s);
         }
         assertEquals(11, history.size());
@@ -115,8 +112,7 @@ public class AprilTagCornerRobotLocalizerTest {
         // the "innovation" i.e. difference between new estimate and history
         lastKey = history.lastKey();
         assertEquals(0.2, lastKey, DELTA);
-        state = history.getSwerveState(lastKey);
-        LocalizerEstimate estimate2 = state.estimate();
+        LocalizerEstimate estimate2 = history.getLocalizerEstimate(lastKey);
         p = estimate2.state().pose();
         assertEquals(7.157, p.getX(), DELTA);
         assertEquals(1.874, p.getY(), DELTA);
@@ -130,12 +126,11 @@ public class AprilTagCornerRobotLocalizerTest {
             measurements.addAll(m_translator.convert(camera, getTags(t)));
         }
         for (VisionMeasurement m : measurements) {
-            SwerveState sample = history.getSwerveState(m.timestamp());
+            OdoGyroMeasurement sampleMeasurement = history.getOdoGyroMeasurement(m.timestamp());
+            LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(m.timestamp());
             LocalizerEstimate estimate3 = visionUpdater.estimate(
-                    sample.estimate(), m.noisyMeasurement());
-            SwerveState s = new SwerveState(
-                    estimate3,
-                    sample.measurement());
+                    sampleEstimate, m.noisyMeasurement());
+            SwerveState s = new SwerveState(estimate3, sampleMeasurement);
 
             history.put(m.timestamp(), s);
         }
@@ -144,8 +139,7 @@ public class AprilTagCornerRobotLocalizerTest {
         assertEquals(0.38, lastKey, DELTA);
         // pose is closer now but still not that close, because of the high uncertainty
         // the nudger doesn't nudge very hard.
-        state = history.getSwerveState(lastKey);
-        LocalizerEstimate estimate3 = state.estimate();
+        LocalizerEstimate estimate3 = history.getLocalizerEstimate(lastKey);
         p = estimate3.state().pose();
         assertEquals(7.224, p.getX(), DELTA);
         assertEquals(1.891, p.getY(), DELTA);

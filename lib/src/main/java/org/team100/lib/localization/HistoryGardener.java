@@ -67,24 +67,27 @@ public class HistoryGardener {
             double odoTimestamp = odo.getKey();
             OdoGyroMeasurement odoMeasurement = odo.getValue();
             if (odoTimestamp < visionTimestamp) {
-                Entry<Double, SwerveState> lowerEntry = m_history.swerveStateLowerEntry(odoTimestamp);
-                if (lowerEntry != null) {
+                Entry<Double, LocalizerEstimate> estimateLowerEntry = m_history
+                        .localizerEstimateLowerEntry(odoTimestamp);
+                Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history.swerveStateLowerEntry(odoTimestamp);
+                if (estimateLowerEntry != null && measurementLowerEntry != null) {
                     LocalizerEstimate e = m_OdometryEstimator.estimate(
-                            lowerEntry.getKey(), lowerEntry.getValue(),
-                            odoTimestamp, odoMeasurement);
+                            measurementLowerEntry.getKey(),
+                            estimateLowerEntry.getValue(),
+                            measurementLowerEntry.getValue(),
+                            odoTimestamp,
+                            odoMeasurement);
                     SwerveState s = new SwerveState(e, odoMeasurement);
                     if (e != null)
                         m_history.put(odoTimestamp, s);
                 }
                 odo = odoIter.hasNext() ? odoIter.next() : null;
             } else {
-                SwerveState sample = m_history.getSwerveState(visionTimestamp);
+                OdoGyroMeasurement sample = m_history.getOdoGyroMeasurement(visionTimestamp);
                 LocalizerEstimate sampleEstimate = m_history.getLocalizerEstimate(visionTimestamp);
                 LocalizerEstimate estimate = m_visionUpdater.estimate(
                         sampleEstimate, visionMeasurement);
-                SwerveState s = new SwerveState(
-                        estimate,
-                        sample.measurement());
+                SwerveState s = new SwerveState(estimate, sample);
                 if (estimate != null && !m_history.tooOld(visionTimestamp)) {
                     m_history.put(visionTimestamp, s);
                     m_replayer.replay(visionTimestamp);
@@ -96,11 +99,16 @@ public class HistoryGardener {
         while (odo != null) {
             double odoTimestamp = odo.getKey();
             OdoGyroMeasurement odoMeasurement = odo.getValue();
-            Entry<Double, SwerveState> lowerEntry = m_history.swerveStateLowerEntry(odoTimestamp);
-            if (lowerEntry != null) {
+            Entry<Double, LocalizerEstimate> estimateLowerEntry = m_history
+                    .localizerEstimateLowerEntry(odoTimestamp);
+            Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history.swerveStateLowerEntry(odoTimestamp);
+            if (estimateLowerEntry != null && measurementLowerEntry != null) {
                 LocalizerEstimate e = m_OdometryEstimator.estimate(
-                        lowerEntry.getKey(), lowerEntry.getValue(),
-                        odoTimestamp, odoMeasurement);
+                        measurementLowerEntry.getKey(),
+                        estimateLowerEntry.getValue(),
+                        measurementLowerEntry.getValue(),
+                        odoTimestamp,
+                        odoMeasurement);
                 SwerveState s = new SwerveState(e, odoMeasurement);
                 if (e != null)
                     m_history.put(odoTimestamp, s);
@@ -110,13 +118,13 @@ public class HistoryGardener {
         while (vision != null) {
             double visionTimestamp = vision.getKey();
             NoisyPose2d visionMeasurement = vision.getValue();
-            SwerveState sample = m_history.getSwerveState(visionTimestamp);
+            OdoGyroMeasurement sample = m_history.getOdoGyroMeasurement(visionTimestamp);
             LocalizerEstimate sampleEstimate = m_history.getLocalizerEstimate(visionTimestamp);
             LocalizerEstimate estimate = m_visionUpdater.estimate(
                     sampleEstimate, visionMeasurement);
             SwerveState s = new SwerveState(
                     estimate,
-                    sample.measurement());
+                    sample);
             if (estimate != null && !m_history.tooOld(visionTimestamp)) {
                 m_history.put(visionTimestamp, s);
                 m_replayer.replay(visionTimestamp);

@@ -9,7 +9,6 @@ import org.team100.lib.fusion.Fusor;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.localization.LocalizerEstimate;
 import org.team100.lib.localization.OdoGyroMeasurement;
-import org.team100.lib.localization.SwerveState;
 import org.team100.lib.localization.simulation.AddOdometryNoise;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
@@ -105,7 +104,8 @@ public class OdometryEstimator {
      */
     public LocalizerEstimate estimate(
             double previousTimestamp,
-            SwerveState previousState,
+            LocalizerEstimate previousEstimate,
+            OdoGyroMeasurement previousMeasurement,
             double timestamp,
             OdoGyroMeasurement odo) {
 
@@ -132,9 +132,9 @@ public class OdometryEstimator {
         }
 
         return newState(
-                previousState.estimate(),
-                previousState.measurement().odo(),
-                previousState.measurement().gyro(),
+                previousEstimate,
+                previousMeasurement.odo(),
+                previousMeasurement.gyro(),
                 dt,
                 odo);
     }

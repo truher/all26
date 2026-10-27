@@ -6,13 +6,14 @@ import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.NoisyPose2d;
 
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.interpolation.Interpolatable;
 
 /**
  * Estimates for position and velocity in SE2, with noise, and gyro bias.
  * 
  * Measurements of gyro and wheels, and, optionally,
  */
-public class SwerveState {
+public class SwerveState implements Interpolatable<SwerveState> {
 
     private final LocalizerEstimate m_estimate;
 
@@ -82,6 +83,45 @@ public class SwerveState {
                 + ", m_wheelPositions=" + m_positions
                 + ", m_gyroYaw=" + m_gyroYaw
                 + ", m_visionMeasurement=" + m_visionMeasurement + "]";
+    }
+
+    /**
+     * This used to interpolate wheel positions to find a "twist" to apply
+     * to the start pose, but we don't do it that way as of 10/4/26.
+     * 
+     * Now we just interpolate each field separately.
+     */
+    @Override
+    public SwerveState interpolate(SwerveState endValue, double t) {
+        // Check bounds on t
+        if (t <= 0) {
+            return this;
+        }
+        if (t >= 1) {
+            return endValue;
+        }
+
+        LocalizerEstimate startEstimate = estimate();
+        LocalizerEstimate endEstimate = endValue.estimate();
+
+        // Interpolate the wheel positions.
+        SwerveModulePositions startPositions = positions();
+        SwerveModulePositions endPositions = endValue.positions();
+        SwerveModulePositions wheelLerp = startPositions.interpolate(endPositions, t);
+
+        // Interpolate the gyro measurement.
+        Rotation2d gyroLerp = gyroYaw().interpolate(
+                endValue.gyroYaw(), t);
+
+        NoisyPose2d measurementLerp = null;
+        if (visionMeasurement() != null && endValue.visionMeasurement() != null) {
+            measurementLerp = visionMeasurement()
+                    .interpolate(endValue.visionMeasurement(), t);
+        }
+
+        LocalizerEstimate estimate = startEstimate.interpolate(endEstimate, t);
+        return new SwerveState(
+                estimate, wheelLerp, gyroLerp, measurementLerp);
     }
 
 }

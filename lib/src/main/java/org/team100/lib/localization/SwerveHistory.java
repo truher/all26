@@ -46,13 +46,12 @@ public class SwerveHistory implements StateSampler {
             double timestampSeconds) {
         m_bufferDuration = bufferDuration;
         m_log_timestamp = parent.type(this).doubleLogger(Level.TRACE, "sample timestamp");
-        SwerveStateInterpolator interpolator = new SwerveStateInterpolator();
         StateSE2 state = new StateSE2(initialPoseMeters, VelocitySE2.ZERO);
         LocalizerEstimate estimate = new LocalizerEstimate(state, noise, gyroBias);
         SwerveState initialState = new SwerveState(
                 estimate, modulePositions, gyroAngle, null);
         m_poseBuffer = new TimeInterpolatableBuffer100<>(
-                interpolator, bufferDuration, timestampSeconds, initialState);
+                bufferDuration, timestampSeconds, initialState);
     }
 
     public ImmutableSwerveHistory immutableCopy() {

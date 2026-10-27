@@ -2,6 +2,7 @@ package org.team100.lib.localization;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Map.Entry;
 import java.util.Optional;
 
 import org.team100.lib.localization.fused.NudgingVisionEstimator;
@@ -77,23 +78,29 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
         positions = p(0);
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, gyro.white_noise(),
-                gyro.bias_noise(), history::lowerEntry,
+                gyro.bias_noise(),
                 false, true);
         history.reset(
                 positions, Pose2d.kZero, IsotropicNoiseSE2.high(),
                 0, gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));
         OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger, history::getRecord);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
 
         // fill the buffer with odometry
         double t = 0.0;
         double duration = 0.2; // SwerveDrivePoseEstimator100.BUFFER_DURATION;
         while (t < duration) {
             positions = p(t);
-            SwerveState s = ou.estimate(t, gyro.getYawNWU(), positions);
-            if (s != null)
-                history.put(t, s);
+
+            Entry<Double, SwerveState> lowerEntry = history.lowerEntry(t);
+            if (lowerEntry != null) {
+                LocalizerEstimate e = ou.estimate(lowerEntry.getKey(), lowerEntry.getValue(),
+                        t, gyro.getYawNWU(), positions);
+                SwerveState s = new SwerveState(e, positions, gyro.getYawNWU(), null);
+                if (s != null)
+                    history.put(t, s);
+            }
             t += 0.02;
         }
         assertEquals(11, history.size());
@@ -103,9 +110,15 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
         int iterations = 100000;
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < iterations; ++i) {
-            SwerveState s = vu.estimate(
-                    0.00,
-                    new NoisyPose2d(visionRobotPoseMeters, visionMeasurementStdDevs));
+            SwerveState sample = history.getRecord(0.00);
+            NoisyPose2d noisyMeasurement = new NoisyPose2d(visionRobotPoseMeters, visionMeasurementStdDevs);
+            LocalizerEstimate estimate = vu.estimate(sample, noisyMeasurement);
+            SwerveState s = new SwerveState(
+                    estimate,
+                    sample.positions(),
+                    sample.gyroYaw(),
+                    noisyMeasurement);
+
             history.put(0, s);
             or.replay(0);
         }
@@ -121,8 +134,15 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
         iterations = 1000000;
         startTime = System.currentTimeMillis();
         for (int i = 0; i < iterations; ++i) {
-            SwerveState s = vu.estimate(duration - 0.1,
-                    new NoisyPose2d(visionRobotPoseMeters, visionMeasurementStdDevs));
+            SwerveState sample = history.getRecord(duration - 0.1);
+            NoisyPose2d noisyMeasurement = new NoisyPose2d(visionRobotPoseMeters, visionMeasurementStdDevs);
+            LocalizerEstimate estimate = vu.estimate(sample,
+                    noisyMeasurement);
+            SwerveState s = new SwerveState(
+                    estimate,
+                    sample.positions(),
+                    sample.gyroYaw(),
+                    noisyMeasurement);
             history.put(duration - 0.1, s);
             or.replay(duration - 0.1);
         }

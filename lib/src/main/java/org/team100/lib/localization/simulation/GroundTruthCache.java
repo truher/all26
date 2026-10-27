@@ -1,10 +1,12 @@
 package org.team100.lib.localization.simulation;
 
+import java.util.Map.Entry;
 import java.util.function.Supplier;
 
 import org.team100.lib.coherence.Cache;
 import org.team100.lib.coherence.SideEffect;
 import org.team100.lib.coherence.Takt;
+import org.team100.lib.localization.LocalizerEstimate;
 import org.team100.lib.localization.SwerveHistory;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.localization.fused.OdometryEstimator;
@@ -37,12 +39,19 @@ public class GroundTruthCache {
 
     void update() {
         double timestamp = Takt.get();
-        SwerveState s = m_updater.estimate(
-                timestamp,
-                m_gyro.getYawNWU(),
-                m_positions.get());
-        if (s != null)
-            m_history.put(timestamp, s);
+
+        Entry<Double, SwerveState> lowerEntry = m_history.lowerEntry(timestamp);
+        if (lowerEntry != null) {
+            LocalizerEstimate e = m_updater.estimate(
+                    lowerEntry.getKey(), lowerEntry.getValue(),
+                    timestamp,
+                    m_gyro.getYawNWU(),
+                    m_positions.get());
+            SwerveState s = new SwerveState(e, m_positions.get(), m_gyro.getYawNWU(), null);
+
+            if (s != null)
+                m_history.put(timestamp, s);
+        }
     }
 
     public StateSE2 apply(double timestampS) {

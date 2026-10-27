@@ -1,7 +1,9 @@
 package org.team100.lib.localization.fused;
 
 import java.util.Map;
+import java.util.Map.Entry;
 
+import org.team100.lib.localization.LocalizerEstimate;
 import org.team100.lib.localization.SwerveHistory;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
@@ -30,9 +32,15 @@ public class OdometryReplayer {
             SwerveState value = entry.getValue();
             Rotation2d gyroYaw = value.gyroYaw();
             SwerveModulePositions positions = value.positions();
-            SwerveState s = m_updater.estimate(timestamp, gyroYaw, positions);
-            if (s != null)
-                m_history.put(timestamp, s);
+            Entry<Double, SwerveState> lowerEntry = m_history.lowerEntry(timestamp);
+            if (lowerEntry != null) {
+                LocalizerEstimate e = m_updater.estimate(
+                        lowerEntry.getKey(), lowerEntry.getValue(),
+                        timestamp, gyroYaw, positions);
+                SwerveState s = new SwerveState(e, positions, gyroYaw, null);
+                if (e != null)
+                    m_history.put(timestamp, s);
+            }
         }
         if (DEBUG)
             System.out.printf("==== DONE REPLAYING FOR TIME %f\n", sampleTime);

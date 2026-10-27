@@ -1204,4 +1204,31 @@ public class LoggerFactory {
         return new SwerveStateLogger(level, leaf);
     }
 
+    public class LocalizerEstimateLogger {
+        private final Level m_level;
+        private final StateSE2Logger m_state;
+        private final IsotropicNoiseSE2Logger m_noise;
+        private final VariableR1Logger m_gyroBias;
+
+        LocalizerEstimateLogger(Level level, String leaf) {
+            m_level = level;
+            m_state = StateSE2Logger(level, join(leaf, "state"));
+            m_noise = isotropicNoiseSE2Logger(level, join(leaf, "noise"));
+            m_gyroBias = variableR1Logger(level, join(leaf, "gyro bias (rad_s)"));
+        }
+
+        public void log(Supplier<LocalizerEstimate> vals) {
+            if (!allow(m_level))
+                return;
+            LocalizerEstimate e = vals.get();
+            m_state.log(e::state);
+            m_noise.log(e::noise);
+            m_gyroBias.log(e::gyroBias);
+        }
+    }
+
+    public LocalizerEstimateLogger localizerEstimateLogger(Level level, String leaf) {
+        return new LocalizerEstimateLogger(level, leaf);
+    }
+
 }

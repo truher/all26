@@ -51,11 +51,9 @@ public class SwerveStateInterpolatorTest {
         LocalizerEstimate estimate1 = new LocalizerEstimate(s1, n1, gyroBias2);
         SwerveState r1 = new SwerveState(estimate1, p1, gyroYaw1, null);
 
-        SwerveStateInterpolator interpolator = new SwerveStateInterpolator();
-
         {
             // t=0 should return r0. note "t" is not time
-            SwerveState lerp = interpolator.interpolate(r0, r1, 0.0);
+            SwerveState lerp = r0.interpolate(r1, 0.0);
             LocalizerEstimate estimate = lerp.estimate();
             assertEquals(0, estimate.state().theta().x(), 0.001);
             assertEquals(0, estimate.state().theta().v(), 0.001);
@@ -64,7 +62,7 @@ public class SwerveStateInterpolatorTest {
         }
         {
             // t=1 should return r1. note this is a special case.
-            SwerveState lerp = interpolator.interpolate(r0, r1, 1.0);
+            SwerveState lerp = r0.interpolate(r1, 1.0);
             LocalizerEstimate estimate = lerp.estimate();
             assertEquals(1, estimate.state().theta().x(), 0.001);
             assertEquals(1, estimate.state().theta().v(), 0.001);
@@ -72,7 +70,7 @@ public class SwerveStateInterpolatorTest {
         }
         {
             // t=0.5 is just halfway there.
-            SwerveState lerp = interpolator.interpolate(r0, r1, 0.5);
+            SwerveState lerp = r0.interpolate(r1, 0.5);
             LocalizerEstimate estimate = lerp.estimate();
             assertEquals(0.5, estimate.state().theta().x(), 0.001);
             assertEquals(0.5, estimate.state().theta().v(), 0.001);
@@ -113,11 +111,10 @@ public class SwerveStateInterpolatorTest {
         LocalizerEstimate estimate1 = new LocalizerEstimate(s1, n1, gyroBias2);
         SwerveState r1 = new SwerveState(estimate1, p1, gyroYaw1, null);
 
-        SwerveStateInterpolator interpolator = new SwerveStateInterpolator();
 
         {
             // t=0 should return r0. note "t" is not time
-            SwerveState lerp = interpolator.interpolate(r0, r1, 0.0);
+            SwerveState lerp = r0.interpolate(r1, 0.0);
             LocalizerEstimate estimate = lerp.estimate();
             assertEquals(0, estimate.state().theta().x(), 0.001);
             assertEquals(0, estimate.state().theta().v(), 0.001);
@@ -125,7 +122,7 @@ public class SwerveStateInterpolatorTest {
         }
         {
             // t=1 should return r1. note this is a special case.
-            SwerveState lerp = interpolator.interpolate(r0, r1, 1.0);
+            SwerveState lerp = r0.interpolate(r1, 1.0);
             LocalizerEstimate estimate = lerp.estimate();
             assertEquals(1, estimate.state().theta().x(), 0.001);
             assertEquals(1, estimate.state().theta().v(), 0.001);
@@ -133,7 +130,7 @@ public class SwerveStateInterpolatorTest {
         }
         {
             // t=0.5
-            SwerveState lerp = interpolator.interpolate(r0, r1, 0.5);
+            SwerveState lerp = r0.interpolate(r1, 0.5);
             // wheels are assumed to turn immediately to the r1 angles,
             // so this case is the same as the case above.
             LocalizerEstimate estimate = lerp.estimate();

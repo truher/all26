@@ -1,8 +1,5 @@
 package org.team100.lib.localization.fused;
 
-import java.util.function.DoubleFunction;
-
-import org.team100.lib.coherence.Takt;
 import org.team100.lib.fusion.CovarianceInflation;
 import org.team100.lib.fusion.Fusor;
 import org.team100.lib.localization.LocalizerEstimate;
@@ -10,7 +7,7 @@ import org.team100.lib.localization.SwerveState;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.IsotropicNoiseSE2Logger;
-import org.team100.lib.logging.LoggerFactory.SwerveStateLogger;
+import org.team100.lib.logging.LoggerFactory.LocalizerEstimateLogger;
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.uncertainty.NoisyPose2d;
@@ -29,30 +26,17 @@ import edu.wpi.first.math.geometry.Translation2d;
  * The "nudging" here is essentially just a weighted average; you provide the
  * weights you want at update time.
  */
-public class NudgingVisionEstimator implements VisionEstimator {
-    private static final boolean DEBUG = false;
-
-    private final DoubleFunction<SwerveState> m_sampler;
+public class NudgingVisionEstimator {
     private final Fusor m_cartesianFusor;
     private final Fusor m_rotationFusor;
-    private final SwerveStateLogger m_logState;
+    private final LocalizerEstimateLogger m_logEstimate;
     private final IsotropicNoiseSE2Logger m_log_prevNoise;
     private final IsotropicNoiseSE2Logger m_log_updateNoise;
     private final IsotropicNoiseSE2Logger m_log_newNoise;
 
-    /** To measure time since last update, for indicator. */
-    private double m_latestTimeS;
-
-    /**
-     * History sampler must interpolate the exact time,
-     * SwerveHistory.getRecord().
-     */
-    public NudgingVisionEstimator(
-            LoggerFactory parent,
-            DoubleFunction<SwerveState> sampler) {
+    public NudgingVisionEstimator(LoggerFactory parent) {
         LoggerFactory log = parent.type(this);
-        m_sampler = sampler;
-        m_logState = log.swerveStateLogger(Level.TRACE, "state");
+        m_logEstimate = log.localizerEstimateLogger(Level.TRACE, "estimate");
         m_log_prevNoise = log.isotropicNoiseSE2Logger(Level.TRACE, "previous noise");
         m_log_updateNoise = log.isotropicNoiseSE2Logger(Level.TRACE, "update noise");
         m_log_newNoise = log.isotropicNoiseSE2Logger(Level.TRACE, "new noise");
@@ -60,36 +44,6 @@ public class NudgingVisionEstimator implements VisionEstimator {
         m_cartesianFusor = new CovarianceInflation(0.02, 0.003);
         // TODO: maybe the minimum variance here it too low?
         m_rotationFusor = new CovarianceInflation(0.02, 0.003);
-        m_latestTimeS = 0;
-    }
-
-    /**
-     * Put a new state estimate based on the supplied pose.
-     * 
-     * Caller should replay odometry.
-     * 
-     * @param timestamp        When the measurement was made.
-     * @param noisyMeasurement Robot pose from vision.
-     */
-    @Override
-    public SwerveState estimate(double timestamp, NoisyPose2d noisyMeasurement) {
-        if (DEBUG)
-            System.out.printf("Nudging Vision Updater %6.3f %s\n",
-                    timestamp, noisyMeasurement);
-        // Remember the time of this update.
-        m_latestTimeS = Takt.get();
-        // Sample the history at the measurement time.
-        // This is always interpolated.
-        SwerveState sample = m_sampler.apply(timestamp);
-        // Nudge the sample towards the measurement.
-        LocalizerEstimate estimate = newState(sample, noisyMeasurement);
-        SwerveState newState = new SwerveState(
-                estimate,
-                sample.positions(),
-                sample.gyroYaw(),
-                noisyMeasurement);
-        m_logState.log(() -> newState);
-        return newState;
     }
 
     /**
@@ -99,32 +53,25 @@ public class NudgingVisionEstimator implements VisionEstimator {
      * 
      * The nudged noise may be more, or less, than the sample noise.
      * 
-     * Uses the sample velocity, position, gyro measurement, and gyro bias.
      * 
-     * Uses the verbatim measurement.
+     * @param sample           Interpolated history at the same time as the
+     *                         measurement.
+     * @param measurement Robot pose from vision.
      */
-    LocalizerEstimate newState(SwerveState sample, NoisyPose2d measurement) {
+    public LocalizerEstimate estimate(SwerveState sample, NoisyPose2d measurement) {
         LocalizerEstimate sampleEstimate = sample.estimate();
         NoisyPose2d nudged = nudge(sampleEstimate.noisyPose(), measurement);
         LocalizerEstimate estimate = new LocalizerEstimate(
                 new StateSE2(nudged.pose(), sampleEstimate.velocity()),
                 nudged.noise(),
                 sampleEstimate.gyroBias());
+        m_logEstimate.log(() -> estimate);
         return estimate;
     }
 
     /**
-     * The age of the last pose estimate, in seconds.
-     * The caller could use this to, say, indicate tag visibility.
-     * TODO: remove this
-     */
-    public double getPoseAgeSec() {
-        return Takt.get() - m_latestTimeS;
-    }
-
-    /////////////////////////////////////////
-
-    /**
+     * Nudge the sample towards the measurement.
+     * 
      * Compute the weighted average of sample and measurement, using
      * inverse-variance weighting.
      * 
@@ -133,22 +80,20 @@ public class NudgingVisionEstimator implements VisionEstimator {
      * @param sample      historical pose
      * @param measurement new (vision) input
      */
-    NoisyPose2d nudge(
-            NoisyPose2d noisySample,
-            NoisyPose2d noisyMeasurement) {
-        Pose2d sample = noisySample.pose();
-        Pose2d measurement = noisyMeasurement.pose();
-        IsotropicNoiseSE2 stateSigma = noisySample.noise();
-        IsotropicNoiseSE2 measurementSigma = noisyMeasurement.noise();
+    NoisyPose2d nudge(NoisyPose2d sample, NoisyPose2d measurement) {
+        Pose2d samplePose = sample.pose();
+        Pose2d measurementPose = measurement.pose();
+        IsotropicNoiseSE2 sampleSigma = sample.noise();
+        IsotropicNoiseSE2 measurementSigma = measurement.noise();
 
         // translation
         // the result is on the line segment between sample and measurement, so we just
         // look at the length of that segment.
         //
         // this is the start of that segment.
-        VariableR1 sampleV = VariableR1.fromVariance(0, stateSigma.cartesianVariance());
+        VariableR1 sampleV = VariableR1.fromVariance(0, sampleSigma.cartesianVariance());
         // this is the end.
-        Translation2d deltaTranslation = measurement.getTranslation().minus(sample.getTranslation());
+        Translation2d deltaTranslation = measurementPose.getTranslation().minus(samplePose.getTranslation());
         // the variance of the delta is the sum of the two variances
         double deltaNorm = deltaTranslation.getNorm();
         double deltaVariance = measurementSigma.cartesianVariance();
@@ -161,18 +106,19 @@ public class NudgingVisionEstimator implements VisionEstimator {
             Rotation2d deltaTranslationDirection = deltaTranslation.getAngle();
             Translation2d scaledTranslation = new Translation2d(
                     cartesian.mean(), deltaTranslationDirection);
-            newTranslation = sample.getTranslation().plus(scaledTranslation);
+            newTranslation = samplePose.getTranslation().plus(scaledTranslation);
         } else {
             // there's no angle
-            newTranslation = sample.getTranslation();
+            newTranslation = samplePose.getTranslation();
         }
+        
         // rotation
 
-        Rotation2d deltaRotation = measurement.getRotation().minus(sample.getRotation());
+        Rotation2d deltaRotation = measurementPose.getRotation().minus(samplePose.getRotation());
 
         VariableR1 sampleRV = VariableR1.fromVariance(
                 0,
-                stateSigma.rotationVariance());
+                sampleSigma.rotationVariance());
         VariableR1 measurementRV = VariableR1.fromVariance(
                 deltaRotation.getRadians(), measurementSigma.rotationVariance());
 
@@ -180,7 +126,7 @@ public class NudgingVisionEstimator implements VisionEstimator {
 
         Rotation2d scaledRotation = new Rotation2d(rotation.mean());
 
-        Rotation2d newRotation = sample.getRotation().plus(scaledRotation);
+        Rotation2d newRotation = samplePose.getRotation().plus(scaledRotation);
 
         Pose2d result = new Pose2d(newTranslation, newRotation);
 
@@ -188,7 +134,7 @@ public class NudgingVisionEstimator implements VisionEstimator {
                 cartesian.variance(),
                 rotation.variance());
 
-        m_log_prevNoise.log(() -> stateSigma);
+        m_log_prevNoise.log(() -> sampleSigma);
         m_log_updateNoise.log(() -> measurementSigma);
         m_log_newNoise.log(() -> noise);
 

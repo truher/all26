@@ -69,12 +69,10 @@ public class FusedEstimator implements StateEstimator {
                 swerveKinodynamics,
                 gyro.white_noise(),
                 gyro.bias_noise(),
-                m_history::lowerEntry,
                 noisy,
                 false);
         OdometryReplayer or = new OdometryReplayer(m_history, odometryEstimate);
-        NudgingVisionEstimator visionEstimate = new NudgingVisionEstimator(
-                driveLog, m_history::getRecord);
+        NudgingVisionEstimator visionEstimate = new NudgingVisionEstimator(driveLog);
         m_tagReader = new AprilTagCornerReader(
                 driveLog, layout, DriverStation::getAlliance);
         HistoryGardener gardener = new HistoryGardener(

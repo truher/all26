@@ -23,9 +23,7 @@ public class ImmutableSwerveHistory implements StateSampler {
             double bufferDuration) {
         if (entries.isEmpty())
             throw new IllegalArgumentException();
-        SwerveStateInterpolator interpolator = new SwerveStateInterpolator();
-        m_poseBuffer = new TimeInterpolatableBuffer100<>(
-                entries, interpolator, bufferDuration);
+        m_poseBuffer = new TimeInterpolatableBuffer100<>(entries, bufferDuration);
     }
 
     /** Interpolates. */

@@ -6,7 +6,6 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.team100.lib.localization.LocalizerEstimate;
-import org.team100.lib.localization.SwerveHistory;
 import org.team100.lib.localization.SwerveState;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
@@ -20,7 +19,6 @@ import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.uncertainty.VariableR1;
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 
 public class OdometryEstimatorTest {
@@ -29,24 +27,13 @@ public class OdometryEstimatorTest {
     private static final LoggerFactory log = new TestLoggerFactory(new TestPrimitiveLogger());
     private static final SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forRealisticTest();
 
-    private SwerveModulePositions positions;
 
     @Test
     void testNewState1() {
         MockGyro gyro = new MockGyro();
-        positions = SwerveModulePositions.kZero();
-        SwerveHistory history = new SwerveHistory(
-                log,
-                0.2,
-                Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1),
-                positions,
-                Pose2d.kZero,
-                IsotropicNoiseSE2.high(),
-                0);
         OdometryEstimator ou = new OdometryEstimator(
                 log, kinodynamics, gyro.white_noise(),
-                gyro.bias_noise(), history::lowerEntry,
+                gyro.bias_noise(),
                 false, true);
         // previous state is at zero, but uncertain
         StateSE2 sampleState = new StateSE2();
@@ -108,18 +95,8 @@ public class OdometryEstimatorTest {
     @Test
     void testNewState2() {
         MockGyro gyro = new MockGyro();
-        positions = SwerveModulePositions.kZero();
-        SwerveHistory history = new SwerveHistory(
-                log,
-                0.2,
-                Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1),
-                positions,
-                Pose2d.kZero,
-                IsotropicNoiseSE2.high(),
-                0);
         OdometryEstimator ou = new OdometryEstimator(
-                log, kinodynamics, gyro.white_noise(), gyro.bias_noise(), history::lowerEntry,
+                log, kinodynamics, gyro.white_noise(), gyro.bias_noise(),
                 false, true);
 
         // previous state is at zero, pretty sure.
@@ -157,19 +134,9 @@ public class OdometryEstimatorTest {
     @Test
     void testNewStateWithBias() {
         MockGyro gyro = new MockGyro();
-        positions = SwerveModulePositions.kZero();
-        SwerveHistory history = new SwerveHistory(
-                log,
-                0.2,
-                Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1),
-                positions,
-                Pose2d.kZero,
-                IsotropicNoiseSE2.high(),
-                0);
         OdometryEstimator ou = new OdometryEstimator(
                 log, kinodynamics, gyro.white_noise(),
-                gyro.bias_noise(), history::lowerEntry,
+                gyro.bias_noise(),
                 false, true);
 
         // previous state is at zero, pretty sure.
@@ -231,19 +198,9 @@ public class OdometryEstimatorTest {
     @Test
     void testNewStateWithBias2() {
         MockGyro gyro = new MockGyro();
-        positions = SwerveModulePositions.kZero();
-        SwerveHistory history = new SwerveHistory(
-                log,
-                0.2,
-                Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1),
-                positions,
-                Pose2d.kZero,
-                IsotropicNoiseSE2.high(),
-                0);
         OdometryEstimator ou = new OdometryEstimator(
                 log, kinodynamics, gyro.white_noise(),
-                gyro.bias_noise(), history::lowerEntry,
+                gyro.bias_noise(),
                 false, true);
 
         // previous state is at zero, pretty sure.

@@ -1,7 +1,5 @@
 package org.team100.lib.localization.fused;
 
-import java.util.Map.Entry;
-import java.util.function.DoubleFunction;
 import java.util.function.UnaryOperator;
 
 import org.team100.lib.experiments.Experiment;
@@ -39,10 +37,6 @@ public class OdometryEstimator {
     private final SwerveKinodynamics m_kinodynamics;
     private final double m_gyroWhiteNoise;
     /**
-     * History entry before timestamp, the initial value for integrating odometry.
-     */
-    private final DoubleFunction<Entry<Double, SwerveState>> m_lowerEntry;
-    /**
      * Noise source for simulation.
      * For a real robot, use UnaryOperator.identity().
      */
@@ -71,13 +65,11 @@ public class OdometryEstimator {
             SwerveKinodynamics kinodynamics,
             double whiteNoise, // gyro white noise
             double biasNoise, // gyro bias noise
-            DoubleFunction<Entry<Double, SwerveState>> lowerEntry, // history entry before timestamp
             boolean noisy, // if true, add noise; used for simulation
             boolean alwaysUpdate) {
         LoggerFactory log = parent.type(this);
         m_kinodynamics = kinodynamics;
         m_gyroWhiteNoise = whiteNoise;
-        m_lowerEntry = lowerEntry;
         m_noise = noisy ? new AddOdometryNoise() : UnaryOperator.identity();
         m_alwaysUpdate = alwaysUpdate;
         m_gyroBiasFusor = new CovarianceInflation(0.02, biasNoise);
@@ -110,41 +102,40 @@ public class OdometryEstimator {
      * @param gyroYaw   Verbatim gyro measurement
      * @param positions Verbatim drive measurement
      */
-    public SwerveState estimate(
+    public LocalizerEstimate estimate(
+            double previousTimestamp,
+            SwerveState previousState,
             double timestamp,
             Rotation2d gyroYaw,
             SwerveModulePositions positions) {
 
         // The entry right before this one, the basis for integration.
         // Never interpolated.
-        Entry<Double, SwerveState> lowerEntry = m_lowerEntry.apply(timestamp);
+        // Entry<Double, SwerveState> lowerEntry = m_lowerEntry.apply(timestamp);
 
-        if (lowerEntry == null) {
-            // System.out.println("lower entry is null");
-            // We're at the beginning. There's nothing to apply the wheel position delta to.
-            // This should never happen.
-            return null;
-        }
+        // if (lowerEntry == null) {
+        // // System.out.println("lower entry is null");
+        // // We're at the beginning. There's nothing to apply the wheel position delta
+        // to.
+        // // This should never happen.
+        // return null;
+        // }
 
-        double dt = timestamp - lowerEntry.getKey();
+        // double dt = timestamp - lowerEntry.getKey();
+        double dt = timestamp - previousTimestamp;
 
-        SwerveState previousState = lowerEntry.getValue();
+        // SwerveState previousState = lowerEntry.getValue();
         if (dt < 0.0001) {
             // I'm not sure why this happens. In any case, the logic is deterministic so
             // there's no reason to repeat it.
             return null;
         }
 
-        if (DEBUG)
-            System.out.printf("=== compute for current time %6.3f sample time %6.3f dt %6.3f\n",
-                    timestamp, lowerEntry.getKey(), dt);
-
-        LocalizerEstimate estimate = newState(
+        return newState(
                 previousState.estimate(),
                 previousState.positions(),
                 previousState.gyroYaw(),
                 dt, gyroYaw, positions);
-        return new SwerveState(estimate, positions, gyroYaw, null);
     }
 
     /**

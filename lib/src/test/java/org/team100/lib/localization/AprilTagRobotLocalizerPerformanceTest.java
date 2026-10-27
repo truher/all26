@@ -1,12 +1,10 @@
 package org.team100.lib.localization;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Optional;
 
-import org.junit.jupiter.api.Test;
 import org.team100.lib.camera.Camera;
 import org.team100.lib.localization.fused.AprilTagTranslator;
 import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
@@ -56,10 +54,4 @@ class AprilTagRobotLocalizerPerformanceTest {
         while (true)
             m_translator.convert(camera, blips);
     }
-
-    @Test
-    void testNothing() {
-        assertTrue(true);
-    }
-
 }

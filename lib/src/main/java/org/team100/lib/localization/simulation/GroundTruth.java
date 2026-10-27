@@ -61,7 +61,6 @@ public class GroundTruth {
         m_odometry = new OdometryEstimator(
                 simLog, kinodynamics,
                 m_gyro.white_noise(), m_gyro.bias_noise(),
-                m_history::lowerEntry,
                 false, true);
 
         GroundTruthCache groundTruthCache = new GroundTruthCache(

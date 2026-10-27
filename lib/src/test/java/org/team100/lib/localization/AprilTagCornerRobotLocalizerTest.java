@@ -91,8 +91,7 @@ public class AprilTagCornerRobotLocalizerTest {
         assertEquals(10, estimate.noise().cartesian(), DELTA);
 
         // no replayer
-        NudgingVisionEstimator visionUpdater = new NudgingVisionEstimator(
-                logger, history::getRecord);
+        NudgingVisionEstimator visionUpdater = new NudgingVisionEstimator(logger);
         AprilTagCornerTranslator m_translator = new AprilTagCornerTranslator(
                 logger, layout, () -> Optional.of(Alliance.Red));
 
@@ -103,7 +102,14 @@ public class AprilTagCornerRobotLocalizerTest {
             measurements.addAll(m_translator.convert(camera, getTags(t)));
         }
         for (VisionMeasurement m : measurements) {
-            SwerveState s = visionUpdater.estimate(m.timestamp(), m.noisyMeasurement());
+            SwerveState sample = history.getRecord(m.timestamp());
+            LocalizerEstimate estimate3 = visionUpdater.estimate(sample, m.noisyMeasurement());
+            SwerveState s = new SwerveState(
+                    estimate3,
+                    sample.positions(),
+                    sample.gyroYaw(),
+                    m.noisyMeasurement());
+
             history.put(m.timestamp(), s);
         }
         assertEquals(11, history.size());
@@ -126,7 +132,14 @@ public class AprilTagCornerRobotLocalizerTest {
             measurements.addAll(m_translator.convert(camera, getTags(t)));
         }
         for (VisionMeasurement m : measurements) {
-            SwerveState s = visionUpdater.estimate(m.timestamp(), m.noisyMeasurement());
+            SwerveState sample = history.getRecord(m.timestamp());
+            LocalizerEstimate estimate3 = visionUpdater.estimate(sample, m.noisyMeasurement());
+            SwerveState s = new SwerveState(
+                    estimate3,
+                    sample.positions(),
+                    sample.gyroYaw(),
+                    m.noisyMeasurement());
+
             history.put(m.timestamp(), s);
         }
         assertEquals(10, history.size());

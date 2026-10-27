@@ -39,10 +39,10 @@ public class HistoryGardenerTest {
                 0);
         OdometryEstimator ou = new OdometryEstimator(
                 log, kinodynamics, gyro.white_noise(),
-                gyro.bias_noise(), history::lowerEntry,
+                gyro.bias_noise(),
                 false, true);
         OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(log, history::getRecord);
+        NudgingVisionEstimator vu = new NudgingVisionEstimator(log);
 
         HistoryGardener gardener = new HistoryGardener(history, ou, or, vu);
 

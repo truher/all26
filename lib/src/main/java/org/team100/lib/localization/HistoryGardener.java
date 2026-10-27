@@ -66,14 +66,27 @@ public class HistoryGardener {
 
         while (odo != null && vision != null) {
             if (odo.getKey() < vision.getKey()) {
-                SwerveState s = m_OdometryEstimator.estimate(
-                        odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
-                if (s != null)
-                    m_history.put(odo.getKey(), s);
+                Entry<Double, SwerveState> lowerEntry = m_history.lowerEntry(odo.getKey());
+                if (lowerEntry != null) {
+                    LocalizerEstimate e = m_OdometryEstimator.estimate(
+                            lowerEntry.getKey(), lowerEntry.getValue(),
+                            odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
+                    SwerveState s = new SwerveState(
+                            e, odo.getValue().odo,
+                            odo.getValue().gyro, null);
+                    if (e != null)
+                        m_history.put(odo.getKey(), s);
+                }
                 odo = odoIter.hasNext() ? odoIter.next() : null;
             } else {
-                SwerveState s = m_visionUpdater.estimate(vision.getKey(), vision.getValue());
-                if (s != null && !m_history.tooOld(vision.getKey())) {
+                SwerveState sample = m_history.getRecord(vision.getKey());
+                LocalizerEstimate estimate = m_visionUpdater.estimate(sample, vision.getValue());
+                SwerveState s = new SwerveState(
+                        estimate,
+                        sample.positions(),
+                        sample.gyroYaw(),
+                        vision.getValue());
+                if (estimate != null && !m_history.tooOld(vision.getKey())) {
                     m_history.put(vision.getKey(), s);
                     m_replayer.replay(vision.getKey());
                 }
@@ -82,15 +95,28 @@ public class HistoryGardener {
         }
         // catch the remaining; one of these will work.
         while (odo != null) {
-            SwerveState s = m_OdometryEstimator.estimate(
-                    odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
-            if (s != null)
-                m_history.put(odo.getKey(), s);
+            Entry<Double, SwerveState> lowerEntry = m_history.lowerEntry(odo.getKey());
+            if (lowerEntry != null) {
+                LocalizerEstimate e = m_OdometryEstimator.estimate(
+                        lowerEntry.getKey(), lowerEntry.getValue(),
+                        odo.getKey(), odo.getValue().gyro, odo.getValue().odo);
+                SwerveState s = new SwerveState(e, odo.getValue().odo,
+                        odo.getValue().gyro, null);
+                if (e != null)
+                    m_history.put(odo.getKey(), s);
+            }
             odo = odoIter.hasNext() ? odoIter.next() : null;
         }
         while (vision != null) {
-            SwerveState s = m_visionUpdater.estimate(vision.getKey(), vision.getValue());
-            if (s != null && !m_history.tooOld(vision.getKey())) {
+            SwerveState sample = m_history.getRecord(vision.getKey());
+            LocalizerEstimate estimate = m_visionUpdater.estimate(
+                    sample, vision.getValue());
+            SwerveState s = new SwerveState(
+                    estimate,
+                    sample.positions(),
+                    sample.gyroYaw(),
+                    vision.getValue());
+            if (estimate != null && !m_history.tooOld(vision.getKey())) {
                 m_history.put(vision.getKey(), s);
                 m_replayer.replay(vision.getKey());
             }

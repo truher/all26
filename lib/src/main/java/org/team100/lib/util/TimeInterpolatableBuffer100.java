@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import edu.wpi.first.math.interpolation.Interpolator;
+import edu.wpi.first.math.interpolation.Interpolatable;
 
 /**
  * Uses an Interpolator to provide interpolated sampling with a history limit.
@@ -21,10 +21,9 @@ import edu.wpi.first.math.interpolation.Interpolator;
  * use zero) and the module positions really are zero). It's simpler not to do
  * that.
  */
-public class TimeInterpolatableBuffer100<T> {
+public class TimeInterpolatableBuffer100<T extends Interpolatable<T>> {
     private static final boolean DEBUG = false;
 
-    private final Interpolator<T> m_interpolator;
     /** Length of the buffer in seconds */
     private final double m_historyS;
     /** Key is timestamp in seconds */
@@ -40,13 +39,11 @@ public class TimeInterpolatableBuffer100<T> {
     private final ReadWriteLock m_lock;
 
     public TimeInterpolatableBuffer100(
-            Interpolator<T> interpolator,
             double historyS,
             double timeS,
             T initialValue) {
         m_pastSnapshots = new ConcurrentSkipListMap<>();
         m_lock = new ReentrantReadWriteLock();
-        m_interpolator = interpolator;
         m_historyS = historyS;
         m_pastSnapshots.put(timeS, initialValue);
     }
@@ -54,14 +51,12 @@ public class TimeInterpolatableBuffer100<T> {
     /** For the read-only copy. */
     public TimeInterpolatableBuffer100(
             Set<Map.Entry<Double, T>> entries,
-            Interpolator<T> interpolator,
             double historyS) {
         m_pastSnapshots = new ConcurrentSkipListMap<>();
         for (Map.Entry<Double, T> e : entries) {
             m_pastSnapshots.put(e.getKey(), e.getValue());
         }
         m_lock = new ReentrantReadWriteLock();
-        m_interpolator = interpolator;
         m_historyS = historyS;
     }
 
@@ -165,8 +160,8 @@ public class TimeInterpolatableBuffer100<T> {
 
             System.out.printf("interpolate %f\n", timeFraction);
         }
-        return m_interpolator.interpolate(
-                bottomBound.getValue(), topBound.getValue(), timeFraction);
+        return bottomBound.getValue().interpolate(
+                topBound.getValue(), timeFraction);
     }
 
     /** Items after the given timestamp, optionally inclusive */

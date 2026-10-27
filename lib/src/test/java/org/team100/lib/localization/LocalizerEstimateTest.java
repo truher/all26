@@ -17,7 +17,7 @@ class LocalizerEstimateTest implements Timeless {
     SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forTest();
 
     @Test
-    void testInterp0() {
+    void testInterp0a() {
         // initially at rest, finally in motion.
         // what does the interpolator do?
         StateSE2 s0 = new StateSE2();
@@ -67,6 +67,80 @@ class LocalizerEstimateTest implements Timeless {
 
         assertEquals(1, estimate2.state().theta().x(), 0.001);
         assertEquals(1, estimate2.state().theta().v(), 0.001);
+    }
+
+    @Test
+    void testInterp0() {
+        // initially at rest, finally in motion.
+        // what does the interpolator do?
+        StateSE2 s0 = new StateSE2();
+        IsotropicNoiseSE2 n0 = IsotropicNoiseSE2.fromStdDev(1, 1);
+
+        VariableR1 gyroBias = VariableR1.fromVariance(0, 0.001);
+        LocalizerEstimate estimate0 = new LocalizerEstimate(s0, n0, gyroBias);
+
+        StateSE2 s1 = new StateSE2(new StateR1(), new StateR1(), new StateR1(1, 1));
+        IsotropicNoiseSE2 n1 = IsotropicNoiseSE2.fromStdDev(1, 1);
+
+        // current speed is 1 rad/s
+        VariableR1 gyroBias2 = VariableR1.fromVariance(0, 1);
+        LocalizerEstimate estimate1 = new LocalizerEstimate(s1, n1, gyroBias2);
+
+        {
+            // t=0 should return r0. note "t" is not time
+            LocalizerEstimate lerp = estimate0.interpolate(estimate1, 0.0);
+            assertEquals(0, lerp.state().theta().x(), 0.001);
+            assertEquals(0, lerp.state().theta().v(), 0.001);
+        }
+        {
+            // t=1 should return r1. note this is a special case.
+            LocalizerEstimate lerp = estimate0.interpolate(estimate1, 1.0);
+            assertEquals(1, lerp.state().theta().x(), 0.001);
+            assertEquals(1, lerp.state().theta().v(), 0.001);
+        }
+        {
+            // t=0.5 is just halfway there.
+            LocalizerEstimate lerp = estimate0.interpolate(estimate1, 0.5);
+            assertEquals(0.5, lerp.state().theta().x(), 0.001);
+            assertEquals(0.5, lerp.state().theta().v(), 0.001);
+        }
+    }
+
+    @Test
+    void testInterp1() {
+        StateSE2 s0 = new StateSE2();
+        IsotropicNoiseSE2 n0 = IsotropicNoiseSE2.fromStdDev(1, 1);
+
+        VariableR1 gyroBias = VariableR1.fromVariance(0, 1);
+        LocalizerEstimate estimate0 = new LocalizerEstimate(s0, n0, gyroBias);
+
+        StateSE2 s1 = new StateSE2(new StateR1(), new StateR1(), new StateR1(1, 1));
+        IsotropicNoiseSE2 n1 = IsotropicNoiseSE2.fromStdDev(1, 1);
+
+        // current speed is 1 rad/s
+        VariableR1 gyroBias2 = VariableR1.fromVariance(0, 1);
+        LocalizerEstimate estimate1 = new LocalizerEstimate(s1, n1, gyroBias2);
+
+        {
+            // t=0 should return r0. note "t" is not time
+            LocalizerEstimate lerp = estimate0.interpolate(estimate1, 0.0);
+            assertEquals(0, lerp.state().theta().x(), 0.001);
+            assertEquals(0, lerp.state().theta().v(), 0.001);
+        }
+        {
+            // t=1 should return r1. note this is a special case.
+            LocalizerEstimate lerp = estimate0.interpolate(estimate1, 1.0);
+            assertEquals(1, lerp.state().theta().x(), 0.001);
+            assertEquals(1, lerp.state().theta().v(), 0.001);
+        }
+        {
+            // t=0.5
+            LocalizerEstimate lerp = estimate0.interpolate(estimate1, 0.5);
+            // wheels are assumed to turn immediately to the r1 angles,
+            // so this case is the same as the case above.
+            assertEquals(0.5, lerp.state().theta().x(), 0.001);
+            assertEquals(0.5, lerp.state().theta().v(), 0.001);
+        }
     }
 
 }

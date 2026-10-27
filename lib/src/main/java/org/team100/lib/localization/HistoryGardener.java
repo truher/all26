@@ -69,7 +69,8 @@ public class HistoryGardener {
             if (odoTimestamp < visionTimestamp) {
                 Entry<Double, LocalizerEstimate> estimateLowerEntry = m_history
                         .localizerEstimateLowerEntry(odoTimestamp);
-                Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history.swerveStateLowerEntry(odoTimestamp);
+                Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history
+                        .odoGyroMeasurementLowerEntry(odoTimestamp);
                 if (estimateLowerEntry != null && measurementLowerEntry != null) {
                     LocalizerEstimate e = m_OdometryEstimator.estimate(
                             measurementLowerEntry.getKey(),
@@ -77,9 +78,8 @@ public class HistoryGardener {
                             measurementLowerEntry.getValue(),
                             odoTimestamp,
                             odoMeasurement);
-                    SwerveState s = new SwerveState(e, odoMeasurement);
                     if (e != null)
-                        m_history.put(odoTimestamp, s);
+                        m_history.put(odoTimestamp, e, odoMeasurement);
                 }
                 odo = odoIter.hasNext() ? odoIter.next() : null;
             } else {
@@ -87,9 +87,8 @@ public class HistoryGardener {
                 LocalizerEstimate sampleEstimate = m_history.getLocalizerEstimate(visionTimestamp);
                 LocalizerEstimate estimate = m_visionUpdater.estimate(
                         sampleEstimate, visionMeasurement);
-                SwerveState s = new SwerveState(estimate, sample);
                 if (estimate != null && !m_history.tooOld(visionTimestamp)) {
-                    m_history.put(visionTimestamp, s);
+                    m_history.put(visionTimestamp, estimate, sample);
                     m_replayer.replay(visionTimestamp);
                 }
                 vision = visionIter.hasNext() ? visionIter.next() : null;
@@ -101,7 +100,8 @@ public class HistoryGardener {
             OdoGyroMeasurement odoMeasurement = odo.getValue();
             Entry<Double, LocalizerEstimate> estimateLowerEntry = m_history
                     .localizerEstimateLowerEntry(odoTimestamp);
-            Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history.swerveStateLowerEntry(odoTimestamp);
+            Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history
+                    .odoGyroMeasurementLowerEntry(odoTimestamp);
             if (estimateLowerEntry != null && measurementLowerEntry != null) {
                 LocalizerEstimate e = m_OdometryEstimator.estimate(
                         measurementLowerEntry.getKey(),
@@ -109,9 +109,8 @@ public class HistoryGardener {
                         measurementLowerEntry.getValue(),
                         odoTimestamp,
                         odoMeasurement);
-                SwerveState s = new SwerveState(e, odoMeasurement);
                 if (e != null)
-                    m_history.put(odoTimestamp, s);
+                    m_history.put(odoTimestamp, e, odoMeasurement);
             }
             odo = odoIter.hasNext() ? odoIter.next() : null;
         }
@@ -122,11 +121,8 @@ public class HistoryGardener {
             LocalizerEstimate sampleEstimate = m_history.getLocalizerEstimate(visionTimestamp);
             LocalizerEstimate estimate = m_visionUpdater.estimate(
                     sampleEstimate, visionMeasurement);
-            SwerveState s = new SwerveState(
-                    estimate,
-                    sample);
             if (estimate != null && !m_history.tooOld(visionTimestamp)) {
-                m_history.put(visionTimestamp, s);
+                m_history.put(visionTimestamp, estimate, sample);
                 m_replayer.replay(visionTimestamp);
             }
             vision = visionIter.hasNext() ? visionIter.next() : null;

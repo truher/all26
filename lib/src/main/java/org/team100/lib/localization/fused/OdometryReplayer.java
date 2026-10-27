@@ -6,7 +6,6 @@ import java.util.Map.Entry;
 import org.team100.lib.localization.LocalizerEstimate;
 import org.team100.lib.localization.OdoGyroMeasurement;
 import org.team100.lib.localization.SwerveHistory;
-import org.team100.lib.localization.SwerveState;
 
 /**
  * Replay odometry after the sample time, modifying the history.
@@ -30,7 +29,7 @@ public class OdometryReplayer {
             double timestamp = entry.getKey();
             OdoGyroMeasurement value = entry.getValue();
             Entry<Double, LocalizerEstimate> estimateLowerEntry = m_history.localizerEstimateLowerEntry(timestamp);
-            Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history.swerveStateLowerEntry(timestamp);
+            Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history.odoGyroMeasurementLowerEntry(timestamp);
             if (estimateLowerEntry != null && measurementLowerEntry != null) {
                 LocalizerEstimate e = m_updater.estimate(
                         measurementLowerEntry.getKey(),
@@ -38,9 +37,8 @@ public class OdometryReplayer {
                         measurementLowerEntry.getValue(),
                         timestamp,
                         value);
-                SwerveState s = new SwerveState(e, value);
                 if (e != null)
-                    m_history.put(timestamp, s);
+                    m_history.put(timestamp, e, value);
             }
         }
         if (DEBUG)

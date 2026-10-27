@@ -27,7 +27,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 
 /**
- * Makes a SwerveState estimate with new odometry by selecting the most-recent
+ * Makes an estimate with new odometry by selecting the most-recent
  * pose and applying the pose delta represented by the odometry, with the gyro
  * mixed in.
  */
@@ -82,7 +82,7 @@ public class OdometryEstimator {
     ////////////////////////////////////////////////////
 
     /**
-     * Estimate SwerveState at the specified time, based on the measured
+     * Estimate at the specified time, based on the measured
      * yaw and positions.
      * 
      * There is no history replay here, though it won't fail if you give it
@@ -108,29 +108,12 @@ public class OdometryEstimator {
             OdoGyroMeasurement previousMeasurement,
             double timestamp,
             OdoGyroMeasurement odo) {
-
-        // The entry right before this one, the basis for integration.
-        // Never interpolated.
-        // Entry<Double, SwerveState> lowerEntry = m_lowerEntry.apply(timestamp);
-
-        // if (lowerEntry == null) {
-        // // System.out.println("lower entry is null");
-        // // We're at the beginning. There's nothing to apply the wheel position delta
-        // to.
-        // // This should never happen.
-        // return null;
-        // }
-
-        // double dt = timestamp - lowerEntry.getKey();
         double dt = timestamp - previousTimestamp;
-
-        // SwerveState previousState = lowerEntry.getValue();
         if (dt < 0.0001) {
             // I'm not sure why this happens. In any case, the logic is deterministic so
             // there's no reason to repeat it.
             return null;
         }
-
         return newState(
                 previousEstimate,
                 previousMeasurement.odo(),

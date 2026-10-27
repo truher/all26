@@ -104,8 +104,7 @@ public class AprilTagCornerRobotLocalizerTest {
             OdoGyroMeasurement measurement = history.getOdoGyroMeasurement(m.timestamp());
             LocalizerEstimate estimate3 = visionUpdater.estimate(
                     sample, m.noisyMeasurement());
-            SwerveState s = new SwerveState(estimate3, measurement);
-            history.put(m.timestamp(), s);
+            history.put(m.timestamp(), estimate3, measurement);
         }
         assertEquals(11, history.size());
         // pose is most of the way but not all the way; the nudging is proportional to
@@ -130,9 +129,7 @@ public class AprilTagCornerRobotLocalizerTest {
             LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(m.timestamp());
             LocalizerEstimate estimate3 = visionUpdater.estimate(
                     sampleEstimate, m.noisyMeasurement());
-            SwerveState s = new SwerveState(estimate3, sampleMeasurement);
-
-            history.put(m.timestamp(), s);
+            history.put(m.timestamp(), estimate3, sampleMeasurement);
         }
         assertEquals(10, history.size());
         lastKey = history.lastKey();

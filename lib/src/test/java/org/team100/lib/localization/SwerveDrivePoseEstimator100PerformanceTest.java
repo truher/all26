@@ -93,16 +93,16 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
             positions = p(t);
 
             Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(t);
-            Entry<Double, OdoGyroMeasurement> measurementLowerEntry = history.swerveStateLowerEntry(t);
+            Entry<Double, OdoGyroMeasurement> measurementLowerEntry = history.odoGyroMeasurementLowerEntry(t);
             if (measurementLowerEntry != null && estimateLowerEntry != null) {
                 LocalizerEstimate e = ou.estimate(
                         measurementLowerEntry.getKey(),
                         estimateLowerEntry.getValue(),
                         measurementLowerEntry.getValue(),
                         t, new OdoGyroMeasurement(gyro.getYawNWU(), positions));
-                SwerveState s = new SwerveState(e, new OdoGyroMeasurement(gyro.getYawNWU(), positions));
-                if (s != null)
-                    history.put(t, s);
+                OdoGyroMeasurement odo = new OdoGyroMeasurement(gyro.getYawNWU(), positions);
+                if (e != null)
+                    history.put(t, e, odo);
             }
             t += 0.02;
         }
@@ -118,9 +118,7 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
             NoisyPose2d noisyMeasurement = new NoisyPose2d(visionRobotPoseMeters, visionMeasurementStdDevs);
             LocalizerEstimate estimate = vu.estimate(
                     sampleEstimate, noisyMeasurement);
-            SwerveState s = new SwerveState(estimate, sample);
-
-            history.put(0, s);
+            history.put(0, estimate, sample);
             or.replay(0);
         }
         long finishTime = System.currentTimeMillis();
@@ -139,8 +137,7 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
             OdoGyroMeasurement sample = history.getOdoGyroMeasurement(duration - 0.1);
             NoisyPose2d noisyMeasurement = new NoisyPose2d(visionRobotPoseMeters, visionMeasurementStdDevs);
             LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
-            SwerveState s = new SwerveState(estimate, sample);
-            history.put(duration - 0.1, s);
+            history.put(duration - 0.1, estimate, sample);
             or.replay(duration - 0.1);
         }
         finishTime = System.currentTimeMillis();

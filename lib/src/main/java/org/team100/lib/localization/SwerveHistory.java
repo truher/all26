@@ -87,16 +87,20 @@ public class SwerveHistory implements StateSampler {
     // Methods below are for history maintenance and testing.
 
     /**
-     * @param timestamp time, seconds
-     * @param state     from odometry or vision
+     * @param timestamp   time, seconds
+     * @param estimate    from estimator
+     * @param measurement from odometry/gyro
      */
-    public void put(double timestamp, SwerveState state) {
-        m_estimates.put(timestamp, state.estimate());
-        m_measurements.put(timestamp, state.measurement());
+    public void put(
+            double timestamp,
+            LocalizerEstimate estimate,
+            OdoGyroMeasurement measurement) {
+        m_estimates.put(timestamp, estimate);
+        m_measurements.put(timestamp, measurement);
     }
 
     /** Entry for time strictly before timestamp. Never interpolated. */
-    public Entry<Double, OdoGyroMeasurement> swerveStateLowerEntry(double timestamp) {
+    public Entry<Double, OdoGyroMeasurement> odoGyroMeasurementLowerEntry(double timestamp) {
         return m_measurements.lowerEntry(timestamp);
     }
 
@@ -121,7 +125,7 @@ public class SwerveHistory implements StateSampler {
         return m_measurements.tooOld(timestamp);
     }
 
-    /** SwerveStates strictly later than the timestamp. */
+    /** strictly later than the timestamp. */
     public SortedMap<Double, OdoGyroMeasurement> swerveStateExclusiveTailMap(double timestamp) {
         return m_measurements.tailMap(timestamp, false);
     }

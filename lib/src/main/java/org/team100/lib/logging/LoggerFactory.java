@@ -17,8 +17,6 @@ import org.team100.lib.geometry.se2.DeltaSE2;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.geometry.se2.WaypointSE2;
 import org.team100.lib.localization.LocalizerEstimate;
-import org.team100.lib.localization.OdoGyroMeasurement;
-import org.team100.lib.localization.SwerveState;
 import org.team100.lib.localization.network.Blip;
 import org.team100.lib.logging.primitive.PrimitiveLogger;
 import org.team100.lib.path.se2.PathSE2Point;
@@ -1167,42 +1165,6 @@ public class LoggerFactory {
 
     public IsotropicNoiseSE2Logger isotropicNoiseSE2Logger(Level level, String leaf) {
         return new IsotropicNoiseSE2Logger(level, leaf);
-    }
-
-    public class SwerveStateLogger {
-        private final Level m_level;
-        private final StateSE2Logger m_state;
-        private final IsotropicNoiseSE2Logger m_noise;
-        private final SwerveModulePositionsLogger m_positions;
-        private final Rotation2dLogger m_gyroYaw;
-        private final VariableR1Logger m_gyroBias;
-
-        SwerveStateLogger(Level level, String leaf) {
-            m_level = level;
-            m_state = StateSE2Logger(level, join(leaf, "state"));
-            m_noise = isotropicNoiseSE2Logger(level, join(leaf, "noise"));
-            m_positions = swerveModulePositionsLogger(level, join(leaf, "positions"));
-            m_gyroYaw = rotation2dLogger(level, join(leaf, "gyro yaw (rad)"));
-            m_gyroBias = variableR1Logger(level, join(leaf, "gyro bias (rad_s)"));
-        }
-
-        public void log(Supplier<SwerveState> vals) {
-            if (!allow(m_level))
-                return;
-            SwerveState s = vals.get();
-            LocalizerEstimate e = s.estimate();
-            OdoGyroMeasurement m = s.measurement();
-            m_state.log(e::state);
-            m_noise.log(e::noise);
-            m_gyroBias.log(e::gyroBias);
-            m_positions.log(m::odo);
-            m_gyroYaw.log(m::gyro);
-        }
-
-    }
-
-    public SwerveStateLogger swerveStateLogger(Level level, String leaf) {
-        return new SwerveStateLogger(level, leaf);
     }
 
     public class LocalizerEstimateLogger {

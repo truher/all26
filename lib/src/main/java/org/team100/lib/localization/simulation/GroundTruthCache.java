@@ -9,7 +9,6 @@ import org.team100.lib.coherence.Takt;
 import org.team100.lib.localization.LocalizerEstimate;
 import org.team100.lib.localization.OdoGyroMeasurement;
 import org.team100.lib.localization.SwerveHistory;
-import org.team100.lib.localization.SwerveState;
 import org.team100.lib.localization.fused.OdometryEstimator;
 import org.team100.lib.sensor.gyro.Gyro;
 import org.team100.lib.state.StateSE2;
@@ -40,9 +39,8 @@ public class GroundTruthCache {
 
     void update() {
         double timestamp = Takt.get();
-
         Entry<Double, LocalizerEstimate> estimateLowerEntry = m_history.localizerEstimateLowerEntry(timestamp);
-        Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history.swerveStateLowerEntry(timestamp);
+        Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history.odoGyroMeasurementLowerEntry(timestamp);
         if (measurementLowerEntry != null) {
             OdoGyroMeasurement measurement = new OdoGyroMeasurement(
                     m_gyro.getYawNWU(),
@@ -53,10 +51,8 @@ public class GroundTruthCache {
                     measurementLowerEntry.getValue(),
                     timestamp,
                     measurement);
-            SwerveState s = new SwerveState(e, measurement);
-
-            if (s != null)
-                m_history.put(timestamp, s);
+            if (e != null)
+                m_history.put(timestamp, e, measurement);
         }
     }
 

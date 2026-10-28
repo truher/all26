@@ -56,6 +56,7 @@ public class NudgingVisionEstimator {
      * @param sampleEstimate Interpolated history at the same time as the
      *                       measurement.
      * @param measurement    Robot pose from vision.
+     * @return the nudged estimate. never null.
      */
     public LocalizerEstimate estimate(
             LocalizerEstimate sampleEstimate, NoisyPose2d measurement) {
@@ -78,6 +79,7 @@ public class NudgingVisionEstimator {
      * 
      * @param sample      historical pose
      * @param measurement new (vision) input
+     * @return the nudged sample. never null.
      */
     NoisyPose2d nudge(NoisyPose2d sample, NoisyPose2d measurement) {
         Pose2d samplePose = sample.pose();

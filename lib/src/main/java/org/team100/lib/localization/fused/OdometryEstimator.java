@@ -96,67 +96,53 @@ public class OdometryEstimator {
      * the gyro rate overrides the rate derived from the difference to the previous
      * state.
      * 
-     * Can return null if it's not possible to make an estimate.
-     * 
-     * @param timestamp Takt time, seconds
-     * @param gyroYaw   Verbatim gyro measurement
-     * @param positions Verbatim drive measurement
+     * @param previousTimestamp   for computing dt
+     * @param previousEstimate    starting point for integration
+     * @param previousMeasurement from the history
+     * @param timestamp           current Takt time, seconds
+     * @param newMeasurement      measurement at the timestamp
+     * @return new estimate, never null
      */
     public LocalizerEstimate estimate(
             double previousTimestamp,
             LocalizerEstimate previousEstimate,
             OdoGyroMeasurement previousMeasurement,
             double timestamp,
-            OdoGyroMeasurement odo) {
+            OdoGyroMeasurement newMeasurement) {
         double dt = timestamp - previousTimestamp;
         if (dt < 0.0001) {
-            // I'm not sure why this happens. In any case, the logic is deterministic so
-            // there's no reason to repeat it.
-            return null;
+            return previousEstimate;
         }
-        return newState(
-                previousEstimate,
-                previousMeasurement.odo(),
-                previousMeasurement.gyro(),
-                dt,
-                odo);
-    }
-
-    /**
-     * Compute the new state, based on the previous state.
-     */
-    LocalizerEstimate newState(
-            LocalizerEstimate previousEstimate,
-            SwerveModulePositions previousPositions,
-            Rotation2d previousYaw,
-            double dt,
-            OdoGyroMeasurement odo) {
+        
+        SwerveModulePositions previousPositions = previousMeasurement.odo();
+        Rotation2d previousYaw = previousMeasurement.gyro();
+        
         StateSE2 previousStateSe2 = previousEstimate.state();
         IsotropicNoiseSE2 previousNoise = previousEstimate.noise();
         VariableR1 previousBias = previousEstimate.gyroBias();
-
+        
         if (DEBUG) {
             System.out.printf("previous x %.6f y %.6f\n",
                     previousStateSe2.pose().getX(),
                     previousStateSe2.pose().getY());
         }
         // The SE2 "twist" increment between the previous and current poses.
-        Twist2d twist = twistFromOdometry(odo.odo(), previousPositions);
-
+        Twist2d twist = twistFromOdometry(newMeasurement.odo(), previousPositions);
+        
         // The verbatim gyro increment, with an uncertainty estimate.
-        VariableR1 gyroIncrementRad = getGyroMeasurementRad(dt, odo.gyro(), previousYaw);
-
+        VariableR1 gyroIncrementRad = getGyroMeasurementRad(dt, newMeasurement.gyro(), previousYaw);
+        
         // Estimate for uncertainty in the odometry increment.
         IsotropicNoiseSE2 odometryNoise = OdometryNoise.get(twist);
-
+        
         // Odometry-derived rotation increment, with uncertainty.
         VariableR1 odometryRotationIncrementRad = VariableR1.fromStdDev(
                 twist.dtheta, odometryNoise.rotation());
-
+        
         // Gyro drift rate during this time step.
         VariableR1 gyroBiasMeasurementRad_S = VariableR1.subtract(
                 gyroIncrementRad, odometryRotationIncrementRad).times(1 / dt);
-
+        
         // Fuse the previous and new bias estimates.
         VariableR1 newGyroBiasEstimateRad_S = m_gyroBiasFusor.fuse(
                 previousBias, gyroBiasMeasurementRad_S);
@@ -165,50 +151,49 @@ public class OdometryEstimator {
                     previousBias,
                     gyroBiasMeasurementRad_S,
                     newGyroBiasEstimateRad_S);
-
+        
         // Gyro increment without the drift increment.
         VariableR1 correctedGyroIncrement = VariableR1.subtract(
                 gyroIncrementRad, newGyroBiasEstimateRad_S.times(dt));
-
+        
         // Fuse the odometry and gyro rotations.
         VariableR1 fusedRotationIncrement = m_rotationFusor.fuse(
                 odometryRotationIncrementRad, correctedGyroIncrement);
-
+        
         if (Experiments.INSTANCE.enabled(Experiment.PerfectGyro)) {
             // If we're trusting the gyro completely, use its verbatim increment
             // instead of the fused one.
             fusedRotationIncrement = gyroIncrementRad;
         }
-
+        
         // Use the fused rotation increment with the odometry cartesian increment.
         twist = new Twist2d(twist.dx, twist.dy, fusedRotationIncrement.mean());
-
+        
         // The new pose is the twist applied to the old pose.
         Pose2d newPose = previousStateSe2.pose().exp(twist);
-
+        
         // Compute a new velocity using backward finite difference.
         VelocitySE2 velocity = VelocitySE2.velocity(previousStateSe2.pose(), newPose, dt);
-
+        
         StateSE2 newState = new StateSE2(newPose, velocity);
-
+        
         // Cartesian noise here can be zero, if we're not moving.
         IsotropicNoiseSE2 n0 = IsotropicNoiseSE2.fromStdDev(
                 odometryNoise.cartesian(), fusedRotationIncrement.sigma());
-
+        
         // The variance of the sum of (independent) variables is
         // just the sum of their variances. So if you drive around for
         // awhile without seeing any tags, the variance will grow
         // without bound.
         IsotropicNoiseSE2 noise = previousNoise.plus(n0);
-
+        
         m_log_prevNoise.log(() -> previousNoise);
         m_log_updateNoise.log(() -> n0);
         m_log_newNoise.log(() -> noise);
-
-        // The result is the new state, with verbatim measurements (to use next time).
-        // There is no vision measurement here, so it's null.
+        
         return new LocalizerEstimate(newState, noise, newGyroBiasEstimateRad_S);
     }
+
 
     /**
      * The raw gyro increment together with an estimate of its uncertainty, based

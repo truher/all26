@@ -10,7 +10,6 @@ import org.team100.lib.localization.fused.VisionMeasurement;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
-import org.team100.lib.sensor.gyro.MockGyro;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamicsFactory;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
@@ -21,16 +20,17 @@ import org.team100.lib.uncertainty.VariableR1;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 
-public class GardenUpdaterTest {
+public class HistoryUpdaterTest {
     private static final LoggerFactory log = new TestLoggerFactory(new TestPrimitiveLogger());
     private static final SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forRealisticTest();
 
+    private Rotation2d yaw;
     private SwerveModulePositions positions;
-    private VisionMeasurement vision;
+    private List<VisionMeasurement> vision;
 
     @Test
     void test0() {
-        MockGyro gyro = new MockGyro();
+        yaw = Rotation2d.kZero;
         positions = SwerveModulePositions.kZero();
         SwerveHistory history = new SwerveHistory(
                 0.2,
@@ -40,23 +40,21 @@ public class GardenUpdaterTest {
                 Pose2d.kZero,
                 IsotropicNoiseSE2.high(),
                 0);
-        OdometryEstimator ou = new OdometryEstimator(
-                log, kinodynamics, gyro.white_noise(),
-                gyro.bias_noise(),
-                false, true);
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(log);
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
+                log, kinodynamics, 4e-4, 1e-5, false, true);
+        OdometryReplayer replayer = new OdometryReplayer(history, odometryEstimator);
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(log);
+        NoisyPose2d measurement = new NoisyPose2d(new Pose2d(), IsotropicNoiseSE2.fromStdDev(1, 1));
 
-        HistoryGardener gardener = new HistoryGardener(history, ou, or, vu);
-
-        vision = new VisionMeasurement(
-                0.01, new NoisyPose2d(new Pose2d(), IsotropicNoiseSE2.fromStdDev(1, 1)));
-
-        GardenUpdater gu = new GardenUpdater(
-                gyro, () -> positions, () -> List.of(vision), gardener);
-
-        gu.update(0.02);
-
+        vision = List.of();
+        HistoryUpdater updater = new HistoryUpdater(
+                () -> yaw,
+                () -> positions,
+                () -> vision,
+                history, odometryEstimator, replayer, visionEstimator);
+        updater.update(0.00);
+        vision = List.of(new VisionMeasurement(0.01, measurement));
+        updater.update(0.02);
         history.dump();
     }
 

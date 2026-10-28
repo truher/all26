@@ -9,8 +9,7 @@ import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.framework.TimedRobot100;
 import org.team100.lib.geometry.se2.VelocitySE2;
-import org.team100.lib.localization.GardenUpdater;
-import org.team100.lib.localization.HistoryGardener;
+import org.team100.lib.localization.HistoryUpdater;
 import org.team100.lib.localization.ImmutableSwerveHistory;
 import org.team100.lib.localization.StateEstimator;
 import org.team100.lib.localization.SwerveHistory;
@@ -42,7 +41,7 @@ public class FusedEstimator implements StateEstimator {
     private final SwerveLocal m_swerveLocal;
     private final SwerveHistory m_history;
     private final AprilTagCornerReader m_tagReader;
-    private final GardenUpdater m_updater;
+    private final HistoryUpdater m_updater;
     private final ObjectCache<ImmutableSwerveHistory> m_immutable;
 
     public FusedEstimator(LoggerFactory driveLog,
@@ -73,10 +72,14 @@ public class FusedEstimator implements StateEstimator {
         NudgingVisionEstimator visionEstimate = new NudgingVisionEstimator(driveLog);
         m_tagReader = new AprilTagCornerReader(
                 driveLog, layout, DriverStation::getAlliance);
-        HistoryGardener gardener = new HistoryGardener(
-                m_history, odometryEstimate, or, visionEstimate);
-        m_updater = new GardenUpdater(
-                m_gyro, m_swerveLocal::positions, m_tagReader::read, gardener);
+        m_updater = new HistoryUpdater(
+                m_gyro::getYawNWU,
+                m_swerveLocal::positions,
+                m_tagReader::read,
+                m_history,
+                odometryEstimate,
+                or,
+                visionEstimate);
         m_immutable = Cache.of(this::makeImmutable);
     }
 

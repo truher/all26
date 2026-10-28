@@ -1,7 +1,6 @@
 package org.team100.lib.localization;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -154,15 +153,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
         measurementLowerEntry = history.odoGyroMeasurementLowerEntry(0.02);
 
+        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
         LocalizerEstimate e = ou.estimate(
                 measurementLowerEntry.getKey(),
                 estimateLowerEntry.getValue(),
                 measurementLowerEntry.getValue(),
                 0.02,
-                new OdoGyroMeasurement(Rotation2d.kZero, position01));
-        OdoGyroMeasurement odo = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        if (e != null)
-            history.put(0.02, e, odo);
+                newMeasurement);
+        history.put(0.02, e, newMeasurement);
         verify(0.000, 0.1, history, 0.00);
         verifyVelocity(0.000, history.get(0.00));
         // velocity is the delta
@@ -224,15 +222,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
         lowerEntry = history.odoGyroMeasurementLowerEntry(0.02);
 
+        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
         LocalizerEstimate e = ou.estimate(
                 lowerEntry.getKey(),
                 estimateLowerEntry.getValue(),
                 lowerEntry.getValue(),
                 0.02,
-                new OdoGyroMeasurement(Rotation2d.kZero, position01));
-        assertNotNull(e);
-        OdoGyroMeasurement odo = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        history.put(0.02, e, odo);
+                newMeasurement);
+        history.put(0.02, e, newMeasurement);
         verify(0.000, 0.1, history, 0.00);
         verifyVelocity(0.000, history.get(0.00));
         // velocity is the delta
@@ -296,15 +293,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
         lowerEntry = history.odoGyroMeasurementLowerEntry(0.02);
 
+        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
         LocalizerEstimate e = ou.estimate(
                 lowerEntry.getKey(),
                 estimateLowerEntry.getValue(),
                 lowerEntry.getValue(),
                 0.02,
-                new OdoGyroMeasurement(Rotation2d.kZero, position01));
-        assertNotNull(e);
-        OdoGyroMeasurement odo = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        history.put(0.02, e, odo);
+                newMeasurement);
+        history.put(0.02, e, newMeasurement);
         verify(0.000, 0.1, history, 0.00);
         verifyVelocity(0.000, history.get(0.00));
         // velocity is the delta
@@ -399,16 +395,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
         lowerEntry = history.odoGyroMeasurementLowerEntry(0.02);
 
+        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(gyro.getYawNWU(), positionZero);
         LocalizerEstimate e = ou.estimate(
                 lowerEntry.getKey(),
                 estimateLowerEntry.getValue(),
                 lowerEntry.getValue(),
                 0.02,
-                new OdoGyroMeasurement(gyro.getYawNWU(), positionZero));
-        assertNotNull(e);
-        OdoGyroMeasurement odo = new OdoGyroMeasurement(gyro.getYawNWU(), positionZero);
+                newMeasurement);
 
-        history.put(0.02, e, odo);
+        history.put(0.02, e, newMeasurement);
 
         verify(0.000, 0.1, history, 0.00);
         verify(0.038, 0.101, history, 0.01);
@@ -422,16 +417,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         estimateLowerEntry = history.localizerEstimateLowerEntry(0.04);
         lowerEntry = history.odoGyroMeasurementLowerEntry(0.04);
 
+        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
         e = ou.estimate(
                 lowerEntry.getKey(),
                 estimateLowerEntry.getValue(),
                 lowerEntry.getValue(),
                 0.04,
-                new OdoGyroMeasurement(Rotation2d.kZero, position01));
-        assertNotNull(e);
-        odo = new OdoGyroMeasurement(Rotation2d.kZero, position01);
+                newMeasurement);
 
-        history.put(0.04, e, odo);
+        history.put(0.04, e, newMeasurement);
 
         verify(0.000, 0.1, history, 0.00);
         verify(0.038, 0.102, history, 0.02);
@@ -457,16 +451,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         estimateLowerEntry = history.localizerEstimateLowerEntry(0.06);
         lowerEntry = history.odoGyroMeasurementLowerEntry(0.06);
 
+        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
         e = ou.estimate(
                 lowerEntry.getKey(),
                 estimateLowerEntry.getValue(),
                 lowerEntry.getValue(),
                 0.06,
-                new OdoGyroMeasurement(Rotation2d.kZero, position01));
-        assertNotNull(e);
-        odo = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-
-        history.put(0.06, e, odo);
+                newMeasurement);
+        history.put(0.06, e, newMeasurement);
         verify(0.000, 0.1, history, 0.00);
         verify(0.077, 0.103, history, 0.02);
         verify(0.177, 0.104, history, 0.04);
@@ -512,16 +504,15 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         estimateLowerEntry = history.localizerEstimateLowerEntry(0.08);
         lowerEntry = history.odoGyroMeasurementLowerEntry(0.08);
 
+        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
         e = ou.estimate(
                 lowerEntry.getKey(),
                 estimateLowerEntry.getValue(),
                 lowerEntry.getValue(),
                 0.08,
-                new OdoGyroMeasurement(Rotation2d.kZero, position01));
-        assertNotNull(e);
-        odo = new OdoGyroMeasurement(Rotation2d.kZero, position01);
+                newMeasurement);
 
-        history.put(0.08, e, odo);
+        history.put(0.08, e, newMeasurement);
         verify(0.000, 0.1, history, 0.00);
         verify(0.144, 0.105, history, 0.02);
         verify(0.244, 0.106, history, 0.04);
@@ -603,16 +594,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
         lowerEntry = history.odoGyroMeasurementLowerEntry(0.02);
 
+        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, positionZero);
         LocalizerEstimate e = ou.estimate(
                 lowerEntry.getKey(),
                 estimateLowerEntry.getValue(),
                 lowerEntry.getValue(),
                 0.02,
-                new OdoGyroMeasurement(Rotation2d.kZero, positionZero));
-        OdoGyroMeasurement odo = new OdoGyroMeasurement(Rotation2d.kZero, positionZero);
-
-        if (e != null)
-            history.put(0.02, e, odo);
+                newMeasurement);
+        history.put(0.02, e, newMeasurement);
         verify(0.000, 0.1, history, 0.00);
         verify(0.038, 0.102, history, 0.02);
         verify(0.038, 0.102, history, 0.04);
@@ -627,16 +616,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         estimateLowerEntry = history.localizerEstimateLowerEntry(0.04);
         lowerEntry = history.odoGyroMeasurementLowerEntry(0.04);
 
+        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
         e = ou.estimate(
                 lowerEntry.getKey(),
                 estimateLowerEntry.getValue(),
                 lowerEntry.getValue(),
                 0.04,
-                new OdoGyroMeasurement(Rotation2d.kZero, position01));
-        odo = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-
-        if (e != null)
-            history.put(0.04, e, odo);
+                newMeasurement);
+        history.put(0.04, e, newMeasurement);
         verify(0.000, 0.1, history, 0.00);
         verify(0.038, 0.102, history, 0.02);
         verify(0.138, 0.102, history, 0.04);
@@ -662,16 +649,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         estimateLowerEntry = history.localizerEstimateLowerEntry(0.06);
         lowerEntry = history.odoGyroMeasurementLowerEntry(0.06);
 
+        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
         e = ou.estimate(
                 lowerEntry.getKey(),
                 estimateLowerEntry.getValue(),
                 lowerEntry.getValue(),
                 0.06,
-                new OdoGyroMeasurement(Rotation2d.kZero, position01));
-        odo = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-
-        if (e != null)
-            history.put(0.06, e, odo);
+                newMeasurement);
+        history.put(0.06, e, newMeasurement);
         verify(0.000, 0.1, history, 0.00);
         verify(0.077, 0.103, history, 0.02);
         verify(0.177, 0.103, history, 0.04);
@@ -708,16 +693,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         estimateLowerEntry = history.localizerEstimateLowerEntry(0.08);
         lowerEntry = history.odoGyroMeasurementLowerEntry(0.08);
 
+        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
         e = ou.estimate(
                 lowerEntry.getKey(),
                 estimateLowerEntry.getValue(),
                 lowerEntry.getValue(),
                 0.08,
-                new OdoGyroMeasurement(Rotation2d.kZero, position01));
-        odo = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-
-        if (e != null)
-            history.put(0.08, e, odo);
+                newMeasurement);
+        history.put(0.08, e, newMeasurement);
         verify(0.000, 0.1, history, 0.00);
         verify(0.144, 0.105, history, 0.02);
         verify(0.244, 0.105, history, 0.04);
@@ -1213,15 +1196,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
             Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(t);
 
             if (lowerEntry != null) {
+                OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(gyro.getYawNWU(), positions);
                 LocalizerEstimate e = ou.estimate(
                         lowerEntry.getKey(),
                         estimateLowerEntry.getValue(),
                         lowerEntry.getValue(),
                         t,
-                        new OdoGyroMeasurement(gyro.getYawNWU(), positions));
-                OdoGyroMeasurement odo = new OdoGyroMeasurement(gyro.getYawNWU(), positions);
-                if (e != null)
-                    history.put(t, e, odo);
+                        newMeasurement);
+                history.put(t, e, newMeasurement);
             }
             StateSE2 xHat = history.get(t);
 
@@ -1367,15 +1349,14 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
             Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(time);
             Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(time);
             if (lowerEntry != null) {
+                OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(gyro.getYawNWU(), positionZero);
                 LocalizerEstimate e = ou.estimate(
                         lowerEntry.getKey(),
                         estimateLowerEntry.getValue(),
                         lowerEntry.getValue(),
                         time,
-                        new OdoGyroMeasurement(gyro.getYawNWU(), positionZero));
-                OdoGyroMeasurement odo = new OdoGyroMeasurement(gyro.getYawNWU(), positionZero);
-                if (e != null)
-                    history.put(time, e, odo);
+                        newMeasurement);
+                history.put(time, e, newMeasurement);
             }
         }
 

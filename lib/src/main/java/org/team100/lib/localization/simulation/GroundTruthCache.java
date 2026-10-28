@@ -43,16 +43,14 @@ public class GroundTruthCache {
         Entry<Double, OdoGyroMeasurement> measurementLowerEntry = m_history.odoGyroMeasurementLowerEntry(timestamp);
         if (measurementLowerEntry != null) {
             OdoGyroMeasurement measurement = new OdoGyroMeasurement(
-                    m_gyro.getYawNWU(),
-                    m_positions.get());
+                    m_gyro.getYawNWU(), m_positions.get());
             LocalizerEstimate e = m_updater.estimate(
                     measurementLowerEntry.getKey(),
                     estimateLowerEntry.getValue(),
                     measurementLowerEntry.getValue(),
                     timestamp,
                     measurement);
-            if (e != null)
-                m_history.put(timestamp, e, measurement);
+            m_history.put(timestamp, e, measurement);
         }
     }
 

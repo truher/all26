@@ -13,10 +13,10 @@ import org.team100.lib.dynamics.p.PDynamics;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.indicator.Beeper;
-import org.team100.lib.localization.AprilTagFieldLayoutWithCorrectOrientation;
-import org.team100.lib.localization.AprilTagVisualizer;
-import org.team100.lib.localization.FusedEstimator;
-import org.team100.lib.localization.GroundTruth;
+import org.team100.lib.localization.fused.FusedEstimator;
+import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.simulation.GroundTruth;
+import org.team100.lib.localization.visualization.AprilTagVisualizer;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TotalCurrentLog;
 import org.team100.lib.motor.MotorPhase;
@@ -255,19 +255,19 @@ public class Machinery {
                 d.get(0));
         Unison voice2 = new Unison(
                 d.get(1),
-                d.get(2),        
+                d.get(2),
                 d.get(3),
                 d.get(4),
                 d.get(5),
                 d.get(6),
                 d.get(7));
         // Unison voice3 = new Unison(
-        //         d.get(4),
-        //         d.get(5),
-        //         d.get(6),
-        //         d.get(7));
+        // d.get(4),
+        // d.get(5),
+        // d.get(6),
+        // d.get(7));
         Polyphony allVoices = new Polyphony(voice1, voice2);
-        return new Play("Undertale.mid", 1.0 , allVoices);
+        return new Play("Undertale.mid", 1.0, allVoices);
     }
 
     /** Generally for simulation and visualization */

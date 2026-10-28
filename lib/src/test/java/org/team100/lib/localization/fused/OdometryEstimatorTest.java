@@ -43,8 +43,9 @@ public class OdometryEstimatorTest {
         VariableR1 bias = VariableR1.fromStdDev(0, 0.001);
         LocalizerEstimate estimate1 = new LocalizerEstimate(sampleState, stateNoise, bias);
         OdoGyroMeasurement measurement = new OdoGyroMeasurement(yaw, positions);
-        LocalizerEstimate estimate = ou.newState(
-                estimate1, positions, yaw, 0.02, measurement);
+        double timestamp = 0;
+        LocalizerEstimate estimate = ou.estimate(
+                timestamp, estimate1, measurement, 0.02, measurement);
         assertEquals(0, estimate.state().pose().getX(), 1e-6);
         assertEquals(0, estimate.state().pose().getY(), 1e-6);
         assertEquals(0, estimate.state().pose().getRotation().getRadians(), 1e-6);
@@ -60,17 +61,17 @@ public class OdometryEstimatorTest {
         // measurement noise.
         assertEquals(0.000943, estimate.gyroBias().sigma(), 1e-6);
         // do it again
-        estimate = ou.newState(
-                estimate, measurement.odo(), measurement.gyro(),
-                0.02, measurement);
+        timestamp = 0.02;
+        estimate = ou.estimate(
+                timestamp, estimate, measurement, 0.04, measurement);
         // now the gyro bias is improved
         LocalizerEstimate estimate2 = estimate;
         assertEquals(0.000894, estimate2.gyroBias().sigma(), 1e-6);
         // a few more times
         for (int i = 0; i < 50; ++i) {
-            estimate = ou.newState(
-                    estimate, measurement.odo(), measurement.gyro(),
-                    0.02, measurement);
+            estimate = ou.estimate(
+                    timestamp, estimate, measurement, timestamp + 0.02, measurement);
+            timestamp += 0.02;
             if (DEBUG) {
                 System.out.println(estimate.gyroBias().sigma());
             }
@@ -107,9 +108,9 @@ public class OdometryEstimatorTest {
 
         // result shouldn't be 0.1 ahead
         // high speed means considerable added variance
-        LocalizerEstimate estimate = ou.newState(
-                estimate1, measurement1.odo(), measurement1.gyro(),
-                0.02, new OdoGyroMeasurement(gyroYaw, positions));
+        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(gyroYaw, positions);
+        LocalizerEstimate estimate = ou.estimate(
+                0, estimate1, measurement1, 0.02, newMeasurement);
         assertEquals(0.1, estimate.state().pose().getX(), DELTA);
         assertEquals(0, estimate.state().pose().getY(), DELTA);
         assertEquals(0, estimate.state().pose().getRotation().getRadians(), DELTA);
@@ -147,9 +148,11 @@ public class OdometryEstimatorTest {
                 new SwerveModulePosition100(0.1, Optional.of(Rotation2d.kZero)),
                 new SwerveModulePosition100(0.1, Optional.of(Rotation2d.kZero)));
 
-        LocalizerEstimate estimate = ou.newState(
-                estimate1, measurement1.odo(), measurement1.gyro(),
-                0.02, new OdoGyroMeasurement(gyroYaw, positions));
+        double timestamp = 0;
+        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(gyroYaw, positions);
+        LocalizerEstimate estimate = ou.estimate(
+                timestamp, estimate1, measurement1, 0.02, newMeasurement);
+        timestamp += 0.02;
         OdoGyroMeasurement measurement = new OdoGyroMeasurement(gyroYaw, positions);
         assertEquals(0.1, estimate.state().pose().getX(), DELTA);
         assertEquals(0, estimate.state().pose().getY(), DELTA);
@@ -168,12 +171,9 @@ public class OdometryEstimatorTest {
         for (int i = 2; i < 100; ++i) {
             gyroYaw = new Rotation2d(0.02 * i);
             OdoGyroMeasurement measurement2 = new OdoGyroMeasurement(gyroYaw, positions);
-            estimate = ou.newState(
-                    estimate,
-                    measurement.odo(),
-                    measurement.gyro(),
-                    0.02,
-                    measurement2);
+            estimate = ou.estimate(
+                    timestamp, estimate, measurement, timestamp + 0.02, measurement2);
+            timestamp += 0.02;
             measurement = measurement2;
         }
         assertEquals(0.1, estimate.state().pose().getX(), DELTA);
@@ -212,8 +212,8 @@ public class OdometryEstimatorTest {
                 new SwerveModulePosition100(0.01, Optional.of(Rotation2d.kZero)),
                 new SwerveModulePosition100(0.01, Optional.of(Rotation2d.kZero)));
 
-        LocalizerEstimate estimate = ou.newState(
-                estimate1, measurement1.odo(), measurement1.gyro(),
+        LocalizerEstimate estimate = ou.estimate(0,
+                estimate1, measurement1,
                 0.02, new OdoGyroMeasurement(gyroYaw, positions));
         assertEquals(0.01, estimate.state().pose().getX(), DELTA);
         assertEquals(0, estimate.state().pose().getY(), DELTA);

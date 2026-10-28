@@ -95,14 +95,14 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
             Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(t);
             Entry<Double, OdoGyroMeasurement> measurementLowerEntry = history.odoGyroMeasurementLowerEntry(t);
             if (measurementLowerEntry != null && estimateLowerEntry != null) {
+                OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(gyro.getYawNWU(), positions);
                 LocalizerEstimate e = ou.estimate(
                         measurementLowerEntry.getKey(),
                         estimateLowerEntry.getValue(),
                         measurementLowerEntry.getValue(),
-                        t, new OdoGyroMeasurement(gyro.getYawNWU(), positions));
-                OdoGyroMeasurement odo = new OdoGyroMeasurement(gyro.getYawNWU(), positions);
-                if (e != null)
-                    history.put(t, e, odo);
+                        t,
+                        newMeasurement);
+                history.put(t, e, newMeasurement);
             }
             t += 0.02;
         }

@@ -11,6 +11,8 @@ import org.team100.lib.framework.TimedRobot100;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.localization.HistoryUpdater;
 import org.team100.lib.localization.ImmutableSwerveHistory;
+import org.team100.lib.localization.LocalizerEstimate;
+import org.team100.lib.localization.OdoGyroMeasurement;
 import org.team100.lib.localization.StateEstimator;
 import org.team100.lib.localization.SwerveHistory;
 import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
@@ -55,12 +57,10 @@ public class FusedEstimator implements StateEstimator {
         m_swerveLocal = swerveLocal;
         m_history = new SwerveHistory(
                 0.2,
-                gyro.getYawNWU(),
-                VariableR1.fromStdDev(0, 1),
-                swerveLocal.positions(),
-                Pose2d.kZero,
-                IsotropicNoiseSE2.high(),
-                Takt.get());
+                Takt.get(),
+                new OdoGyroMeasurement(m_gyro.getYawNWU(), swerveLocal.positions()),
+                new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
+                        VariableR1.fromVariance(0, 1)));
         OdometryEstimator odometryEstimate = new OdometryEstimator(
                 driveLog,
                 swerveKinodynamics,

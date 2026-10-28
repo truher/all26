@@ -3,11 +3,15 @@ package org.team100.lib.localization.simulation;
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
+import org.team100.lib.geometry.se2.VelocitySE2;
+import org.team100.lib.localization.LocalizerEstimate;
+import org.team100.lib.localization.OdoGyroMeasurement;
 import org.team100.lib.localization.SwerveHistory;
 import org.team100.lib.localization.fused.OdometryEstimator;
 import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.sensor.gyro.SimulatedGyro;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
 import org.team100.lib.subsystems.swerve.module.SwerveModuleCollection;
 import org.team100.lib.targeting.simulation.SimulatedTargetWriter;
@@ -48,12 +52,10 @@ public class GroundTruth {
         // History of ground-truth poses is based only on odometry.
         m_history = new SwerveHistory(
                 0.2,
-                m_gyro.getYawNWU(),
-                VariableR1.fromStdDev(0, 1),
-                m_modules.positions(),
-                Pose2d.kZero,
-                IsotropicNoiseSE2.high(),
-                Takt.get());
+                Takt.get(),
+                new OdoGyroMeasurement(m_gyro.getYawNWU(), m_modules.positions()),
+                new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
+                        VariableR1.fromVariance(0, 1)));
 
         // Read positions and ground truth gyro (which are perfectly consistent) and
         // maintain the ground truth history.

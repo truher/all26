@@ -9,6 +9,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.team100.lib.camera.Camera;
+import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.localization.fused.AprilTagCornerTranslator;
 import org.team100.lib.localization.fused.NudgingVisionEstimator;
 import org.team100.lib.localization.fused.VisionMeasurement;
@@ -17,6 +18,7 @@ import org.team100.lib.localization.network.BlipWithCorners;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePosition100;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
@@ -71,12 +73,10 @@ public class AprilTagCornerRobotLocalizerTest {
 
         SwerveHistory history = new SwerveHistory(
                 0.2,
-                Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1),
-                positionZero,
-                Pose2d.kZero,
-                IsotropicNoiseSE2.high(),
-                0);
+                0,
+                new OdoGyroMeasurement(Rotation2d.kZero, positionZero),
+                new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
+                        VariableR1.fromVariance(0, 1)));
         // history is never empty
         assertEquals(1, history.size());
         double lastKey = history.lastKey();

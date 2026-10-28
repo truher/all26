@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Map.Entry;
 import java.util.Optional;
 
+import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.localization.fused.NudgingVisionEstimator;
 import org.team100.lib.localization.fused.OdometryEstimator;
 import org.team100.lib.localization.fused.OdometryReplayer;
@@ -13,6 +14,7 @@ import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
 import org.team100.lib.sensor.gyro.Gyro;
 import org.team100.lib.sensor.gyro.MockGyro;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamicsFactory;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePosition100;
@@ -68,12 +70,10 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
         Gyro gyro = new MockGyro();
         SwerveHistory history = new SwerveHistory(
                 0.2,
-                Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1),
-                SwerveModulePositions.kZero(),
-                Pose2d.kZero,
-                IsotropicNoiseSE2.high(),
-                0);
+                0,
+                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.kZero()),
+                new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
+                        VariableR1.fromVariance(0, 1)));
         positions = p(0);
         OdometryEstimator ou = new OdometryEstimator(
                 logger, kinodynamics, gyro.white_noise(),

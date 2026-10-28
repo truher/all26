@@ -37,20 +37,14 @@ public class SwerveHistory implements StateSampler {
 
     public SwerveHistory(
             double bufferDuration,
-            Rotation2d gyroAngle,
-            VariableR1 gyroBias,
-            SwerveModulePositions modulePositions,
-            Pose2d initialPoseMeters,
-            IsotropicNoiseSE2 noise,
-            double timestampSeconds) {
+            double initialTimestamp,
+            OdoGyroMeasurement initialMeasurement,
+            LocalizerEstimate initialEstimate) {
         m_bufferDuration = bufferDuration;
-        StateSE2 state = new StateSE2(initialPoseMeters, VelocitySE2.ZERO);
-        LocalizerEstimate estimate = new LocalizerEstimate(state, noise, gyroBias);
         m_estimates = new TimeInterpolatableBuffer100<>(
-                bufferDuration, timestampSeconds, estimate);
-        OdoGyroMeasurement measurement = new OdoGyroMeasurement(gyroAngle, modulePositions);
+                bufferDuration, initialTimestamp, initialEstimate);
         m_measurements = new TimeInterpolatableBuffer100<>(
-                bufferDuration, timestampSeconds, measurement);
+                bufferDuration, initialTimestamp, initialMeasurement);
     }
 
     public ImmutableSwerveHistory immutableCopy() {

@@ -33,7 +33,7 @@ public class HistoryUpdaterTest {
     @Test
     void test0() {
         yaw = Rotation2d.kZero;
-        positions = SwerveModulePositions.kZero();
+        positions = SwerveModulePositions.ZERO;
         SwerveHistory history = new SwerveHistory(
                 0.2,
                 0,

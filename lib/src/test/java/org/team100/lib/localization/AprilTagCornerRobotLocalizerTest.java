@@ -19,7 +19,6 @@ import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
 import org.team100.lib.state.StateSE2;
-import org.team100.lib.subsystems.swerve.module.state.SwerveModulePosition100;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.uncertainty.VariableR1;
@@ -67,14 +66,10 @@ public class AprilTagCornerRobotLocalizerTest {
         assertEquals(1.914, tag4pose.getY(), DELTA);
         assertEquals(1.868, tag4pose.getZ(), DELTA);
 
-        SwerveModulePosition100 p0 = new SwerveModulePosition100(0, Optional.of(Rotation2d.kZero));
-
-        SwerveModulePositions positionZero = new SwerveModulePositions(p0, p0, p0, p0);
-
         SwerveHistory history = new SwerveHistory(
                 0.2,
                 0,
-                new OdoGyroMeasurement(Rotation2d.kZero, positionZero),
+                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
                 new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
                         VariableR1.fromVariance(0, 1)));
         // history is never empty

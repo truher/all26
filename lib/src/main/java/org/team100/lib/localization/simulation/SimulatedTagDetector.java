@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.function.DoubleFunction;
 import java.util.function.DoubleSupplier;
 
 import org.team100.lib.camera.Camera;
@@ -14,10 +15,9 @@ import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.geometry.Metrics;
-import org.team100.lib.localization.StateSampler;
-import org.team100.lib.localization.SwerveHistory;
 import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
 import org.team100.lib.localization.network.Blip;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.uncertainty.VisionNoise;
 
@@ -80,7 +80,8 @@ public class SimulatedTagDetector {
 
     private final List<Camera> m_cameras;
     private final AprilTagFieldLayoutWithCorrectOrientation m_layout;
-    private final StateSampler m_history;
+    /** Estimate at the given timestamp in seconds */
+    private final DoubleFunction<StateSE2> m_history;
 
     private final Map<Camera, StructArrayPublisher<Blip>> m_publishers;
     /** client instance, not the default */
@@ -96,7 +97,7 @@ public class SimulatedTagDetector {
     public SimulatedTagDetector(
             List<Camera> cameras,
             AprilTagFieldLayoutWithCorrectOrientation layout,
-            StateSampler history) {
+            DoubleFunction<StateSE2> history) {
         m_cameras = cameras;
         m_layout = layout;
         m_history = history;
@@ -119,7 +120,7 @@ public class SimulatedTagDetector {
     }
 
     public static SimulatedTagDetector get(
-            AprilTagFieldLayoutWithCorrectOrientation layout, SwerveHistory history) {
+            AprilTagFieldLayoutWithCorrectOrientation layout, DoubleFunction<StateSE2> history) {
         return new SimulatedTagDetector(
                 List.of(Camera.SIM0, Camera.SIM1, Camera.SIM2, Camera.SIM3),
                 layout,
@@ -140,7 +141,7 @@ public class SimulatedTagDetector {
         // fetch the pose from a little while ago
         double actualDelay = MEAN_DELAY + m_rand.nextGaussian() * STDEV_DELAY;
         double timestampS = Takt.get() - actualDelay;
-        Pose2d pose = m_history.get(timestampS).pose();
+        Pose2d pose = m_history.apply(timestampS).pose();
 
         // Use exactly the history lookup timestamp.
         long time = (long) (timestampS * 1000000.0);

@@ -71,7 +71,7 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
         SwerveHistory history = new SwerveHistory(
                 0.2,
                 0,
-                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.kZero()),
+                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
                 new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
                         VariableR1.fromVariance(0, 1)));
         positions = p(0);

@@ -24,7 +24,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
  * code with about 75-100 ms latency. There will never be a vision update
  * older than about 200 ms.
  */
-public class SwerveHistory implements StateSampler {
+public class SwerveHistory {
     private final double m_bufferDuration;
 
     // these two maps need to have the same keys all the time
@@ -54,7 +54,6 @@ public class SwerveHistory implements StateSampler {
      * timestamp matches a known timestamp exactly. Otherwise returns an
      * interpolated value.
      */
-    @Override
     public StateSE2 get(double timestampSeconds) {
         return m_estimates.get(timestampSeconds).state();
     }

@@ -15,7 +15,7 @@ import org.team100.lib.util.TimeInterpolatableBuffer100;
  * estimates states are on the far side of the (somewhat slow) Java/C++ barrier,
  * and they're not interpolatable.
  */
-public class ImmutableSwerveHistory implements StateSampler {
+public class ImmutableSwerveHistory {
 
     private final TimeInterpolatableBuffer100<StateSE2> m_poseBuffer;
 
@@ -31,7 +31,6 @@ public class ImmutableSwerveHistory implements StateSampler {
     }
 
     /** Interpolates. */
-    @Override
     public StateSE2 get(double timestampSeconds) {
         return m_poseBuffer.get(timestampSeconds);
     }

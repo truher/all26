@@ -3,6 +3,7 @@ package org.team100.lib.targeting.simulation;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.DoubleFunction;
 
 import org.team100.frc2025.field.FieldConstants2025;
 import org.team100.lib.camera.Camera;
@@ -10,10 +11,10 @@ import org.team100.lib.camera.Offset;
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
-import org.team100.lib.localization.StateSampler;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleLogger;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.targeting.network.Target;
 
 import edu.wpi.first.math.geometry.Pose2d;
@@ -40,7 +41,8 @@ public class SimulatedTargetWriter {
     private final Map<Camera, StructArrayPublisher<Target>> m_publishers;
     private final DoubleLogger m_log_poseTimestamp;
     private final List<Camera> m_cameras;
-    private final StateSampler m_history;
+    /** State estimate for the given timestamp in seconds */
+    private final DoubleFunction<StateSE2> m_history;
 
     /** For now, a fixed list of targets */
     private final Translation2d[] m_targets;
@@ -50,7 +52,7 @@ public class SimulatedTargetWriter {
     public SimulatedTargetWriter(
             LoggerFactory parent,
             List<Camera> cameras,
-            StateSampler history,
+            DoubleFunction<StateSE2> history,
             Translation2d[] targets) {
         LoggerFactory log = parent.type(this);
         m_log_poseTimestamp = log.doubleLogger(Level.TRACE, "pose timestamp (s)");
@@ -73,7 +75,8 @@ public class SimulatedTargetWriter {
         }
     }
 
-    public static SimulatedTargetWriter get(LoggerFactory parent, StateSampler history) {
+    public static SimulatedTargetWriter get(
+            LoggerFactory parent, DoubleFunction<StateSE2> history) {
         return new SimulatedTargetWriter(
                 parent,
                 List.of(Camera.SIM0, Camera.SIM1, Camera.SIM2, Camera.SIM3),
@@ -94,7 +97,7 @@ public class SimulatedTargetWriter {
         // select pose from a little while ago
         double timestampS = Takt.get() - DELAY;
         m_log_poseTimestamp.log(() -> timestampS);
-        Pose2d pose = m_history.get(timestampS).pose();
+        Pose2d pose = m_history.apply(timestampS).pose();
 
         // Use exactly the timestamp used in this history lookup.
         long time = (long) (timestampS * 1000000.0);

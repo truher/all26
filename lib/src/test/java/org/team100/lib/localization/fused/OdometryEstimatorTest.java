@@ -37,7 +37,7 @@ public class OdometryEstimatorTest {
         // previous state is at zero, but uncertain
         StateSE2 sampleState = new StateSE2();
         IsotropicNoiseSE2 stateNoise = IsotropicNoiseSE2.fromStdDev(1, 1);
-        final SwerveModulePositions positions = SwerveModulePositions.kZero();
+        final SwerveModulePositions positions = SwerveModulePositions.ZERO;
         final Rotation2d yaw = new Rotation2d();
         // high bias sigma compared to the real value
         VariableR1 bias = VariableR1.fromStdDev(0, 0.001);
@@ -92,7 +92,7 @@ public class OdometryEstimatorTest {
         // previous state is at zero, pretty sure.
         StateSE2 sampleState = new StateSE2();
         IsotropicNoiseSE2 stateNoise = IsotropicNoiseSE2.fromStdDev(0.01, 0.01);
-        SwerveModulePositions positions = SwerveModulePositions.kZero();
+        SwerveModulePositions positions = SwerveModulePositions.ZERO;
         Rotation2d yaw = new Rotation2d();
         VariableR1 bias = VariableR1.fromStdDev(0, 0.001);
         LocalizerEstimate estimate1 = new LocalizerEstimate(sampleState, stateNoise, bias);
@@ -132,7 +132,7 @@ public class OdometryEstimatorTest {
         // previous state is at zero, pretty sure.
         StateSE2 sampleState = new StateSE2();
         IsotropicNoiseSE2 stateNoise = IsotropicNoiseSE2.fromStdDev(0.01, 0.01);
-        SwerveModulePositions positions = SwerveModulePositions.kZero();
+        SwerveModulePositions positions = SwerveModulePositions.ZERO;
         Rotation2d yaw = new Rotation2d();
         // initial bias estimate is zero
         VariableR1 bias = VariableR1.fromStdDev(0, 0.001);
@@ -198,7 +198,7 @@ public class OdometryEstimatorTest {
         // previous state is at zero, pretty sure.
         StateSE2 sampleState = new StateSE2();
         IsotropicNoiseSE2 stateNoise = IsotropicNoiseSE2.fromStdDev(0.01, 0.01);
-        SwerveModulePositions positions = SwerveModulePositions.kZero();
+        SwerveModulePositions positions = SwerveModulePositions.ZERO;
         Rotation2d yaw = new Rotation2d();
         VariableR1 bias = VariableR1.fromStdDev(0, 0.001);
         LocalizerEstimate estimate1 = new LocalizerEstimate(sampleState, stateNoise, bias);

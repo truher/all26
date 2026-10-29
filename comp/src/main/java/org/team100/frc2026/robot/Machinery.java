@@ -9,6 +9,7 @@ import org.team100.frc2026.subsystems.IntakeExtend;
 import org.team100.frc2026.subsystems.Shooter;
 import org.team100.frc2026.targeting.Targeter;
 import org.team100.lib.config.CurrentLimit;
+import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.indicator.Beeper;
 import org.team100.lib.localization.NoEstimate;
 import org.team100.lib.localization.StateEstimator;
@@ -21,6 +22,7 @@ import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TotalCurrentLog;
 import org.team100.lib.sensor.gyro.Gyro;
 import org.team100.lib.sensor.gyro.GyroFactory;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.swerve.SwerveDriveSubsystem;
 import org.team100.lib.subsystems.swerve.SwerveLocal;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
@@ -154,7 +156,8 @@ public class Machinery implements AutoCloseable {
         ///
         /// GROUND TRUTH
         ///
-        m_groundTruth = new GroundTruth(fieldLogger, logger, m_swerveKinodynamics, m_modules, layout);
+        m_groundTruth = new GroundTruth(
+                fieldLogger, logger, m_swerveKinodynamics, m_modules, layout);
     }
 
     /**
@@ -170,9 +173,10 @@ public class Machinery implements AutoCloseable {
      * Purge the history and assert the given pose as the current estimate.
      */
     public void resetPose(NoisyPose2d p) {
-        m_drive.reset(p.pose(), p.noise());
+        StateSE2 state = new StateSE2(p.pose(), VelocitySE2.ZERO);
+        m_drive.reset(state, p.noise());
         // also reset the ground truth, otherwise the cameras retain the old pose
-        m_groundTruth.resetPose(p.pose());
+        m_groundTruth.resetPose(state);
     }
 
     /** Erase the pose history, use high variance for pose estimate. */
@@ -208,12 +212,6 @@ public class Machinery implements AutoCloseable {
             System.out.printf("*** ZERO ROTATION: %s\n", np);
             resetPose(np);
         }, m_drive);
-    }
-
-    /** Generally for simulation and visualization */
-    public void periodic() {
-        m_groundTruth.periodic();
-        // m_tagViz.update();
     }
 
     /**

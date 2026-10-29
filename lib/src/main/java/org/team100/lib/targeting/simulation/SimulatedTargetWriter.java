@@ -11,7 +11,6 @@ import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.localization.StateSampler;
-import org.team100.lib.localization.SwerveHistory;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleLogger;
@@ -64,7 +63,7 @@ public class SimulatedTargetWriter {
         m_inst.setServer("localhost");
         m_inst.startClient4("tag_finder24");
         for (Camera camera : m_cameras) {
-            // name is "objectVision/{IDENTITY/targets"
+            // name is "objectVision/IDENTITY/targets"
             String name = "objectVision/" + camera.getSerial() + "/targets";
             m_publishers.put(
                     camera,
@@ -74,7 +73,7 @@ public class SimulatedTargetWriter {
         }
     }
 
-    public static SimulatedTargetWriter get(LoggerFactory parent, SwerveHistory history) {
+    public static SimulatedTargetWriter get(LoggerFactory parent, StateSampler history) {
         return new SimulatedTargetWriter(
                 parent,
                 List.of(Camera.SIM0, Camera.SIM1, Camera.SIM2, Camera.SIM3),

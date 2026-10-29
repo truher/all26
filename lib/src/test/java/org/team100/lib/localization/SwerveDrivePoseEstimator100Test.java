@@ -96,7 +96,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                         VariableR1.fromVariance(0, 1)));
 
         history.reset(
-                positionZero, Pose2d.kZero, IsotropicNoiseSE2.high(),
+                positionZero,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.high(),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
         Pose2d p = history.get(0).pose();
@@ -105,7 +107,8 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         assertEquals(0, p.getRotation().getRadians(), DELTA);
         // force the pose to rotate 90
         history.reset(
-                positionZero, new Pose2d(0, 0, Rotation2d.kCCW_90deg),
+                positionZero,
+                new StateSE2(new Pose2d(0, 0, Rotation2d.kCCW_90deg), VelocitySE2.ZERO),
                 IsotropicNoiseSE2.high(),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
@@ -131,7 +134,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
+                positionZero,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
         OdometryReplayer or = new OdometryReplayer(history, ou);
@@ -197,7 +202,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
+                positionZero,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
         OdometryReplayer or = new OdometryReplayer(history, ou);
@@ -266,7 +273,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
+                positionZero,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
         OdometryReplayer or = new OdometryReplayer(history, ou);
@@ -340,7 +349,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
+                positionZero,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
         OdometryReplayer or = new OdometryReplayer(history, ou);
@@ -528,7 +539,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
+                positionZero,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
         OdometryReplayer or = new OdometryReplayer(history, ou);
@@ -714,7 +727,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
+                positionZero,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
         OdometryReplayer or = new OdometryReplayer(history, ou);
@@ -790,7 +805,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
+                positionZero,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
         OdometryReplayer or = new OdometryReplayer(history, ou);
@@ -868,7 +885,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.05, 0.05),
+                positionZero,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.fromStdDev(0.05, 0.05),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
         OdometryReplayer or = new OdometryReplayer(history, ou);
@@ -947,7 +966,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                positionZero, Pose2d.kZero, IsotropicNoiseSE2.fromStdDev(0.01, 0.01),
+                positionZero,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.fromStdDev(0.01, 0.01),
                 0, Rotation2d.kZero,
                 VariableR1.fromVariance(0, 1));
         OdometryReplayer or = new OdometryReplayer(history, ou);
@@ -1095,7 +1116,9 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
         // new starting pose here, so we don't actually use the earlier initial pose
         history.reset(
-                positions, Pose2d.kZero, IsotropicNoiseSE2.high(),
+                positions,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.high(),
                 0, gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));
 
@@ -1249,7 +1272,8 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                positionZero, new Pose2d(1, 2, Rotation2d.fromDegrees(270)),
+                positionZero,
+                new StateSE2(new Pose2d(1, 2, Rotation2d.fromDegrees(270)), VelocitySE2.ZERO),
                 IsotropicNoiseSE2.high(),
                 0, gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));
@@ -1309,7 +1333,8 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 false, true);
 
         history.reset(
-                positionZero, Pose2d.kZero,
+                positionZero,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
                 IsotropicNoiseSE2.high(),
                 0, gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));

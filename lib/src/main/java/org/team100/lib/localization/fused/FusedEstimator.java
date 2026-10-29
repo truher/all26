@@ -131,10 +131,10 @@ public class FusedEstimator implements StateEstimator {
      * cache.
      */
     @Override
-    public void reset(Pose2d pose, IsotropicNoiseSE2 noise) {
+    public void reset(StateSE2 newState, IsotropicNoiseSE2 noise) {
         m_history.reset(
                 m_swerveLocal.positions(),
-                pose,
+                newState,
                 noise,
                 Takt.get(),
                 m_gyro.getYawNWU(),

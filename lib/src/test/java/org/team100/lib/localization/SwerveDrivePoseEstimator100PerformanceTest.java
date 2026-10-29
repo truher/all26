@@ -80,7 +80,9 @@ public class SwerveDrivePoseEstimator100PerformanceTest {
                 gyro.bias_noise(),
                 false, true);
         history.reset(
-                positions, Pose2d.kZero, IsotropicNoiseSE2.high(),
+                positions,
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.high(),
                 0, gyro.getYawNWU(),
                 VariableR1.fromVariance(0, 1));
         OdometryReplayer or = new OdometryReplayer(history, ou);

@@ -7,6 +7,7 @@ import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.team100.lib.config.CurrentLimit;
 import org.team100.lib.geometry.se2.ChassisAcceleration;
+import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.localization.fused.FusedEstimator;
 import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
 import org.team100.lib.logging.LoggerFactory;
@@ -54,7 +55,9 @@ class SwerveDriveSubsystemTest implements Timeless {
 
         stepTime();
 
-        drive.reset(new Pose2d(), IsotropicNoiseSE2.high());
+        drive.reset(
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.high());
 
         stepTime();
         StateSE2 state = drive.getState();

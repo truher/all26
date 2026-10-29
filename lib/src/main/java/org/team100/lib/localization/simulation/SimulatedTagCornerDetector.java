@@ -16,7 +16,6 @@ import org.team100.lib.experiments.Experiments;
 import org.team100.lib.geometry.GeometryUtil;
 import org.team100.lib.geometry.Metrics;
 import org.team100.lib.localization.StateSampler;
-import org.team100.lib.localization.SwerveHistory;
 import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
 import org.team100.lib.localization.network.BlipWithCorners;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
@@ -124,7 +123,7 @@ public class SimulatedTagCornerDetector {
     }
 
     public static SimulatedTagCornerDetector get(
-            AprilTagFieldLayoutWithCorrectOrientation layout, SwerveHistory history) {
+            AprilTagFieldLayoutWithCorrectOrientation layout, StateSampler history) {
         return new SimulatedTagCornerDetector(
                 List.of(Camera.SIM0, Camera.SIM1, Camera.SIM2, Camera.SIM3),
                 layout,

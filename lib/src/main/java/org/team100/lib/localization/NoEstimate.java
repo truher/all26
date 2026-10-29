@@ -6,8 +6,6 @@ import java.util.TreeMap;
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 
-import edu.wpi.first.math.geometry.Pose2d;
-
 /** Placeholder state estimator */
 public class NoEstimate implements StateEstimator {
 
@@ -17,7 +15,7 @@ public class NoEstimate implements StateEstimator {
     }
 
     @Override
-    public void reset(Pose2d pose, IsotropicNoiseSE2 noise) {
+    public void reset(StateSE2 pose, IsotropicNoiseSE2 noise) {
     }
 
     @Override

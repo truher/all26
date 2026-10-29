@@ -62,10 +62,10 @@ public class AprilTagVisualizer {
         NetworkTableInstance inst = NetworkTableInstance.getDefault();
         m_pub_tags = inst.getStructArrayTopic("tags", Pose3d.struct).publish();
         m_log_allTags = fieldLogger.doubleArrayLogger(Level.DEBUG, "all tags");
-        LogPoller.register(this::update);
+        LogPoller.register(this::log);
     }
 
-    private void update() {
+    private void log() {
         List<Measurement> measurements = read();
         consumeMeasurements(measurements);
     }

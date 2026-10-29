@@ -3,14 +3,12 @@ package org.team100.lib.localization;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
-import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.uncertainty.VariableR1;
 import org.team100.lib.util.TimeInterpolatableBuffer100;
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 
 /**
@@ -64,15 +62,16 @@ public class SwerveHistory implements StateSampler {
     /** Empty the buffer and add the given measurements. */
     public void reset(
             SwerveModulePositions modulePositions,
-            Pose2d pose,
+            StateSE2 newState,
             IsotropicNoiseSE2 noise,
             double timestampSeconds,
             Rotation2d gyroYaw,
             VariableR1 gyroBias) {
-        StateSE2 newState = new StateSE2(pose, VelocitySE2.ZERO);
-        LocalizerEstimate estimate = new LocalizerEstimate(newState, noise, gyroBias);
+        LocalizerEstimate estimate = new LocalizerEstimate(
+                newState, noise, gyroBias);
         m_estimates.reset(timestampSeconds, estimate);
-        OdoGyroMeasurement measurement = new OdoGyroMeasurement(gyroYaw, modulePositions);
+        OdoGyroMeasurement measurement = new OdoGyroMeasurement(
+                gyroYaw, modulePositions);
         m_measurements.reset(timestampSeconds, measurement);
     }
 

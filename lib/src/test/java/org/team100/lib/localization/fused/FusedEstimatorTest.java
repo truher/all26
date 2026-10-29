@@ -65,7 +65,9 @@ public class FusedEstimatorTest implements Timeless {
 
         stepTime();
 
-        estimate.reset(new Pose2d(), IsotropicNoiseSE2.high());
+        estimate.reset(
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.high());
         stepTime();
         TestUtil.verify(
                 new StateSE2(
@@ -155,7 +157,9 @@ public class FusedEstimatorTest implements Timeless {
 
         stepTime();
 
-        estimate.reset(new Pose2d(), IsotropicNoiseSE2.high());
+        estimate.reset(
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.high());
         stepTime();
         TestUtil.verify(
                 new StateSE2(
@@ -248,7 +252,9 @@ public class FusedEstimatorTest implements Timeless {
 
         stepTime();
 
-        estimate.reset(new Pose2d(), IsotropicNoiseSE2.high());
+        estimate.reset(
+                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                IsotropicNoiseSE2.high());
         stepTime();
         TestUtil.verify(
                 new StateSE2(

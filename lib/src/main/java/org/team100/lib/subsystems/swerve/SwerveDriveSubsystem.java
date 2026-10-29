@@ -23,7 +23,6 @@ import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModuleStates;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -108,7 +107,7 @@ public class SwerveDriveSubsystem extends SubsystemBase
 
     /** Empty the pose history, add the given pose, and flush the cache. */
     @Override
-    public void reset(Pose2d robotPose, IsotropicNoiseSE2 noise) {
+    public void reset(StateSE2 robotPose, IsotropicNoiseSE2 noise) {
         m_estimate.reset(robotPose, noise);
     }
 

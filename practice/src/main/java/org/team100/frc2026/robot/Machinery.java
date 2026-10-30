@@ -6,15 +6,17 @@ import java.util.function.Supplier;
 import org.team100.frc2026.field.FieldConstants2026;
 import org.team100.frc2026.targeting.Targeter;
 import org.team100.lib.config.CurrentLimit;
+import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.indicator.Beeper;
-import org.team100.lib.localization.AprilTagFieldLayoutWithCorrectOrientation;
-import org.team100.lib.localization.AprilTagVisualizer;
-import org.team100.lib.localization.FusedEstimator;
-import org.team100.lib.localization.GroundTruth;
+import org.team100.lib.localization.fused.FusedEstimator;
+import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.simulation.GroundTruth;
+import org.team100.lib.localization.visualization.AprilTagVisualizer;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TotalCurrentLog;
 import org.team100.lib.sensor.gyro.Gyro;
 import org.team100.lib.sensor.gyro.GyroFactory;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.swerve.SwerveDriveSubsystem;
 import org.team100.lib.subsystems.swerve.SwerveLocal;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
@@ -156,9 +158,10 @@ public class Machinery {
      * Purge the history and assert the given pose as the current estimate.
      */
     public void resetPose(NoisyPose2d p) {
-        m_drive.reset(p.pose(), p.noise());
+        StateSE2 state = new StateSE2(p.pose(), VelocitySE2.ZERO);
+        m_drive.reset(state, p.noise());
         // also reset the ground truth, otherwise the cameras retain the old pose
-        m_groundTruth.resetPose(p.pose());
+        m_groundTruth.resetPose(state);
     }
 
     /** Erase the pose history, use high variance for pose estimate. */
@@ -194,11 +197,6 @@ public class Machinery {
             System.out.printf("*** ZERO ROTATION: %s\n", np);
             resetPose(np);
         }, m_drive);
-    }
-
-    /** Generally for simulation and visualization */
-    public void periodic() {
-        m_groundTruth.periodic();
     }
 
     /**

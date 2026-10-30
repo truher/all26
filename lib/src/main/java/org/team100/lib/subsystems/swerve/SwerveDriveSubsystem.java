@@ -8,7 +8,6 @@ import org.team100.lib.dynamics.swerve.SwerveEffort;
 import org.team100.lib.framework.TimedRobot100;
 import org.team100.lib.geometry.se2.ChassisAcceleration;
 import org.team100.lib.localization.StateEstimator;
-import org.team100.lib.localization.SwerveState;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LogPoller;
 import org.team100.lib.logging.LoggerFactory;
@@ -25,7 +24,6 @@ import org.team100.lib.subsystems.swerve.module.state.SwerveModuleStates;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.wpilib.command2.Command;
 import org.wpilib.command2.SubsystemBase;
-import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.math.geometry.Rotation2d;
 import org.wpilib.math.kinematics.ChassisVelocities;
 
@@ -57,7 +55,7 @@ public class SwerveDriveSubsystem extends SubsystemBase
         stop();
     }
 
-    ///////////////
+    //////////////
     //
     // ACTUATORS
     //
@@ -108,11 +106,11 @@ public class SwerveDriveSubsystem extends SubsystemBase
 
     /** Empty the pose history, add the given pose, and flush the cache. */
     @Override
-    public void reset(Pose2d robotPose, IsotropicNoiseSE2 noise) {
+    public void reset(StateSE2 robotPose, IsotropicNoiseSE2 noise) {
         m_estimate.reset(robotPose, noise);
     }
 
-    //////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
     //
     // Observers
     //
@@ -135,11 +133,12 @@ public class SwerveDriveSubsystem extends SubsystemBase
         m_estimate.setHeedRadiusM(heedRadiusM);
     }
 
-    public Map<Double, SwerveState> all() {
+    @Override
+    public Map<Double, StateSE2> all() {
         return m_estimate.all();
     }
 
-    //////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
     //
     // Commands
     //

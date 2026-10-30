@@ -5,7 +5,6 @@ import java.util.Map;
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.util.NamedChooser;
-import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.smartdashboard.SendableChooser;
 import org.wpilib.smartdashboard.SmartDashboard;
 
@@ -49,7 +48,7 @@ public class StateEstimatorProxy implements StateEstimator {
     }
 
     @Override
-    public void reset(Pose2d pose, IsotropicNoiseSE2 noise) {
+    public void reset(StateSE2 pose, IsotropicNoiseSE2 noise) {
         switch (m_choice) {
             case A -> m_A.reset(pose, noise);
             case B -> m_B.reset(pose, noise);
@@ -67,7 +66,7 @@ public class StateEstimatorProxy implements StateEstimator {
     }
 
     @Override
-    public Map<Double, SwerveState> all() {
+    public Map<Double, StateSE2> all() {
         return switch (m_choice) {
             case A -> m_A.all();
             case B -> m_B.all();

@@ -5,7 +5,6 @@ import java.util.TreeMap;
 
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
-import org.wpilib.math.geometry.Pose2d;
 
 /** Placeholder state estimator */
 public class NoEstimate implements StateEstimator {
@@ -16,7 +15,7 @@ public class NoEstimate implements StateEstimator {
     }
 
     @Override
-    public void reset(Pose2d pose, IsotropicNoiseSE2 noise) {
+    public void reset(StateSE2 pose, IsotropicNoiseSE2 noise) {
     }
 
     @Override
@@ -24,7 +23,7 @@ public class NoEstimate implements StateEstimator {
     }
 
     @Override
-    public Map<Double, SwerveState> all() {
+    public Map<Double, StateSE2> all() {
         return new TreeMap<>();
     }
 

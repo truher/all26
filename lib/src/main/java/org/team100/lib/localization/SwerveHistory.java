@@ -3,17 +3,11 @@ package org.team100.lib.localization;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
-import org.team100.lib.geometry.se2.VelocitySE2;
-import org.team100.lib.logging.Level;
-import org.team100.lib.logging.LoggerFactory;
-import org.team100.lib.logging.LoggerFactory.DoubleLogger;
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.uncertainty.VariableR1;
 import org.team100.lib.util.TimeInterpolatableBuffer100;
-
-import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.math.geometry.Rotation2d;
 
 /**
@@ -29,37 +23,29 @@ import org.wpilib.math.geometry.Rotation2d;
  * code with about 75-100 ms latency. There will never be a vision update
  * older than about 200 ms.
  */
-public class SwerveHistory implements StateSampler {
-    private static final boolean DEBUG = false;
+public class SwerveHistory {
     private final double m_bufferDuration;
-    private final DoubleLogger m_log_timestamp;
-    private final TimeInterpolatableBuffer100<SwerveState> m_poseBuffer;
+
+    // these two maps need to have the same keys all the time
+    // ... which seems bad.
+
+    private final TimeInterpolatableBuffer100<OdoGyroMeasurement> m_measurements;
+    private final TimeInterpolatableBuffer100<LocalizerEstimate> m_estimates;
 
     public SwerveHistory(
-            LoggerFactory parent,
             double bufferDuration,
-            Rotation2d gyroAngle,
-            VariableR1 gyroBias,
-            SwerveModulePositions modulePositions,
-            Pose2d initialPoseMeters,
-            IsotropicNoiseSE2 noise,
-            double timestampSeconds) {
+            double initialTimestamp,
+            OdoGyroMeasurement initialMeasurement,
+            LocalizerEstimate initialEstimate) {
         m_bufferDuration = bufferDuration;
-        m_log_timestamp = parent.type(this).doubleLogger(Level.TRACE, "sample timestamp");
-        SwerveStateInterpolator interpolator = new SwerveStateInterpolator();
-        StateSE2 state = new StateSE2(initialPoseMeters, VelocitySE2.ZERO);
-        SwerveState initialState = new SwerveState(
-                state, noise, modulePositions, gyroAngle, gyroBias, null);
-        m_poseBuffer = new TimeInterpolatableBuffer100<>(
-                interpolator, bufferDuration, timestampSeconds, initialState);
+        m_estimates = new TimeInterpolatableBuffer100<>(
+                bufferDuration, initialTimestamp, initialEstimate);
+        m_measurements = new TimeInterpolatableBuffer100<>(
+                bufferDuration, initialTimestamp, initialMeasurement);
     }
 
     public ImmutableSwerveHistory immutableCopy() {
-        return new ImmutableSwerveHistory(m_poseBuffer.entrySet(), m_bufferDuration);
-    }
-
-    public SwerveState getExact(double t) {
-        return m_poseBuffer.getExact(t);
+        return new ImmutableSwerveHistory(m_estimates.entrySet(), m_bufferDuration);
     }
 
     /**
@@ -67,48 +53,50 @@ public class SwerveHistory implements StateSampler {
      * timestamp matches a known timestamp exactly. Otherwise returns an
      * interpolated value.
      */
-    @Override
     public StateSE2 get(double timestampSeconds) {
-        m_log_timestamp.log(() -> timestampSeconds);
-        return m_poseBuffer.get(timestampSeconds).state();
+        return m_estimates.get(timestampSeconds).state();
     }
 
     /** Empty the buffer and add the given measurements. */
-    void reset(
+    public void reset(
             SwerveModulePositions modulePositions,
-            Pose2d pose,
+            StateSE2 newState,
             IsotropicNoiseSE2 noise,
             double timestampSeconds,
             Rotation2d gyroYaw,
             VariableR1 gyroBias) {
-        StateSE2 newState = new StateSE2(pose, VelocitySE2.ZERO);
-        SwerveState state = new SwerveState(
-                newState,
-                noise,
-                modulePositions,
-                gyroYaw,
-                gyroBias,
-                null);
-        m_poseBuffer.reset(timestampSeconds, state);
+        LocalizerEstimate estimate = new LocalizerEstimate(
+                newState, noise, gyroBias);
+        m_estimates.reset(timestampSeconds, estimate);
+        OdoGyroMeasurement measurement = new OdoGyroMeasurement(
+                gyroYaw, modulePositions);
+        m_measurements.reset(timestampSeconds, measurement);
     }
 
-    //////////////////////////////////////////////////
+    /////////////////////////////////////////////////
     //
     // Methods below are for history maintenance and testing.
 
     /**
-     * @param timestamp time, seconds
-     * @param state     from odometry or vision
+     * @param timestamp   time, seconds
+     * @param estimate    from estimator
+     * @param measurement from odometry/gyro
      */
-    void put(double timestamp, SwerveState state) {
-        if (DEBUG)
-            System.out.printf("SwerveHistory.put() %f %s\n", timestamp, state);
-        m_poseBuffer.put(timestamp, state);
+    public void put(
+            double timestamp,
+            LocalizerEstimate estimate,
+            OdoGyroMeasurement measurement) {
+        m_estimates.put(timestamp, estimate);
+        m_measurements.put(timestamp, measurement);
     }
 
     /** Entry for time strictly before timestamp. Never interpolated. */
-    Entry<Double, SwerveState> lowerEntry(double timestamp) {
-        return m_poseBuffer.lowerEntry(timestamp);
+    public Entry<Double, OdoGyroMeasurement> odoGyroMeasurementLowerEntry(double timestamp) {
+        return m_measurements.lowerEntry(timestamp);
+    }
+
+    public Entry<Double, LocalizerEstimate> localizerEstimateLowerEntry(double timestamp) {
+        return m_estimates.lowerEntry(timestamp);
     }
 
     /**
@@ -116,30 +104,35 @@ public class SwerveHistory implements StateSampler {
      * timestamp matches a known timestamp exactly. Otherwise returns an
      * interpolated value. Don't use this method outside this package.
      */
-    SwerveState getRecord(double timestamp) {
-        return m_poseBuffer.get(timestamp);
+    public OdoGyroMeasurement getOdoGyroMeasurement(double timestamp) {
+        return m_measurements.get(timestamp);
+    }
+
+    public LocalizerEstimate getLocalizerEstimate(double timestamp) {
+        return m_estimates.get(timestamp);
     }
 
     boolean tooOld(double timestamp) {
-        return m_poseBuffer.tooOld(timestamp);
+        return m_measurements.tooOld(timestamp);
     }
 
-    /** SwerveStates strictly later than the timestamp. */
-    public SortedMap<Double, SwerveState> exclusiveTailMap(double timestamp) {
-        return m_poseBuffer.tailMap(timestamp, false);
+    /** strictly later than the timestamp. */
+    public SortedMap<Double, OdoGyroMeasurement> swerveStateExclusiveTailMap(double timestamp) {
+        return m_measurements.tailMap(timestamp, false);
     }
 
     int size() {
-        return m_poseBuffer.size();
+        return m_measurements.size();
     }
 
     double lastKey() {
-        return m_poseBuffer.lastKey();
+        return m_measurements.lastKey();
     }
 
     /** Print the buffer contents. */
     void dump() {
-        m_poseBuffer.dump();
+        m_estimates.dump();
+        m_measurements.dump();
     }
 
 }

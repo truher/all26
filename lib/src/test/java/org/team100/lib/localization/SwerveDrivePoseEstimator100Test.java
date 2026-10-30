@@ -1,7 +1,6 @@
 package org.team100.lib.localization;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -13,9 +12,11 @@ import java.util.TreeMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.team100.lib.geometry.se2.VelocitySE2;
+import org.team100.lib.localization.fused.FusedEstimator;
 import org.team100.lib.localization.fused.NudgingVisionEstimator;
 import org.team100.lib.localization.fused.OdometryEstimator;
 import org.team100.lib.localization.fused.OdometryReplayer;
+import org.team100.lib.localization.fused.VisionMeasurement;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
@@ -31,6 +32,7 @@ import org.team100.lib.subsystems.swerve.module.state.SwerveModuleStates;
 import org.team100.lib.testing.Timeless;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.uncertainty.NoisyPose2d;
+import org.team100.lib.uncertainty.NoisyStateSE2;
 import org.team100.lib.uncertainty.VariableR1;
 
 import edu.wpi.first.math.geometry.Pose2d;
@@ -57,8 +59,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
     /** 1 meter ahead */
     private final Pose2d visionPose = new Pose2d(1, 0, Rotation2d.kZero);
 
-    private static void verify(double x, double sigma, SwerveHistory history, double timestamp) {
-        LocalizerEstimate estimate = history.getLocalizerEstimate(timestamp);
+    private static void verify(double x, double sigma, LocalizerEstimate estimate) {
         StateSE2 state = estimate.state();
         Pose2d pose = state.pose();
         assertEquals(x, pose.getX(), DELTA);
@@ -68,13 +69,17 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         assertEquals(sigma, noise.cartesian(), DELTA);
     }
 
-    private static void verifyBias(double mean, double sigma, SwerveHistory history, double timestamp) {
-        LocalizerEstimate estimate = history.getLocalizerEstimate(timestamp);
-        assertEquals(mean, estimate.gyroBias().mean(), DELTA);
-        assertEquals(sigma, estimate.gyroBias().sigma(), DELTA);
+    private static void verify(double x, double sigma, NoisyStateSE2 ns) {
+        StateSE2 state = ns.state();
+        Pose2d pose = state.pose();
+        assertEquals(x, pose.getX(), DELTA);
+        assertEquals(0, pose.getY(), DELTA);
+        assertEquals(0, pose.getRotation().getRadians(), DELTA);
+        IsotropicNoiseSE2 noise = ns.noise();
+        assertEquals(sigma, noise.cartesian(), DELTA);
     }
 
-    private static void verifyVelocity(double xV, StateSE2 state) {
+    private static void verifyVelocity(double xV, NoisyStateSE2 state) {
         VelocitySE2 v = state.velocity();
         assertEquals(xV, v.x(), DELTA);
     }
@@ -84,406 +89,323 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         DataLogManager.stop();
     }
 
+    private Rotation2d yaw;
+    private SwerveModulePositions positions;
+    private List<VisionMeasurement> vision;
+
     @Test
     void odo1() {
         SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forTest();
-
-        SwerveHistory history = new SwerveHistory(
-                0.2,
-                0,
-                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
-                new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
-                        VariableR1.fromVariance(0, 1)));
-
-        OdometryEstimator ou = new OdometryEstimator(
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
-        history.reset(
-                SwerveModulePositions.ZERO,
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
-                0, Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1));
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
 
-        Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(0);
-        Entry<Double, OdoGyroMeasurement> measurementLowerEntry = history.odoGyroMeasurementLowerEntry(0);
-        assertNull(estimateLowerEntry);
-        assertNull(measurementLowerEntry);
+        yaw = Rotation2d.kZero;
+        positions = SwerveModulePositions.ZERO;
+        vision = List.of();
 
-        verify(0.000, 0.1, history, 0.00);
-        verifyVelocity(0.000, history.get(0.00));
+        FusedEstimator estimator = new FusedEstimator(
+                0,
+                () -> yaw,
+                () -> positions,
+                () -> vision,
+                odometryEstimator,
+                visionEstimator);
+        estimator.reset(
+                0,
+                new NoisyStateSE2(
+                        new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.fromStdDev(0.1, 0.1)));
+
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verifyVelocity(0.000, estimator.getState(0.00));
         // move 0.1 m
 
-        estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
-        measurementLowerEntry = history.odoGyroMeasurementLowerEntry(0.02);
+        positions = position01;
+        estimator.update(0.02);
 
-        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        LocalizerEstimate e = ou.estimate(
-                measurementLowerEntry.getKey(),
-                estimateLowerEntry.getValue(),
-                measurementLowerEntry.getValue(),
-                0.02,
-                newMeasurement);
-        history.put(0.02, e, newMeasurement);
-        verify(0.000, 0.1, history, 0.00);
-        verifyVelocity(0.000, history.get(0.00));
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verifyVelocity(0.000, estimator.getState(0.00));
         // velocity is the delta
-        verify(0.1, 0.1, history, 0.02);
-        verifyVelocity(5.000, history.get(0.02));
+        verify(0.1, 0.1, estimator.getState(0.02));
+        verifyVelocity(5.000, estimator.getState(0.02));
 
         // big vision update
-        final IsotropicNoiseSE2 visionMeasurementStdDevs = IsotropicNoiseSE2.fromStdDev(0.5, Double.MAX_VALUE);
+        IsotropicNoiseSE2 visionMeasurementStdDevs = IsotropicNoiseSE2.fromStdDev(0.5, Double.MAX_VALUE);
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.00);
-        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.00);
-        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
-        history.put(0.00, estimate, sample);
-        or.replay(0);
+
+        vision = List.of(new VisionMeasurement(0, noisyMeasurement));
+        estimator.update(0.02);
+
         // position slides over there
-        verify(0.038, 0.102, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verifyVelocity(0.000, history.get(0.00));
+        verify(0.038, 0.102, estimator.getState(0.00));
+        verifyVelocity(0.000, estimator.getState(0.00));
         // odometry adds to that
-        verify(0.138, 0.102, history, 0.02);
+        verify(0.138, 0.102, estimator.getState(0.02));
         // velocity is unchanged.
-        verifyVelocity(5.000, history.get(0.02));
+        verifyVelocity(5.000, estimator.getState(0.02));
     }
 
     @Test
     void odo2() {
         SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forTest();
 
-        final IsotropicNoiseSE2 visionMeasurementStdDevs = IsotropicNoiseSE2.fromStdDev(0.5, Double.MAX_VALUE);
-        SwerveHistory history = new SwerveHistory(
-                0.2,
-                0,
-                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
-                new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
-                        VariableR1.fromVariance(0, 1)));
+        IsotropicNoiseSE2 visionMeasurementStdDevs = IsotropicNoiseSE2.fromStdDev(0.5, Double.MAX_VALUE);
 
-        OdometryEstimator ou = new OdometryEstimator(
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
-        history.reset(
-                SwerveModulePositions.ZERO,
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
-                0, Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1));
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
 
-        Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(0);
-        Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(0);
-        assertNull(estimateLowerEntry);
-        assertNull(lowerEntry);
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
 
-        verify(0.000, 0.1, history, 0.00);
-        verifyVelocity(0.000, history.get(0.00));
+        yaw = Rotation2d.kZero;
+        positions = SwerveModulePositions.ZERO;
+        vision = List.of();
+
+        FusedEstimator estimator = new FusedEstimator(
+                0,
+                () -> yaw,
+                () -> positions,
+                () -> vision,
+                odometryEstimator,
+                visionEstimator);
+        estimator.reset(
+                0,
+                new NoisyStateSE2(
+                        new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.fromStdDev(0.1, 0.1)));
+
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verifyVelocity(0.000, estimator.getState(0.00));
 
         // 0.1 m
 
-        estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
-        lowerEntry = history.odoGyroMeasurementLowerEntry(0.02);
+        positions = position01;
+        estimator.update(0.02);
 
-        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        LocalizerEstimate e = ou.estimate(
-                lowerEntry.getKey(),
-                estimateLowerEntry.getValue(),
-                lowerEntry.getValue(),
-                0.02,
-                newMeasurement);
-        history.put(0.02, e, newMeasurement);
-        verify(0.000, 0.1, history, 0.00);
-        verifyVelocity(0.000, history.get(0.00));
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verifyVelocity(0.000, estimator.getState(0.00));
         // velocity is the delta
-        verify(0.1, 0.1, history, 0.02);
-        verifyVelocity(5.000, history.get(0.02));
+        verify(0.1, 0.1, estimator.getState(0.02));
+        verifyVelocity(5.000, estimator.getState(0.02));
 
         // big vision update, but later
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.02);
-        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.02);
-        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        vision = List.of(new VisionMeasurement(0.02, noisyMeasurement));
+        estimator.update(0.02);
 
-        history.put(0.02, estimate, sample);
-        or.replay(0.02);
         // initial position is unchanged
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verifyVelocity(0.000, history.get(0.00));
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verifyVelocity(0.000, estimator.getState(0.00));
         // not sure what's happening here
-        verify(0.135, 0.102, history, 0.02);
+        verify(0.135, 0.102, estimator.getState(0.02));
         // velocity is STILL unchanged, i.e. not consistent with the pose history, which
-        // is probably better
-        // than making velocity reflect the camera noise.
-        verifyVelocity(5.000, history.get(0.02));
+        // is probably better than making velocity reflect the camera noise.
+        verifyVelocity(5.000, estimator.getState(0.02));
     }
 
     @Test
     void odo3() {
         SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forTest();
-
-        final IsotropicNoiseSE2 visionNoise = IsotropicNoiseSE2.fromStdDev(0.5, Double.MAX_VALUE);
-        SwerveHistory history = new SwerveHistory(
-                0.2,
-                0,
-                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
-                new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
-                        VariableR1.fromVariance(0, 1)));
-
-        OdometryEstimator ou = new OdometryEstimator(
+        IsotropicNoiseSE2 visionNoise = IsotropicNoiseSE2.fromStdDev(0.5, Double.MAX_VALUE);
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
-        history.reset(
-                SwerveModulePositions.ZERO,
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
-                0, Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1));
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
 
-        Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(0);
-        Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(0);
-        assertNull(estimateLowerEntry);
-        assertNull(lowerEntry);
+        yaw = Rotation2d.kZero;
+        positions = SwerveModulePositions.ZERO;
+        vision = List.of();
 
-        verify(0.000, 0.1, history, 0.00);
-        verifyVelocity(0.000, history.get(0.00));
+        FusedEstimator estimator = new FusedEstimator(
+                0,
+                () -> yaw,
+                () -> positions,
+                () -> vision,
+                odometryEstimator,
+                visionEstimator);
+        estimator.reset(
+                0,
+                new NoisyStateSE2(
+                        new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.fromStdDev(0.1, 0.1)));
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verifyVelocity(0.000, estimator.getState(0.00));
 
         // 0.1 m
+        positions = position01;
+        estimator.update(0.02);
 
-        estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
-        lowerEntry = history.odoGyroMeasurementLowerEntry(0.02);
-
-        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        LocalizerEstimate e = ou.estimate(
-                lowerEntry.getKey(),
-                estimateLowerEntry.getValue(),
-                lowerEntry.getValue(),
-                0.02,
-                newMeasurement);
-        history.put(0.02, e, newMeasurement);
-        verify(0.000, 0.1, history, 0.00);
-        verifyVelocity(0.000, history.get(0.00));
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verifyVelocity(0.000, estimator.getState(0.00));
         // velocity is the delta
-        verify(0.1, 0.1, history, 0.02);
-        verifyVelocity(5.000, history.get(0.02));
+        verify(0.1, 0.1, estimator.getState(0.02));
+        verifyVelocity(5.000, estimator.getState(0.02));
 
         // big vision update, even later
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionNoise);
-        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.04);
-        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.04);
-        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
-        history.put(0.04, estimate, sample);
-        or.replay(0.04);
+
+        vision = List.of(new VisionMeasurement(0.04, noisyMeasurement));
+        estimator.update(0.04);
+
         // initial position is unchanged
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verifyVelocity(0.000, history.get(0.00));
+        // LocalizerEstimate estimate5 = history.getLocalizerEstimate(0.00);
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verifyVelocity(0.000, estimator.getState(0.00));
         // camera does nothing
-        verify(0.1, 0.1, history, 0.02);
+        verify(0.1, 0.1, estimator.getState(0.02));
         // velocity is STILL unchanged, i.e. not consistent with the post history, which
         // is probably better
         // than making velocity reflect the camera noise.
-        verifyVelocity(5.000, history.get(0.02));
+        verifyVelocity(5.000, estimator.getState(0.02));
         // this is 0.1 towards the camera 1.0
-        verify(0.135, 0.102, history, 0.04);
-        // still velo is unaffected
-        verifyVelocity(5.000, history.get(0.04));
+        verify(0.135, 0.102, estimator.getState(0.04));
+        // because the "update" looks at both odo and vision inputs, and
+        // because we didn't change the wheel positions, v is zero.
+        verifyVelocity(0.000, estimator.getState(0.04));
     }
 
     @Test
     void outOfOrder() {
         // out of order vision updates
         SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forTest();
-        Gyro gyro = new MockGyro();
 
-        final IsotropicNoiseSE2 visionMeasurementStdDevs = IsotropicNoiseSE2.fromStdDev(0.5, Double.MAX_VALUE);
-        SwerveHistory history = new SwerveHistory(
-                0.2,
-                0,
-                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
-                new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
-                        VariableR1.fromVariance(0, 1)));
+        IsotropicNoiseSE2 visionMeasurementStdDevs = IsotropicNoiseSE2.fromStdDev(0.5, Double.MAX_VALUE);
 
-        OdometryEstimator ou = new OdometryEstimator(
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
-        history.reset(
-                SwerveModulePositions.ZERO,
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
-                0, Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1));
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
+
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
+
+        yaw = Rotation2d.kZero;
+        positions = SwerveModulePositions.ZERO;
+        vision = List.of();
+
+        FusedEstimator estimator = new FusedEstimator(
+                0,
+                () -> yaw,
+                () -> positions,
+                () -> vision,
+                odometryEstimator,
+                visionEstimator);
+        estimator.reset(
+                0,
+                new NoisyStateSE2(
+                        new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.fromStdDev(0.1, 0.1)));
 
         // initial pose = 0
-        verify(0, 0.1, history, 0.00);
+        verify(0, 0.1, estimator.getState(0.00));
 
         // pose stays zero when updated at time zero
         // if we try to update zero, there's nothing to compare it to,
         // so we should just ignore this update.
 
-        Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(0);
-        Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(0);
-        assertNull(estimateLowerEntry);
-        assertNull(lowerEntry);
-
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.000, 0.1, history, 0.01);
-        verify(0.000, 0.1, history, 0.02);
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.000, 0.1, estimator.getState(0.01));
+        verify(0.000, 0.1, estimator.getState(0.02));
 
         // now vision says we're one meter away, so pose goes towards that
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.01);
-        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.01);
-        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
-        history.put(0.01, estimate, sample);
-        or.replay(0.01);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.038, 0.101, history, 0.01);
 
-        // if we had added this vision measurement here, it would have pulled the
-        // estimate further
-        // poseEstimator.addVisionMeasurement(visionRobotPoseMeters, 0.015);
-        // verify(0.305, poseEstimator.get());
+        vision = List.of(new VisionMeasurement(0.01, noisyMeasurement));
+        estimator.update(0.01);
+
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.038, 0.101, estimator.getState(0.01));
 
         // wheels haven't moved, so the "odometry opinion" should be zero
         // but it's not, it's applied relative to the vision update, so there's no
         // change.
+        positions = SwerveModulePositions.ZERO;
+        vision = List.of();
+        estimator.update(0.02);
 
-        estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
-        lowerEntry = history.odoGyroMeasurementLowerEntry(0.02);
-
-        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(gyro.getYawNWU(), SwerveModulePositions.ZERO);
-        LocalizerEstimate e = ou.estimate(
-                lowerEntry.getKey(),
-                estimateLowerEntry.getValue(),
-                lowerEntry.getValue(),
-                0.02,
-                newMeasurement);
-
-        history.put(0.02, e, newMeasurement);
-
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.038, 0.101, history, 0.01);
-        verify(0.038, 0.101, history, 0.02);
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.038, 0.101, estimator.getState(0.01));
+        verify(0.038, 0.101, estimator.getState(0.02));
 
         // wheels have moved 0.1m in +x, at t=0.04.
         // the "odometry opinion" should be 0.1 since the last odometry estimate was
         // 0, but instead odometry is applied relative to the latest estimate, which
         // was based on vision. so the actual odometry stddev is like *zero*.
+        positions = position01;
+        estimator.update(0.04);
 
-        estimateLowerEntry = history.localizerEstimateLowerEntry(0.04);
-        lowerEntry = history.odoGyroMeasurementLowerEntry(0.04);
-
-        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        e = ou.estimate(
-                lowerEntry.getKey(),
-                estimateLowerEntry.getValue(),
-                lowerEntry.getValue(),
-                0.04,
-                newMeasurement);
-
-        history.put(0.04, e, newMeasurement);
-
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.038, 0.102, history, 0.02);
-        verify(0.138, 0.102, history, 0.04);
+        // LocalizerEstimate estimate14 = history.getLocalizerEstimate(0.00);
+        verify(0.000, 0.1, estimator.getState(0.00));
+        // LocalizerEstimate estimate15 = history.getLocalizerEstimate(0.02);
+        verify(0.038, 0.102, estimator.getState(0.02));
+        // LocalizerEstimate estimate16 = history.getLocalizerEstimate(0.04);
+        verify(0.138, 0.102, estimator.getState(0.04));
 
         // here's the delayed update from above, which moves the estimate to 0.305 and
         // then the odometry is applied on top of that, yielding 0.405.
-        sampleEstimate = history.getLocalizerEstimate(0.015);
-        sample = history.getOdoGyroMeasurement(0.015);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
-        history.put(0.015, estimate, sample);
-        or.replay(0.015);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.077, 0.103, history, 0.015);
+        vision = List.of(new VisionMeasurement(0.015, noisyMeasurement));
+        estimator.update(0.04);
+
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.077, 0.103, estimator.getState(0.015));
         // odometry thinks no motion at 0.02 so repeat the vision estimate here
-        verify(0.077, 0.103, history, 0.02);
+        verify(0.077, 0.103, estimator.getState(0.02));
         // odometry of 0.1 + the vision estimate from 0.02.
-        verify(0.177, 0.104, history, 0.04);
+        verify(0.177, 0.104, estimator.getState(0.04));
 
         // wheels are in the same position as the previous iteration,
+        positions = position01;
+        vision = List.of();
+        estimator.update(0.06);
 
-        estimateLowerEntry = history.localizerEstimateLowerEntry(0.06);
-        lowerEntry = history.odoGyroMeasurementLowerEntry(0.06);
-
-        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        e = ou.estimate(
-                lowerEntry.getKey(),
-                estimateLowerEntry.getValue(),
-                lowerEntry.getValue(),
-                0.06,
-                newMeasurement);
-        history.put(0.06, e, newMeasurement);
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.077, 0.103, history, 0.02);
-        verify(0.177, 0.104, history, 0.04);
-        verify(0.177, 0.104, history, 0.06);
-        verify(0.177, 0.104, history, 0.08);
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.077, 0.103, estimator.getState(0.02));
+        verify(0.177, 0.104, estimator.getState(0.04));
+        verify(0.177, 0.104, estimator.getState(0.06));
+        verify(0.177, 0.104, estimator.getState(0.08));
 
         // a little earlier than the previous estimate does nothing
-        sampleEstimate = history.getLocalizerEstimate(0.014);
-        sample = history.getOdoGyroMeasurement(0.014);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
-        history.put(0.014, estimate, sample);
-        or.replay(0.014);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
+
+        vision = List.of(new VisionMeasurement(0.014, noisyMeasurement));
+        estimator.update(0.04);
+
+        verify(0.000, 0.1, estimator.getState(0.00));
         // notices the vision input a bit earlier
-        verify(0.107, 0.104, history, 0.014);
+        verify(0.107, 0.104, estimator.getState(0.014));
         // but doesn't change this estimate since it's the same, and we're not moving,
         // we don't replay vision input
         // it would be better if two vision estimates pulled harder than one,
         // even if they come in out-of-order.
-        verify(0.107, 0.104, history, 0.015);
-        verify(0.107, 0.104, history, 0.02);
-        verify(0.207, 0.105, history, 0.04);
-        verify(0.207, 0.105, history, 0.06);
+        verify(0.107, 0.104, estimator.getState(0.015));
+        verify(0.107, 0.104, estimator.getState(0.02));
+        verify(0.207, 0.105, estimator.getState(0.04));
+        verify(0.207, 0.105, estimator.getState(0.06));
 
         // a little later than the previous estimate works normally.
-        sampleEstimate = history.getLocalizerEstimate(0.016);
-        sample = history.getOdoGyroMeasurement(0.016);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
-        history.put(0.016, estimate, sample);
-        or.replay(0.016);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.107, 0.104, history, 0.014);
-        verify(0.107, 0.104, history, 0.015);
+
+        vision = List.of(new VisionMeasurement(0.016, noisyMeasurement));
+        estimator.update(0.06);
+
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.107, 0.104, estimator.getState(0.014));
+        verify(0.107, 0.104, estimator.getState(0.015));
         // drag the pose towards the vision estimate a bit.
-        verify(0.144, 0.105, history, 0.016);
-        verify(0.144, 0.105, history, 0.02);
-        verify(0.244, 0.106, history, 0.04);
-        verify(0.244, 0.106, history, 0.06);
+        verify(0.144, 0.105, estimator.getState(0.016));
+        verify(0.144, 0.105, estimator.getState(0.02));
+        verify(0.244, 0.106, estimator.getState(0.04));
+        verify(0.244, 0.106, estimator.getState(0.06));
 
         // wheels not moving -> no change,
-        estimateLowerEntry = history.localizerEstimateLowerEntry(0.08);
-        lowerEntry = history.odoGyroMeasurementLowerEntry(0.08);
 
-        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        e = ou.estimate(
-                lowerEntry.getKey(),
-                estimateLowerEntry.getValue(),
-                lowerEntry.getValue(),
-                0.08,
-                newMeasurement);
+        positions = position01;
+        vision = List.of();
+        estimator.update(0.08);
 
-        history.put(0.08, e, newMeasurement);
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.144, 0.105, history, 0.02);
-        verify(0.244, 0.106, history, 0.04);
-        verify(0.244, 0.106, history, 0.06);
-        verify(0.244, 0.106, history, 0.08);
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.144, 0.105, estimator.getState(0.02));
+        verify(0.244, 0.106, estimator.getState(0.04));
+        verify(0.244, 0.106, estimator.getState(0.06));
+        verify(0.244, 0.106, estimator.getState(0.08));
     }
 
     @Test
@@ -493,60 +415,48 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         SwerveKinodynamics kinodynamics = SwerveKinodynamicsFactory.forTest();
 
         final IsotropicNoiseSE2 visionMeasurementStdDevs = IsotropicNoiseSE2.fromStdDev(0.5, Double.MAX_VALUE);
-        SwerveHistory history = new SwerveHistory(
-                0.2,
-                0,
-                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
-                new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
-                        VariableR1.fromVariance(0, 1)));
 
-        OdometryEstimator ou = new OdometryEstimator(
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
-        history.reset(
-                SwerveModulePositions.ZERO,
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
-                0, Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1));
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
+
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
+
+        yaw = Rotation2d.kZero;
+        positions = SwerveModulePositions.ZERO;
+        vision = List.of();
+
+        FusedEstimator estimator = new FusedEstimator(
+                0,
+                () -> yaw,
+                () -> positions,
+                () -> vision,
+                odometryEstimator,
+                visionEstimator);
+        estimator.reset(
+                0,
+                new NoisyStateSE2(
+                        new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.fromStdDev(0.1, 0.1)));
 
         // initial pose = 0
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.000, 0.1, history, 0.02);
-        verify(0.000, 0.1, history, 0.04);
-        verify(0.000, 0.1, history, 0.06);
-        verify(0.000, 0.1, history, 0.08);
-
-        // pose stays zero when updated at time zero
-        // if we try to update zero, there's nothing to compare it to,
-        // so we should just ignore this update.
-
-        Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(0);
-        Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(0);
-        assertNull(estimateLowerEntry);
-        assertNull(lowerEntry);
-
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.000, 0.1, history, 0.02);
-        verify(0.000, 0.1, history, 0.04);
-        verify(0.000, 0.1, history, 0.06);
-        verify(0.000, 0.1, history, 0.08);
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.000, 0.1, estimator.getState(0.02));
+        verify(0.000, 0.1, estimator.getState(0.04));
+        verify(0.000, 0.1, estimator.getState(0.06));
+        verify(0.000, 0.1, estimator.getState(0.08));
 
         // now vision says we're one meter away, so pose goes towards that
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
-        LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.01);
-        OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.01);
-        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
-        history.put(0.01, estimate, sample);
-        or.replay(0.01);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.038, 0.102, history, 0.02);
-        verify(0.038, 0.102, history, 0.04);
-        verify(0.038, 0.102, history, 0.06);
-        verify(0.038, 0.102, history, 0.08);
+
+        vision = List.of(new VisionMeasurement(0.01, noisyMeasurement));
+        estimator.update(0.01);
+
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.038, 0.102, estimator.getState(0.02));
+        verify(0.038, 0.102, estimator.getState(0.04));
+        verify(0.038, 0.102, estimator.getState(0.06));
+        verify(0.038, 0.102, estimator.getState(0.08));
 
         // if we had added this vision measurement here, it would have pulled the
         // estimate further
@@ -557,121 +467,81 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         // but it's not, it's applied relative to the vision update, so there's no
         // change.
 
-        estimateLowerEntry = history.localizerEstimateLowerEntry(0.02);
-        lowerEntry = history.odoGyroMeasurementLowerEntry(0.02);
+        positions = SwerveModulePositions.ZERO;
+        vision = List.of();
+        estimator.update(0.02);
 
-        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO);
-        LocalizerEstimate e = ou.estimate(
-                lowerEntry.getKey(),
-                estimateLowerEntry.getValue(),
-                lowerEntry.getValue(),
-                0.02,
-                newMeasurement);
-        history.put(0.02, e, newMeasurement);
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.038, 0.102, history, 0.02);
-        verify(0.038, 0.102, history, 0.04);
-        verify(0.038, 0.102, history, 0.06);
-        verify(0.038, 0.102, history, 0.08);
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.038, 0.102, estimator.getState(0.02));
+        verify(0.038, 0.102, estimator.getState(0.04));
+        verify(0.038, 0.102, estimator.getState(0.06));
+        verify(0.038, 0.102, estimator.getState(0.08));
 
         // wheels have moved 0.1m in +x, at t=0.04.
         // the "odometry opinion" should be 0.1 since the last odometry estimate was
         // 0, but instead odometry is applied relative to the latest estimate, which
         // was based on vision. so the actual odometry stddev is like *zero*.
 
-        estimateLowerEntry = history.localizerEstimateLowerEntry(0.04);
-        lowerEntry = history.odoGyroMeasurementLowerEntry(0.04);
+        positions = position01;
+        vision = List.of();
+        estimator.update(0.04);
 
-        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        e = ou.estimate(
-                lowerEntry.getKey(),
-                estimateLowerEntry.getValue(),
-                lowerEntry.getValue(),
-                0.04,
-                newMeasurement);
-        history.put(0.04, e, newMeasurement);
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.038, 0.102, history, 0.02);
-        verify(0.138, 0.102, history, 0.04);
-        verify(0.138, 0.102, history, 0.06);
-        verify(0.138, 0.102, history, 0.08);
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.038, 0.102, estimator.getState(0.02));
+        verify(0.138, 0.102, estimator.getState(0.04));
+        verify(0.138, 0.102, estimator.getState(0.06));
+        verify(0.138, 0.102, estimator.getState(0.08));
 
-        // here's the delayed update from above, which moves the estimate and
-        // then the odometry is applied on top of that.
-        sampleEstimate = history.getLocalizerEstimate(0.015);
-        sample = history.getOdoGyroMeasurement(0.015);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
-        history.put(0.015, estimate, sample);
-        or.replay(0.015);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.077, 0.103, history, 0.02);
-        verify(0.177, 0.103, history, 0.04);
-        verify(0.177, 0.103, history, 0.06);
-        verify(0.177, 0.103, history, 0.08);
+        vision = List.of(new VisionMeasurement(0.015, noisyMeasurement));
+        estimator.update(0.04);
+
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.077, 0.103, estimator.getState(0.02));
+        verify(0.177, 0.103, estimator.getState(0.04));
+        verify(0.177, 0.103, estimator.getState(0.06));
+        verify(0.177, 0.103, estimator.getState(0.08));
 
         // wheels are in the same position as the previous iteration
 
-        estimateLowerEntry = history.localizerEstimateLowerEntry(0.06);
-        lowerEntry = history.odoGyroMeasurementLowerEntry(0.06);
+        positions = position01;
+        vision = List.of();
+        estimator.update(0.06);
 
-        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        e = ou.estimate(
-                lowerEntry.getKey(),
-                estimateLowerEntry.getValue(),
-                lowerEntry.getValue(),
-                0.06,
-                newMeasurement);
-        history.put(0.06, e, newMeasurement);
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.077, 0.103, history, 0.02);
-        verify(0.177, 0.103, history, 0.04);
-        verify(0.177, 0.103, history, 0.06);
-        verify(0.177, 0.103, history, 0.08);
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.077, 0.103, estimator.getState(0.02));
+        verify(0.177, 0.103, estimator.getState(0.04));
+        verify(0.177, 0.103, estimator.getState(0.06));
+        verify(0.177, 0.103, estimator.getState(0.08));
 
-        // a little earlier than the previous estimate does nothing.
-        sampleEstimate = history.getLocalizerEstimate(0.014);
-        sample = history.getOdoGyroMeasurement(0.014);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
-        history.put(0.014, estimate, sample);
-        or.replay(0.014);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.107, 0.104, history, 0.02);
-        verify(0.207, 0.104, history, 0.04);
-        verify(0.207, 0.104, history, 0.06);
-        verify(0.207, 0.104, history, 0.08);
+        vision = List.of(new VisionMeasurement(0.014, noisyMeasurement));
+        estimator.update(0.06);
 
-        // a little later than the previous estimate works normally.
-        sampleEstimate = history.getLocalizerEstimate(0.016);
-        sample = history.getOdoGyroMeasurement(0.016);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
-        history.put(0.016, estimate, sample);
-        or.replay(0.016);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.144, 0.105, history, 0.02);
-        verify(0.244, 0.105, history, 0.04);
-        verify(0.244, 0.105, history, 0.06);
-        verify(0.244, 0.105, history, 0.08);
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.107, 0.104, estimator.getState(0.02));
+        verify(0.207, 0.104, estimator.getState(0.04));
+        verify(0.207, 0.104, estimator.getState(0.06));
+        verify(0.207, 0.104, estimator.getState(0.08));
+
+        vision = List.of(new VisionMeasurement(0.016, noisyMeasurement));
+        estimator.update(0.06);
+
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.144, 0.105, estimator.getState(0.02));
+        verify(0.244, 0.105, estimator.getState(0.04));
+        verify(0.244, 0.105, estimator.getState(0.06));
+        verify(0.244, 0.105, estimator.getState(0.08));
 
         // wheels not moving -> no change
-        estimateLowerEntry = history.localizerEstimateLowerEntry(0.08);
-        lowerEntry = history.odoGyroMeasurementLowerEntry(0.08);
 
-        newMeasurement = new OdoGyroMeasurement(Rotation2d.kZero, position01);
-        e = ou.estimate(
-                lowerEntry.getKey(),
-                estimateLowerEntry.getValue(),
-                lowerEntry.getValue(),
-                0.08,
-                newMeasurement);
-        history.put(0.08, e, newMeasurement);
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.144, 0.105, history, 0.02);
-        verify(0.244, 0.105, history, 0.04);
-        verify(0.244, 0.105, history, 0.06);
-        verify(0.244, 0.105, history, 0.08);
+        positions = position01;
+        vision = List.of();
+        estimator.update(0.08);
+
+        verify(0.000, 0.1, estimator.getState(0.00));
+        verify(0.144, 0.105, estimator.getState(0.02));
+        verify(0.244, 0.105, estimator.getState(0.04));
+        verify(0.244, 0.105, estimator.getState(0.06));
+        verify(0.244, 0.105, estimator.getState(0.08));
     }
 
     @Test
@@ -688,69 +558,58 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
                         VariableR1.fromVariance(0, 1)));
 
-        OdometryEstimator ou = new OdometryEstimator(
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                SwerveModulePositions.ZERO,
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
-                0, Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1));
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
+                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
+                new LocalizerEstimate(
+                        new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
+                        VariableR1.fromVariance(0, 1)),
+                0);
+        OdometryReplayer or = new OdometryReplayer(history, odometryEstimator);
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
 
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.000, 0.1, history, 0.02);
-        verify(0.000, 0.1, history, 0.04);
-        verify(0.000, 0.1, history, 0.06);
-        verify(0.000, 0.1, history, 0.08);
-
-        Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(0);
-        assertNull(lowerEntry);
-
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.000, 0.1, history, 0.02);
-        verify(0.000, 0.1, history, 0.04);
-        verify(0.000, 0.1, history, 0.06);
-        verify(0.000, 0.1, history, 0.08);
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.00));
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.02));
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.04));
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.06));
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.08));
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
         LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.02);
         OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.02);
-        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        LocalizerEstimate estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.02, estimate, sample);
         or.replay(0.02);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.038, 0.102, history, 0.02);
-        verify(0.038, 0.102, history, 0.04);
-        verify(0.038, 0.102, history, 0.06);
-        verify(0.038, 0.102, history, 0.08);
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.00));
+        verify(0.038, 0.102, history.getLocalizerEstimate(0.02));
+        verify(0.038, 0.102, history.getLocalizerEstimate(0.04));
+        verify(0.038, 0.102, history.getLocalizerEstimate(0.06));
+        verify(0.038, 0.102, history.getLocalizerEstimate(0.08));
 
         sampleEstimate = history.getLocalizerEstimate(0.04);
         sample = history.getOdoGyroMeasurement(0.04);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.04, estimate, sample);
         or.replay(0.04);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.038, 0.102, history, 0.02);
-        verify(0.077, 0.103, history, 0.04);
-        verify(0.077, 0.103, history, 0.06);
-        verify(0.077, 0.103, history, 0.08);
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.00));
+        verify(0.038, 0.102, history.getLocalizerEstimate(0.02));
+        verify(0.077, 0.103, history.getLocalizerEstimate(0.04));
+        verify(0.077, 0.103, history.getLocalizerEstimate(0.06));
+        verify(0.077, 0.103, history.getLocalizerEstimate(0.08));
 
         sampleEstimate = history.getLocalizerEstimate(0.06);
         sample = history.getOdoGyroMeasurement(0.06);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.06, estimate, sample);
         or.replay(0.06);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.038, 0.102, history, 0.02);
-        verify(0.077, 0.103, history, 0.04);
-        verify(0.114, 0.104, history, 0.06);
-        verify(0.114, 0.104, history, 0.08);
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.00));
+        verify(0.038, 0.102, history.getLocalizerEstimate(0.02));
+        verify(0.077, 0.103, history.getLocalizerEstimate(0.04));
+        verify(0.114, 0.104, history.getLocalizerEstimate(0.06));
+        verify(0.114, 0.104, history.getLocalizerEstimate(0.08));
     }
 
     @Test
@@ -766,70 +625,58 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
                         VariableR1.fromVariance(0, 1)));
 
-        OdometryEstimator ou = new OdometryEstimator(
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                SwerveModulePositions.ZERO,
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
-                0, Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1));
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
+                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
+                new LocalizerEstimate(
+                        new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.fromStdDev(0.1, 0.1),
+                        VariableR1.fromVariance(0, 1)),
+                0);
+        OdometryReplayer or = new OdometryReplayer(history, odometryEstimator);
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
 
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.000, 0.1, history, 0.02);
-        verify(0.000, 0.1, history, 0.04);
-        verify(0.000, 0.1, history, 0.06);
-        verify(0.000, 0.1, history, 0.08);
-
-        Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(0);
-
-        assertNull(lowerEntry);
-
-        verify(0.000, 0.1, history, 0.00);
-        verify(0.000, 0.1, history, 0.02);
-        verify(0.000, 0.1, history, 0.04);
-        verify(0.000, 0.1, history, 0.06);
-        verify(0.000, 0.1, history, 0.08);
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.00));
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.02));
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.04));
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.06));
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.08));
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
         LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.02);
         OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.02);
-        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        LocalizerEstimate estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.02, estimate, sample);
         or.replay(0.02);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.010, 0.100, history, 0.02);
-        verify(0.010, 0.100, history, 0.04);
-        verify(0.010, 0.100, history, 0.06);
-        verify(0.010, 0.100, history, 0.08);
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.00));
+        verify(0.010, 0.100, history.getLocalizerEstimate(0.02));
+        verify(0.010, 0.100, history.getLocalizerEstimate(0.04));
+        verify(0.010, 0.100, history.getLocalizerEstimate(0.06));
+        verify(0.010, 0.100, history.getLocalizerEstimate(0.08));
 
         sampleEstimate = history.getLocalizerEstimate(0.04);
         sample = history.getOdoGyroMeasurement(0.04);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.04, estimate, sample);
         or.replay(0.04);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.010, 0.100, history, 0.02);
-        verify(0.020, 0.100, history, 0.04);
-        verify(0.020, 0.100, history, 0.06);
-        verify(0.020, 0.100, history, 0.08);
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.00));
+        verify(0.010, 0.100, history.getLocalizerEstimate(0.02));
+        verify(0.020, 0.100, history.getLocalizerEstimate(0.04));
+        verify(0.020, 0.100, history.getLocalizerEstimate(0.06));
+        verify(0.020, 0.100, history.getLocalizerEstimate(0.08));
 
         sampleEstimate = history.getLocalizerEstimate(0.06);
         sample = history.getOdoGyroMeasurement(0.06);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.06, estimate, sample);
         or.replay(0.06);
-        verify(0.000, 0.1, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.010, 0.100, history, 0.02);
-        verify(0.020, 0.100, history, 0.04);
-        verify(0.029, 0.101, history, 0.06);
-        verify(0.029, 0.101, history, 0.08);
+        verify(0.000, 0.1, history.getLocalizerEstimate(0.00));
+        verify(0.010, 0.100, history.getLocalizerEstimate(0.02));
+        verify(0.020, 0.100, history.getLocalizerEstimate(0.04));
+        verify(0.029, 0.101, history.getLocalizerEstimate(0.06));
+        verify(0.029, 0.101, history.getLocalizerEstimate(0.08));
     }
 
     @Test
@@ -846,69 +693,58 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
                         VariableR1.fromVariance(0, 1)));
 
-        OdometryEstimator ou = new OdometryEstimator(
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                SwerveModulePositions.ZERO,
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.fromStdDev(0.05, 0.05),
-                0, Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1));
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
+                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
+                new LocalizerEstimate(
+                        new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.fromStdDev(0.05, 0.05),
+                        VariableR1.fromVariance(0, 1)),
+                0);
+        OdometryReplayer or = new OdometryReplayer(history, odometryEstimator);
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
 
-        verify(0.000, 0.05, history, 0.00);
-        verify(0.000, 0.05, history, 0.02);
-        verify(0.000, 0.05, history, 0.04);
-        verify(0.000, 0.05, history, 0.06);
-        verify(0.000, 0.05, history, 0.08);
-
-        Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(0);
-        assertNull(lowerEntry);
-
-        verify(0.000, 0.05, history, 0.00);
-        verify(0.000, 0.05, history, 0.02);
-        verify(0.000, 0.05, history, 0.04);
-        verify(0.000, 0.05, history, 0.06);
-        verify(0.000, 0.05, history, 0.08);
+        verify(0.000, 0.05, history.getLocalizerEstimate(0.00));
+        verify(0.000, 0.05, history.getLocalizerEstimate(0.02));
+        verify(0.000, 0.05, history.getLocalizerEstimate(0.04));
+        verify(0.000, 0.05, history.getLocalizerEstimate(0.06));
+        verify(0.000, 0.05, history.getLocalizerEstimate(0.08));
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
         LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.02);
         OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.02);
-        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        LocalizerEstimate estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.02, estimate, sample);
         or.replay(0.02);
-        verify(0.000, 0.05, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.010, 0.052, history, 0.02);
-        verify(0.010, 0.052, history, 0.04);
-        verify(0.010, 0.052, history, 0.06);
-        verify(0.010, 0.052, history, 0.08);
+        verify(0.000, 0.05, history.getLocalizerEstimate(0.00));
+        verify(0.010, 0.052, history.getLocalizerEstimate(0.02));
+        verify(0.010, 0.052, history.getLocalizerEstimate(0.04));
+        verify(0.010, 0.052, history.getLocalizerEstimate(0.06));
+        verify(0.010, 0.052, history.getLocalizerEstimate(0.08));
 
         sampleEstimate = history.getLocalizerEstimate(0.04);
         sample = history.getOdoGyroMeasurement(0.04);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.04, estimate, sample);
         or.replay(0.04);
-        verify(0.000, 0.05, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.010, 0.052, history, 0.02);
-        verify(0.020, 0.053, history, 0.04);
-        verify(0.020, 0.053, history, 0.06);
-        verify(0.020, 0.053, history, 0.08);
+        verify(0.000, 0.05, history.getLocalizerEstimate(0.00));
+        verify(0.010, 0.052, history.getLocalizerEstimate(0.02));
+        verify(0.020, 0.053, history.getLocalizerEstimate(0.04));
+        verify(0.020, 0.053, history.getLocalizerEstimate(0.06));
+        verify(0.020, 0.053, history.getLocalizerEstimate(0.08));
 
         sampleEstimate = history.getLocalizerEstimate(0.06);
         sample = history.getOdoGyroMeasurement(0.06);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.06, estimate, sample);
         or.replay(0.06);
-        verify(0.000, 0.05, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.010, 0.052, history, 0.02);
-        verify(0.020, 0.053, history, 0.04);
-        verify(0.031, 0.055, history, 0.06);
-        verify(0.031, 0.055, history, 0.08);
+        verify(0.000, 0.05, history.getLocalizerEstimate(0.00));
+        verify(0.010, 0.052, history.getLocalizerEstimate(0.02));
+        verify(0.020, 0.053, history.getLocalizerEstimate(0.04));
+        verify(0.031, 0.055, history.getLocalizerEstimate(0.06));
+        verify(0.031, 0.055, history.getLocalizerEstimate(0.08));
     }
 
     @Test
@@ -927,69 +763,58 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
                         VariableR1.fromVariance(0, 1)));
 
-        OdometryEstimator ou = new OdometryEstimator(
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                SwerveModulePositions.ZERO,
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.fromStdDev(0.01, 0.01),
-                0, Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1));
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
+                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
+                new LocalizerEstimate(
+                        new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.fromStdDev(0.01, 0.01),
+                        VariableR1.fromVariance(0, 1)),
+                0);
+        OdometryReplayer or = new OdometryReplayer(history, odometryEstimator);
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
 
-        verify(0.000, 0.01, history, 0.00);
-        verify(0.000, 0.01, history, 0.02);
-        verify(0.000, 0.01, history, 0.04);
-        verify(0.000, 0.01, history, 0.06);
-        verify(0.000, 0.01, history, 0.08);
-
-        Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(0);
-        assertNull(lowerEntry);
-
-        verify(0.000, 0.01, history, 0.00);
-        verify(0.000, 0.01, history, 0.02);
-        verify(0.000, 0.01, history, 0.04);
-        verify(0.000, 0.01, history, 0.06);
-        verify(0.000, 0.01, history, 0.08);
+        verify(0.000, 0.01, history.getLocalizerEstimate(0.00));
+        verify(0.000, 0.01, history.getLocalizerEstimate(0.02));
+        verify(0.000, 0.01, history.getLocalizerEstimate(0.04));
+        verify(0.000, 0.01, history.getLocalizerEstimate(0.06));
+        verify(0.000, 0.01, history.getLocalizerEstimate(0.08));
 
         NoisyPose2d noisyMeasurement = new NoisyPose2d(visionPose, visionMeasurementStdDevs);
         LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(0.02);
         OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.02);
-        LocalizerEstimate estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        LocalizerEstimate estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.02, estimate, sample);
         or.replay(0.02);
-        verify(0.000, 0.01, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.010, 0.017, history, 0.02);
-        verify(0.010, 0.017, history, 0.04);
-        verify(0.010, 0.017, history, 0.06);
-        verify(0.010, 0.017, history, 0.08);
+        verify(0.000, 0.01, history.getLocalizerEstimate(0.00));
+        verify(0.010, 0.017, history.getLocalizerEstimate(0.02));
+        verify(0.010, 0.017, history.getLocalizerEstimate(0.04));
+        verify(0.010, 0.017, history.getLocalizerEstimate(0.06));
+        verify(0.010, 0.017, history.getLocalizerEstimate(0.08));
 
         sampleEstimate = history.getLocalizerEstimate(0.04);
         sample = history.getOdoGyroMeasurement(0.04);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.04, estimate, sample);
         or.replay(0.04);
-        verify(0.000, 0.01, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.010, 0.017, history, 0.02);
-        verify(0.038, 0.029, history, 0.04);
-        verify(0.038, 0.029, history, 0.06);
-        verify(0.038, 0.029, history, 0.08);
+        verify(0.000, 0.01, history.getLocalizerEstimate(0.00));
+        verify(0.010, 0.017, history.getLocalizerEstimate(0.02));
+        verify(0.038, 0.029, history.getLocalizerEstimate(0.04));
+        verify(0.038, 0.029, history.getLocalizerEstimate(0.06));
+        verify(0.038, 0.029, history.getLocalizerEstimate(0.08));
 
         sampleEstimate = history.getLocalizerEstimate(0.06);
         sample = history.getOdoGyroMeasurement(0.06);
-        estimate = vu.estimate(sampleEstimate, noisyMeasurement);
+        estimate = visionEstimator.estimate(sampleEstimate, noisyMeasurement);
         history.put(0.06, estimate, sample);
         or.replay(0.06);
-        verify(0.000, 0.01, history, 0.00);
-        verifyBias(0, 1, history, 0);
-        verify(0.010, 0.017, history, 0.02);
-        verify(0.038, 0.029, history, 0.04);
-        verify(0.112, 0.046, history, 0.06);
-        verify(0.112, 0.046, history, 0.08);
+        verify(0.000, 0.01, history.getLocalizerEstimate(0.00));
+        verify(0.010, 0.017, history.getLocalizerEstimate(0.02));
+        verify(0.038, 0.029, history.getLocalizerEstimate(0.04));
+        verify(0.112, 0.046, history.getLocalizerEstimate(0.06));
+        verify(0.112, 0.046, history.getLocalizerEstimate(0.08));
     }
 
     ////////////////////////////////////////
@@ -1065,7 +890,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
                         VariableR1.fromVariance(0, 1)));
 
-        OdometryEstimator ou = new OdometryEstimator(
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 0.05 / Math.sqrt(0.02), 1e-5,
                 false, true);
 
@@ -1074,18 +899,19 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 new SwerveModulePosition100(),
                 new SwerveModulePosition100(),
                 new SwerveModulePosition100());
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
+        OdometryReplayer or = new OdometryReplayer(history, odometryEstimator);
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
 
         Pose2d endingPose = new Pose2d(0, 0, Rotation2d.fromDegrees(45));
 
         // new starting pose here, so we don't actually use the earlier initial pose
         history.reset(
-                positions,
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.high(),
-                0, gyro.getYawNWU(),
-                VariableR1.fromVariance(0, 1));
+                new OdoGyroMeasurement(gyro.getYawNWU(), positions),
+                new LocalizerEstimate(
+                        new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.high(),
+                        VariableR1.fromVariance(0, 1)),
+                0);
 
         double t = 0.0;
 
@@ -1123,7 +949,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                         visionMeasurementStdDevs);
                 LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(timestamp);
                 OdoGyroMeasurement sample = history.getOdoGyroMeasurement(timestamp);
-                LocalizerEstimate estimate = vu.estimate(sampleEstimate, m);
+                LocalizerEstimate estimate = visionEstimator.estimate(sampleEstimate, m);
                 history.put(timestamp, estimate, sample);
                 or.replay(timestamp);
             }
@@ -1158,12 +984,12 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
 
             positions = new SwerveModulePositions(newPositions[0], newPositions[1], newPositions[2], newPositions[3]);
 
-            Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(t);
-            Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(t);
+            Entry<Double, LocalizerEstimate> estimateLowerEntry = history.estimateLowerEntry(t);
+            Entry<Double, OdoGyroMeasurement> lowerEntry = history.measurementLowerEntry(t);
 
             if (lowerEntry != null) {
                 OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(gyro.getYawNWU(), positions);
-                LocalizerEstimate e = ou.estimate(
+                LocalizerEstimate e = odometryEstimator.estimate(
                         lowerEntry.getKey(),
                         estimateLowerEntry.getValue(),
                         lowerEntry.getValue(),
@@ -1233,21 +1059,18 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
                         VariableR1.fromVariance(0, 1)));
 
-        OdometryEstimator ou = new OdometryEstimator(
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
         history.reset(
-                SwerveModulePositions.ZERO,
-                new StateSE2(new Pose2d(1, 2, Rotation2d.fromDegrees(270)), VelocitySE2.ZERO),
-                IsotropicNoiseSE2.high(),
-                0, gyro.getYawNWU(),
-                VariableR1.fromVariance(0, 1));
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
-
-        Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(0);
-
-        assertNull(lowerEntry);
+                new OdoGyroMeasurement(gyro.getYawNWU(), SwerveModulePositions.ZERO),
+                new LocalizerEstimate(
+                        new StateSE2(new Pose2d(1, 2, Rotation2d.fromDegrees(270)), VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.high(),
+                        VariableR1.fromVariance(0, 1)),
+                0);
+        OdometryReplayer or = new OdometryReplayer(history, odometryEstimator);
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
 
         var visionMeasurements = new Pose2d[] {
                 new Pose2d(0, 0, Rotation2d.fromDegrees(0)),
@@ -1261,7 +1084,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 OdoGyroMeasurement sample = history.getOdoGyroMeasurement(0.00);
                 NoisyPose2d noisyMeasurement = new NoisyPose2d(
                         measurement, visionMeasurementStdDevs);
-                LocalizerEstimate estimate = vu.estimate(
+                LocalizerEstimate estimate = visionEstimator.estimate(
                         sampleEstimate, noisyMeasurement);
                 history.put(0.00, estimate, sample);
                 or.replay(0);
@@ -1293,28 +1116,30 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
                 new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
                         VariableR1.fromVariance(0, 1)));
 
-        OdometryEstimator ou = new OdometryEstimator(
+        OdometryEstimator odometryEstimator = new OdometryEstimator(
                 logger, kinodynamics, 4e-4, 1e-5,
                 false, true);
 
         history.reset(
-                SwerveModulePositions.ZERO,
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.high(),
-                0, gyro.getYawNWU(),
-                VariableR1.fromVariance(0, 1));
-        OdometryReplayer or = new OdometryReplayer(history, ou);
-        NudgingVisionEstimator vu = new NudgingVisionEstimator(logger);
+                new OdoGyroMeasurement(gyro.getYawNWU(), SwerveModulePositions.ZERO),
+                new LocalizerEstimate(
+                        new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.high(),
+                        VariableR1.fromVariance(0, 1)),
+                0);
+        OdometryReplayer or = new OdometryReplayer(history, odometryEstimator);
+        NudgingVisionEstimator visionEstimator = new NudgingVisionEstimator(logger);
 
         double time = 0;
 
         // Add enough measurements to fill up the buffer
         for (; time < 4; time += 0.02) {
-            Entry<Double, LocalizerEstimate> estimateLowerEntry = history.localizerEstimateLowerEntry(time);
-            Entry<Double, OdoGyroMeasurement> lowerEntry = history.odoGyroMeasurementLowerEntry(time);
+            Entry<Double, LocalizerEstimate> estimateLowerEntry = history.estimateLowerEntry(time);
+            Entry<Double, OdoGyroMeasurement> lowerEntry = history.measurementLowerEntry(time);
             if (lowerEntry != null) {
-                OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(gyro.getYawNWU(), SwerveModulePositions.ZERO);
-                LocalizerEstimate e = ou.estimate(
+                OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(gyro.getYawNWU(),
+                        SwerveModulePositions.ZERO);
+                LocalizerEstimate e = odometryEstimator.estimate(
                         lowerEntry.getKey(),
                         estimateLowerEntry.getValue(),
                         lowerEntry.getValue(),
@@ -1333,7 +1158,7 @@ class SwerveDrivePoseEstimator100Test implements Timeless {
         NoisyPose2d noisyMeasurement = new NoisyPose2d(
                 new Pose2d(new Translation2d(10, 10), new Rotation2d(0.1)),
                 IsotropicNoiseSE2.fromStdDev(0.1, 0.1));
-        LocalizerEstimate estimate = vu.estimate(
+        LocalizerEstimate estimate = visionEstimator.estimate(
                 sampleEstimate, noisyMeasurement);
 
         if (!history.tooOld(1))

@@ -26,16 +26,16 @@ public class OdometryReplayer {
             System.out.printf("==== REPLAY FOR TIME %f\n", sampleTime);
         // Note the exclusive tailmap: we don't see the entry at timestamp.
         Set<Entry<Double, OdoGyroMeasurement>> entriesAfterSampleTime = m_history
-                .swerveStateExclusiveTailMap(sampleTime).entrySet();
+                .measurementTailMap(sampleTime).entrySet();
         for (Map.Entry<Double, OdoGyroMeasurement> entry : entriesAfterSampleTime) {
             double timestamp = entry.getKey();
 
-            Entry<Double, LocalizerEstimate> estimateEntry = m_history.localizerEstimateLowerEntry(timestamp);
+            Entry<Double, LocalizerEstimate> estimateEntry = m_history.estimateLowerEntry(timestamp);
             if (estimateEntry == null)
                 continue;
             LocalizerEstimate previousEstimate = estimateEntry.getValue();
 
-            Entry<Double, OdoGyroMeasurement> measurementEntry = m_history.odoGyroMeasurementLowerEntry(timestamp);
+            Entry<Double, OdoGyroMeasurement> measurementEntry = m_history.measurementLowerEntry(timestamp);
             if (measurementEntry == null)
                 continue;
             double previousTimestamp = measurementEntry.getKey();

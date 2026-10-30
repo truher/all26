@@ -34,4 +34,15 @@ public class AprilTagFieldLayoutWithCorrectOrientationTest {
         assertEquals(0.655, pose.getY(), DELTA);
         assertEquals(1.486, pose.getZ(), DELTA);
     }
+
+    @Test
+    void test0() throws IOException {
+        AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation(
+                "2025-reefscape.json");
+        Pose3d tag4pose = layout.getTagPose(Alliance.Red, 4).get();
+        assertEquals(8.272, tag4pose.getX(), DELTA);
+        assertEquals(1.914, tag4pose.getY(), DELTA);
+        assertEquals(1.868, tag4pose.getZ(), DELTA);
+    }
+
 }

@@ -4,12 +4,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 
 import org.team100.lib.state.StateSE2;
-import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
-import org.team100.lib.uncertainty.IsotropicNoiseSE2;
-import org.team100.lib.uncertainty.VariableR1;
 import org.team100.lib.util.TimeInterpolatableBuffer100;
-
-import edu.wpi.first.math.geometry.Rotation2d;
 
 /**
  * History is just a container, in fact the implementation is little more than a
@@ -60,18 +55,11 @@ public class SwerveHistory {
 
     /** Empty the buffer and add the given measurements. */
     public void reset(
-            SwerveModulePositions modulePositions,
-            StateSE2 newState,
-            IsotropicNoiseSE2 noise,
-            double timestampSeconds,
-            Rotation2d gyroYaw,
-            VariableR1 gyroBias) {
-        LocalizerEstimate estimate = new LocalizerEstimate(
-                newState, noise, gyroBias);
-        m_estimates.reset(timestampSeconds, estimate);
-        OdoGyroMeasurement measurement = new OdoGyroMeasurement(
-                gyroYaw, modulePositions);
+            OdoGyroMeasurement measurement,
+            LocalizerEstimate estimate,
+            double timestampSeconds) {
         m_measurements.reset(timestampSeconds, measurement);
+        m_estimates.reset(timestampSeconds, estimate);
     }
 
     //////////////////////////////////////////////////
@@ -92,11 +80,11 @@ public class SwerveHistory {
     }
 
     /** Entry for time strictly before timestamp. Never interpolated. */
-    public Entry<Double, OdoGyroMeasurement> odoGyroMeasurementLowerEntry(double timestamp) {
+    public Entry<Double, OdoGyroMeasurement> measurementLowerEntry(double timestamp) {
         return m_measurements.lowerEntry(timestamp);
     }
 
-    public Entry<Double, LocalizerEstimate> localizerEstimateLowerEntry(double timestamp) {
+    public Entry<Double, LocalizerEstimate> estimateLowerEntry(double timestamp) {
         return m_estimates.lowerEntry(timestamp);
     }
 
@@ -113,12 +101,12 @@ public class SwerveHistory {
         return m_estimates.get(timestamp);
     }
 
-    boolean tooOld(double timestamp) {
+    public boolean tooOld(double timestamp) {
         return m_measurements.tooOld(timestamp);
     }
 
     /** strictly later than the timestamp. */
-    public SortedMap<Double, OdoGyroMeasurement> swerveStateExclusiveTailMap(double timestamp) {
+    public SortedMap<Double, OdoGyroMeasurement> measurementTailMap(double timestamp) {
         return m_measurements.tailMap(timestamp, false);
     }
 
@@ -131,7 +119,7 @@ public class SwerveHistory {
     }
 
     /** Print the buffer contents. */
-    void dump() {
+    public void dump() {
         m_estimates.dump();
         m_measurements.dump();
     }

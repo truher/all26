@@ -1,121 +1,105 @@
 package org.team100.lib.localization.fused;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.function.Supplier;
 
-import org.team100.lib.coherence.Cache;
-import org.team100.lib.coherence.ObjectCache;
-import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.framework.TimedRobot100;
 import org.team100.lib.geometry.se2.VelocitySE2;
-import org.team100.lib.localization.HistoryUpdater;
 import org.team100.lib.localization.ImmutableSwerveHistory;
 import org.team100.lib.localization.LocalizerEstimate;
 import org.team100.lib.localization.OdoGyroMeasurement;
 import org.team100.lib.localization.StateEstimator;
 import org.team100.lib.localization.SwerveHistory;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
-import org.team100.lib.logging.LoggerFactory;
-import org.team100.lib.sensor.gyro.Gyro;
 import org.team100.lib.state.StateSE2;
-import org.team100.lib.subsystems.swerve.SwerveLocal;
-import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
+import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
+import org.team100.lib.uncertainty.NoisyPose2d;
+import org.team100.lib.uncertainty.NoisyStateSE2;
 import org.team100.lib.uncertainty.VariableR1;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.math.geometry.Rotation2d;
 
 /**
- * Provides state estimates after updating vision and odometry.
+ * Provides state estimates after updating vision and odometry, using "Fusors"
+ * and replay.
  * 
- * The underlying updaters use "Fusors" and replay.
+ * The result is stored as an immutable copy, which is a step towards the GTSAM
+ * way, where the computation is elsewhere.
  * 
- * The result is stored as an immutable copy, which is a step
- * towards the GTSAM way, where the computation is elsewhere.
+ * This estimate is not self-updating (to make it easier to test).  If you want
+ * that, wrap it with UpdatedEstimate.
  */
 public class FusedEstimator implements StateEstimator {
     private static final boolean DEBUG = false;
     private static final double DT = TimedRobot100.LOOP_PERIOD_S;
 
-    private final Gyro m_gyro;
-    private final SwerveLocal m_swerveLocal;
+    private final Supplier<Rotation2d> m_gyro;
+    private final Supplier<SwerveModulePositions> m_positions;
+    private final Supplier<List<VisionMeasurement>> m_vision;
+    private final OdometryEstimator m_odometryEstimator;
+    private final NudgingVisionEstimator m_visionEstimator;
     private final SwerveHistory m_history;
-    private final AprilTagCornerReader m_tagReader;
-    private final HistoryUpdater m_updater;
-    private final ObjectCache<ImmutableSwerveHistory> m_immutable;
+    private final OdometryReplayer m_replayer;
 
-    public FusedEstimator(LoggerFactory driveLog,
-            LoggerFactory fieldLogger,
-            SwerveKinodynamics swerveKinodynamics,
-            boolean noisy,
-            AprilTagFieldLayoutWithCorrectOrientation layout,
-            Gyro gyro,
-            SwerveLocal swerveLocal) {
+    public FusedEstimator(
+            double initialTimestampS,
+            Supplier<Rotation2d> gyro,
+            Supplier<SwerveModulePositions> positions,
+            Supplier<List<VisionMeasurement>> vision,
+            OdometryEstimator odometryEstimate,
+            NudgingVisionEstimator visionEstimate) {
         m_gyro = gyro;
-        m_swerveLocal = swerveLocal;
+        m_positions = positions;
+        m_vision = vision;
+        m_odometryEstimator = odometryEstimate;
+        m_visionEstimator = visionEstimate;
         m_history = new SwerveHistory(
                 0.2,
-                Takt.get(),
-                new OdoGyroMeasurement(m_gyro.getYawNWU(), swerveLocal.positions()),
+                initialTimestampS,
+                new OdoGyroMeasurement(m_gyro.get(), positions.get()),
                 new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
                         VariableR1.fromVariance(0, 1)));
-        OdometryEstimator odometryEstimate = new OdometryEstimator(
-                driveLog,
-                swerveKinodynamics,
-                gyro.white_noise(),
-                gyro.bias_noise(),
-                noisy,
-                false);
-        OdometryReplayer or = new OdometryReplayer(m_history, odometryEstimate);
-        NudgingVisionEstimator visionEstimate = new NudgingVisionEstimator(driveLog);
-        m_tagReader = new AprilTagCornerReader(
-                driveLog, layout, DriverStation::getAlliance);
-        m_updater = new HistoryUpdater(
-                m_gyro::getYawNWU,
-                m_swerveLocal::positions,
-                m_tagReader::read,
-                m_history,
-                odometryEstimate,
-                or,
-                visionEstimate);
-        m_immutable = Cache.of(this::makeImmutable);
+        m_replayer = new OdometryReplayer(m_history, odometryEstimate);
     }
 
-    /** Update the history and then make a copy */
-    ImmutableSwerveHistory makeImmutable() {
-        // mutates history
-        m_updater.update(Takt.get());
+    public ImmutableSwerveHistory immutableCopy() {
+        return m_history.immutableCopy();
+    }
+
+    /**
+     * Read pending updates from odo/gyro and vision, and apply them to the history,
+     * with replay. TODO: reduce visibility
+     */
+    public ImmutableSwerveHistory update(double timestamp) {
+        odoGyro(timestamp);
+        vision();
         return m_history.immutableCopy();
     }
 
     @Override
-    public Map<Double, StateSE2> all() {
-        return m_immutable.get().all();
+    public Map<Double, NoisyStateSE2> all() {
+        return m_history.immutableCopy().all();
     }
 
-    /**
-     * Estimate at the given timestamp, after applying any pending updates from
-     * vision or odometry.
-     * 
-     * The estimate is used for many things downstream; noise there is bad.
-     * The estimator itself should have enough controls to make the estimate
-     * arbitrarily smooth.
-     */
     @Override
-    public StateSE2 getState(double timestampS) {
+    public NoisyStateSE2 getState(double timestampS) {
         // run our dependencies if they haven't already
-        ImmutableSwerveHistory h = m_immutable.get();
-        final StateSE2 state;
+        ImmutableSwerveHistory h = m_history.immutableCopy();
+        final NoisyStateSE2 state;
         if (Experiments.INSTANCE.enabled(Experiment.ImputeVelocity)) {
             // Use consecutive poses
-            StateSE2 state0 = h.get(timestampS - DT);
-            StateSE2 state1 = h.get(timestampS);
+            NoisyStateSE2 state0 = h.get(timestampS - DT);
+            NoisyStateSE2 state1 = h.get(timestampS);
             VelocitySE2 v = VelocitySE2.velocity(
                     state0.pose(),
                     state1.pose(), DT);
-            state = new StateSE2(state1.pose(), v);
+            state = new NoisyStateSE2(
+                    new StateSE2(state1.pose(), v), state1.noise());
         } else {
             // Use the history value
             state = h.get(timestampS);
@@ -126,32 +110,69 @@ public class FusedEstimator implements StateEstimator {
         return state;
     }
 
-    /**
-     * Empty the pose history, reset the servos, add the given pose, and flush the
-     * cache.
-     */
     @Override
-    public void reset(StateSE2 newState, IsotropicNoiseSE2 noise) {
+    public void reset(double timestampS, NoisyStateSE2 state) {
         m_history.reset(
-                m_swerveLocal.positions(),
-                newState,
-                noise,
-                Takt.get(),
-                m_gyro.getYawNWU(),
-                VariableR1.fromVariance(0, 1));
-        m_immutable.reset();
-    }
+                new OdoGyroMeasurement(m_gyro.get(), m_positions.get()),
+                new LocalizerEstimate(
+                        state.state(),
+                        state.noise(),
+                        VariableR1.fromVariance(0, 1)),
 
-    /**
-     * Tags outside this radius are ignored.
-     */
-    @Override
-    public void setHeedRadiusM(double heedRadiusM) {
-        m_tagReader.setHeedRadiusM(heedRadiusM);
+                timestampS);
     }
 
     @Override
     public void close() {
     }
 
+    /** For testing. */
+    public void dump() {
+        m_history.dump();
+    }
+
+    /**
+     * Add the one-and-only odo/gyro measurement for this timestamp.
+     */
+    private void odoGyro(double timestamp) {
+        Entry<Double, LocalizerEstimate> estimateEntry = m_history
+                .estimateLowerEntry(timestamp);
+        if (estimateEntry == null)
+            return;
+        LocalizerEstimate previousEstimate = estimateEntry.getValue();
+
+        Entry<Double, OdoGyroMeasurement> measurementEntry = m_history
+                .measurementLowerEntry(timestamp);
+        if (measurementEntry == null)
+            return;
+        Double previousTimestamp = measurementEntry.getKey();
+        OdoGyroMeasurement previousMeasurement = measurementEntry.getValue();
+
+        OdoGyroMeasurement newMeasurement = new OdoGyroMeasurement(m_gyro.get(), m_positions.get());
+        LocalizerEstimate newEstimate = m_odometryEstimator.estimate(
+                previousTimestamp,
+                previousEstimate,
+                previousMeasurement,
+                timestamp,
+                newMeasurement);
+        m_history.put(timestamp, newEstimate, newMeasurement);
+    }
+
+    /**
+     * Apply pending vision updates.
+     */
+    private void vision() {
+        for (VisionMeasurement v : m_vision.get()) {
+            double visionTimestamp = v.timestamp();
+            if (m_history.tooOld(visionTimestamp))
+                continue;
+            NoisyPose2d visionMeasurement = v.noisyMeasurement();
+            OdoGyroMeasurement sampleMeasurement = m_history.getOdoGyroMeasurement(visionTimestamp);
+            LocalizerEstimate sampleEstimate = m_history.getLocalizerEstimate(visionTimestamp);
+            LocalizerEstimate newEstimate = m_visionEstimator.estimate(
+                    sampleEstimate, visionMeasurement);
+            m_history.put(visionTimestamp, newEstimate, sampleMeasurement);
+            m_replayer.replay(visionTimestamp);
+        }
+    }
 }

@@ -21,7 +21,7 @@ import org.team100.lib.state.VelocityControlSE2;
 import org.team100.lib.subsystems.se2.VelocitySubsystemSE2;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModuleStates;
-import org.team100.lib.uncertainty.IsotropicNoiseSE2;
+import org.team100.lib.uncertainty.NoisyStateSE2;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -107,8 +107,8 @@ public class SwerveDriveSubsystem extends SubsystemBase
 
     /** Empty the pose history, add the given pose, and flush the cache. */
     @Override
-    public void reset(StateSE2 robotPose, IsotropicNoiseSE2 noise) {
-        m_estimate.reset(robotPose, noise);
+    public void reset(double timestampS, NoisyStateSE2 state) {
+        m_estimate.reset(timestampS, state);
     }
 
     ///////////////////////////////////////////////////////////////
@@ -119,23 +119,17 @@ public class SwerveDriveSubsystem extends SubsystemBase
     /** Sample the state at the current time. */
     @Override
     public StateSE2 getState() {
-        return getState(Takt.get());
+        return getState(Takt.get()).state();
     }
 
     /** Sample the past state at the specified time. */
     @Override
-    public StateSE2 getState(double timeSec) {
+    public NoisyStateSE2 getState(double timeSec) {
         return m_estimate.getState(timeSec);
     }
 
-    /** Tags outside this radius are ignored. */
     @Override
-    public void setHeedRadiusM(double heedRadiusM) {
-        m_estimate.setHeedRadiusM(heedRadiusM);
-    }
-
-    @Override
-    public Map<Double, StateSE2> all() {
+    public Map<Double, NoisyStateSE2> all() {
         return m_estimate.all();
     }
 

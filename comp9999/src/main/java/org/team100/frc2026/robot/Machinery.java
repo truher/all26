@@ -12,11 +12,12 @@ import org.team100.lib.config.PIDConstants;
 import org.team100.lib.dynamics.p.PDynamics;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
+import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.indicator.Beeper;
-import org.team100.lib.localization.AprilTagFieldLayoutWithCorrectOrientation;
-import org.team100.lib.localization.AprilTagVisualizer;
-import org.team100.lib.localization.FusedEstimator;
-import org.team100.lib.localization.GroundTruth;
+import org.team100.lib.localization.fused.FusedEstimator;
+import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.simulation.GroundTruth;
+import org.team100.lib.localization.visualization.AprilTagVisualizer;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TotalCurrentLog;
 import org.team100.lib.motor.MotorPhase;
@@ -31,6 +32,7 @@ import org.team100.lib.reference.r1.VelocityProfileReferenceR1;
 import org.team100.lib.reference.r1.VelocityReferenceR1;
 import org.team100.lib.sensor.gyro.Gyro;
 import org.team100.lib.sensor.gyro.GyroFactory;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.r1.DualRollerSubsystem;
 import org.team100.lib.subsystems.swerve.SwerveDriveSubsystem;
 import org.team100.lib.subsystems.swerve.SwerveLocal;
@@ -206,9 +208,10 @@ public class Machinery {
      * Purge the history and assert the given pose as the current estimate.
      */
     public void resetPose(NoisyPose2d p) {
-        m_drive.reset(p.pose(), p.noise());
+        StateSE2 state = new StateSE2(p.pose(), VelocitySE2.ZERO);
+        m_drive.reset(state, p.noise());
         // also reset the ground truth, otherwise the cameras retain the old pose
-        m_groundTruth.resetPose(p.pose());
+        m_groundTruth.resetPose(state);
     }
 
     /** Erase the pose history, use high variance for pose estimate. */
@@ -257,24 +260,19 @@ public class Machinery {
                 d.get(0));
         Unison voice2 = new Unison(
                 d.get(1),
-                d.get(2),        
+                d.get(2),
                 d.get(3),
                 d.get(4),
                 d.get(5),
                 d.get(6),
                 d.get(7));
         // Unison voice3 = new Unison(
-        //         d.get(4),
-        //         d.get(5),
-        //         d.get(6),
-        //         d.get(7));
+        // d.get(4),
+        // d.get(5),
+        // d.get(6),
+        // d.get(7));
         Polyphony allVoices = new Polyphony(voice1, voice2);
-        return new Play("Undertale.mid", 1.0 , allVoices);
-    }
-
-    /** Generally for simulation and visualization */
-    public void periodic() {
-        m_groundTruth.periodic();
+        return new Play("Undertale.mid", 1.0, allVoices);
     }
 
     /**

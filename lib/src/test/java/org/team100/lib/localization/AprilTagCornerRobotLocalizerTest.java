@@ -9,10 +9,16 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.team100.lib.camera.Camera;
+import org.team100.lib.geometry.se2.VelocitySE2;
+import org.team100.lib.localization.fused.AprilTagCornerTranslator;
+import org.team100.lib.localization.fused.NudgingVisionEstimator;
+import org.team100.lib.localization.fused.VisionMeasurement;
+import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.network.BlipWithCorners;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
-import org.team100.lib.subsystems.swerve.module.state.SwerveModulePosition100;
+import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.uncertainty.VariableR1;
@@ -59,33 +65,25 @@ public class AprilTagCornerRobotLocalizerTest {
         assertEquals(1.914, tag4pose.getY(), DELTA);
         assertEquals(1.868, tag4pose.getZ(), DELTA);
 
-        SwerveModulePosition100 p0 = new SwerveModulePosition100(0, Optional.of(Rotation2d.kZero));
-
-        SwerveModulePositions positionZero = new SwerveModulePositions(p0, p0, p0, p0);
-
         SwerveHistory history = new SwerveHistory(
-                logger,
                 0.2,
-                Rotation2d.kZero,
-                VariableR1.fromVariance(0, 1),
-                positionZero,
-                Pose2d.kZero,
-                IsotropicNoiseSE2.high(),
-                0);
+                0,
+                new OdoGyroMeasurement(Rotation2d.kZero, SwerveModulePositions.ZERO),
+                new LocalizerEstimate(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO), IsotropicNoiseSE2.high(),
+                        VariableR1.fromVariance(0, 1)));
         // history is never empty
         assertEquals(1, history.size());
         double lastKey = history.lastKey();
         assertEquals(0, lastKey, DELTA);
-        SwerveState state = history.getRecord(lastKey);
-        Pose2d p = state.state().pose();
+        LocalizerEstimate estimate = history.getLocalizerEstimate(lastKey);
+        Pose2d p = estimate.state().pose();
         assertEquals(0, p.getX(), DELTA);
         assertEquals(0, p.getY(), DELTA);
         // high uncertainty
-        assertEquals(10, state.noise().cartesian(), DELTA);
+        assertEquals(10, estimate.noise().cartesian(), DELTA);
 
         // no replayer
-        NudgingVisionEstimator visionUpdater = new NudgingVisionEstimator(
-                logger, history::getRecord);
+        NudgingVisionEstimator visionUpdater = new NudgingVisionEstimator(logger);
         AprilTagCornerTranslator m_translator = new AprilTagCornerTranslator(
                 logger, layout, () -> Optional.of(Alliance.RED));
 
@@ -96,21 +94,24 @@ public class AprilTagCornerRobotLocalizerTest {
             measurements.addAll(m_translator.convert(camera, getTags(t)));
         }
         for (VisionMeasurement m : measurements) {
-            SwerveState s = visionUpdater.estimate(m.timestamp(), m.noisyMeasurement());
-            history.put(m.timestamp(), s);
+            LocalizerEstimate sample = history.getLocalizerEstimate(m.timestamp());
+            OdoGyroMeasurement measurement = history.getOdoGyroMeasurement(m.timestamp());
+            LocalizerEstimate estimate3 = visionUpdater.estimate(
+                    sample, m.noisyMeasurement());
+            history.put(m.timestamp(), estimate3, measurement);
         }
         assertEquals(11, history.size());
         // pose is most of the way but not all the way; the nudging is proportional to
         // the "innovation" i.e. difference between new estimate and history
         lastKey = history.lastKey();
         assertEquals(0.2, lastKey, DELTA);
-        state = history.getRecord(lastKey);
-        p = state.state().pose();
+        LocalizerEstimate estimate2 = history.getLocalizerEstimate(lastKey);
+        p = estimate2.state().pose();
         assertEquals(7.157, p.getX(), DELTA);
         assertEquals(1.874, p.getY(), DELTA);
         // uncertainty is still pretty high because the tag is directly in front of the
         // camera, which is a very uncertain state.
-        assertEquals(1.455, state.noise().cartesian(), DELTA);
+        assertEquals(1.455, estimate2.noise().cartesian(), DELTA);
 
         // watch the tag for 0.2 more sec
         measurements.clear();
@@ -118,19 +119,22 @@ public class AprilTagCornerRobotLocalizerTest {
             measurements.addAll(m_translator.convert(camera, getTags(t)));
         }
         for (VisionMeasurement m : measurements) {
-            SwerveState s = visionUpdater.estimate(m.timestamp(), m.noisyMeasurement());
-            history.put(m.timestamp(), s);
+            OdoGyroMeasurement sampleMeasurement = history.getOdoGyroMeasurement(m.timestamp());
+            LocalizerEstimate sampleEstimate = history.getLocalizerEstimate(m.timestamp());
+            LocalizerEstimate estimate3 = visionUpdater.estimate(
+                    sampleEstimate, m.noisyMeasurement());
+            history.put(m.timestamp(), estimate3, sampleMeasurement);
         }
         assertEquals(10, history.size());
         lastKey = history.lastKey();
         assertEquals(0.38, lastKey, DELTA);
         // pose is closer now but still not that close, because of the high uncertainty
         // the nudger doesn't nudge very hard.
-        state = history.getRecord(lastKey);
-        p = state.state().pose();
+        LocalizerEstimate estimate3 = history.getLocalizerEstimate(lastKey);
+        p = estimate3.state().pose();
         assertEquals(7.224, p.getX(), DELTA);
         assertEquals(1.891, p.getY(), DELTA);
-        assertEquals(1.060, state.noise().cartesian(), DELTA);
+        assertEquals(1.060, estimate3.noise().cartesian(), DELTA);
     }
 
     private BlipWithCorners[] getTags(double timestampsec) {

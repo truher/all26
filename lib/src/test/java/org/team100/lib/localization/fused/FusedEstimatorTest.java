@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
-import org.team100.lib.coherence.Takt;
 import org.team100.lib.framework.TimedRobot100;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.logging.LoggerFactory;
@@ -110,7 +109,7 @@ public class FusedEstimatorTest {
         positions = SwerveModulePositions.ZERO;
         vision = List.of();
         FusedEstimator estimate = new FusedEstimator(
-                Takt.get(),
+                0,
                 () -> yaw,
                 () -> positions,
                 () -> vision,
@@ -126,7 +125,7 @@ public class FusedEstimatorTest {
                 new StateSE2(
                         new Pose2d(),
                         new VelocitySE2(0, 0, 0)),
-                estimate.getState(Takt.get()).state());
+                estimate.getState(0).state());
 
         positions = new SwerveModulePositions(
                 new SwerveModulePosition100(0.02, Optional.of(Rotation2d.kZero)),
@@ -231,6 +230,7 @@ public class FusedEstimatorTest {
 
         vision = List.of(new VisionMeasurement(0, noisyMeasurement));
         estimator.update(0.02);
+        vision = List.of();
 
         // position slides over there
         verify(0.038, 0.102, estimator.getState(0.00));
@@ -403,6 +403,7 @@ public class FusedEstimatorTest {
 
         vision = List.of(new VisionMeasurement(0.01, noisyMeasurement));
         estimator.update(0.01);
+        vision = List.of();
 
         verify(0.000, 0.1, estimator.getState(0.00));
         verify(0.038, 0.101, estimator.getState(0.01));
@@ -436,6 +437,7 @@ public class FusedEstimatorTest {
         // then the odometry is applied on top of that, yielding 0.405.
         vision = List.of(new VisionMeasurement(0.015, noisyMeasurement));
         estimator.update(0.04);
+        vision = List.of();
 
         verify(0.000, 0.1, estimator.getState(0.00));
         verify(0.077, 0.103, estimator.getState(0.015));
@@ -459,6 +461,7 @@ public class FusedEstimatorTest {
 
         vision = List.of(new VisionMeasurement(0.014, noisyMeasurement));
         estimator.update(0.04);
+        vision = List.of();
 
         verify(0.000, 0.1, estimator.getState(0.00));
         // notices the vision input a bit earlier
@@ -476,6 +479,7 @@ public class FusedEstimatorTest {
 
         vision = List.of(new VisionMeasurement(0.016, noisyMeasurement));
         estimator.update(0.06);
+        vision = List.of();
 
         verify(0.000, 0.1, estimator.getState(0.00));
         verify(0.107, 0.104, estimator.getState(0.014));
@@ -491,6 +495,7 @@ public class FusedEstimatorTest {
         positions = position01;
         vision = List.of();
         estimator.update(0.08);
+        vision = List.of();
 
         verify(0.000, 0.1, estimator.getState(0.00));
         verify(0.144, 0.105, estimator.getState(0.02));

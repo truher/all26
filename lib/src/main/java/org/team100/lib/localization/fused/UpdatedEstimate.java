@@ -1,11 +1,12 @@
-package org.team100.lib.localization;
+package org.team100.lib.localization.fused;
 
 import java.util.Map;
 
 import org.team100.lib.coherence.Cache;
 import org.team100.lib.coherence.ObjectCache;
 import org.team100.lib.coherence.Takt;
-import org.team100.lib.localization.fused.FusedEstimator;
+import org.team100.lib.localization.ImmutableSwerveHistory;
+import org.team100.lib.localization.StateEstimator;
 import org.team100.lib.uncertainty.NoisyStateSE2;
 
 /**
@@ -21,8 +22,7 @@ public class UpdatedEstimate implements StateEstimator {
     }
 
     private ImmutableSwerveHistory run() {
-        m_estimator.update(Takt.get());
-        return m_estimator.immutableCopy();
+        return m_estimator.update(Takt.get());
     }
 
     /** Interpolates. */

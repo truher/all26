@@ -5,10 +5,14 @@ import java.util.function.Supplier;
 
 import org.team100.frc2026.field.FieldConstants2026;
 import org.team100.frc2026.targeting.Targeter;
+import org.team100.lib.coherence.Takt;
 import org.team100.lib.config.CurrentLimit;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.indicator.Beeper;
+import org.team100.lib.localization.fused.AprilTagCornerReader;
 import org.team100.lib.localization.fused.FusedEstimator;
+import org.team100.lib.localization.fused.NudgingVisionEstimator;
+import org.team100.lib.localization.fused.OdometryEstimator;
 import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
 import org.team100.lib.localization.simulation.GroundTruth;
 import org.team100.lib.localization.visualization.AprilTagVisualizer;
@@ -29,6 +33,7 @@ import org.team100.lib.targeting.ProxySolver;
 import org.team100.lib.targeting.Targets;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.uncertainty.NoisyPose2d;
+import org.team100.lib.uncertainty.NoisyStateSE2;
 import org.team100.lib.visualization.RobotPoseVisualization;
 import org.team100.lib.visualization.TrajectoryVisualization;
 
@@ -80,20 +85,30 @@ public class Machinery {
                 driveLog,
                 m_swerveKinodynamics,
                 m_modules);
-        FusedEstimator estimate = new FusedEstimator(
+        AprilTagCornerReader tagReader = new AprilTagCornerReader(
+                driveLog, layout, DriverStation::getAlliance);
+        OdometryEstimator odometryEstimate = new OdometryEstimator(
                 driveLog,
-                fieldLogger,
                 m_swerveKinodynamics,
+                gyro.white_noise(),
+                gyro.bias_noise(),
                 RobotBase.isSimulation(),
-                layout,
-                gyro,
-                swerveLocal);
+                false);
+        NudgingVisionEstimator visionEstimate = new NudgingVisionEstimator(driveLog);
+        FusedEstimator estimate = new FusedEstimator(
+                Takt.get(),
+                gyro::getYawNWU,
+                swerveLocal::positions,
+                tagReader::read,
+                odometryEstimate,
+                visionEstimate);
         m_drive = new SwerveDriveSubsystem(
                 driveLog,
                 estimate,
                 swerveLocal);
         new AprilTagVisualizer(
-                driveLog, fieldLogger, m_drive::getState, layout, DriverStation::getAlliance);
+                driveLog, fieldLogger,
+                t -> m_drive.getState(t).state(), layout, DriverStation::getAlliance);
         new RobotPoseVisualization(
                 fieldLogger, () -> m_drive.getState(), "robot");
 
@@ -117,7 +132,7 @@ public class Machinery {
 
         // Targeting from 2025: the cameras are looking for game pieces.
 
-        m_targets = new Targets(driveLog, fieldLogger, 0.2, (t) -> m_drive.getState(t));
+        m_targets = new Targets(driveLog, fieldLogger, 0.2, t -> m_drive.getState(t).state());
 
         ////////////////////////////////////////////////////////////
         //
@@ -158,7 +173,7 @@ public class Machinery {
      */
     public void resetPose(NoisyPose2d p) {
         StateSE2 state = new StateSE2(p.pose(), VelocitySE2.ZERO);
-        m_drive.reset(state, p.noise());
+        m_drive.reset(Takt.get(), new NoisyStateSE2(state, p.noise()));
         // also reset the ground truth, otherwise the cameras retain the old pose
         m_groundTruth.resetPose(state);
     }

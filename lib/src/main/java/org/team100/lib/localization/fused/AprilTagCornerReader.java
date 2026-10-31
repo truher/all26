@@ -52,14 +52,4 @@ public class AprilTagCornerReader {
         }
         return measurements;
     }
-
-    /**
-     * Tags outside this radius are ignored.
-     * 
-     * TODO: remove this, the noise model should take care of it.
-     */
-    public void setHeedRadiusM(double heedRadiusM) {
-        m_translator.setHeedRadiusM(heedRadiusM);
-    }
-
 }

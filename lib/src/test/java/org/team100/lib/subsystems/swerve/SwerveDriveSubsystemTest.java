@@ -5,10 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
+import org.team100.lib.coherence.Takt;
 import org.team100.lib.config.CurrentLimit;
 import org.team100.lib.geometry.se2.ChassisAcceleration;
 import org.team100.lib.geometry.se2.VelocitySE2;
+import org.team100.lib.localization.fused.AprilTagCornerReader;
 import org.team100.lib.localization.fused.FusedEstimator;
+import org.team100.lib.localization.fused.NudgingVisionEstimator;
+import org.team100.lib.localization.fused.OdometryEstimator;
+import org.team100.lib.localization.fused.UpdatedEstimate;
 import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
@@ -22,6 +27,8 @@ import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamicsFactory;
 import org.team100.lib.subsystems.swerve.module.SwerveModuleCollection;
 import org.team100.lib.testing.Timeless;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
+import org.team100.lib.uncertainty.NoisyStateSE2;
+import org.wpilib.driverstation.MatchState;
 import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.math.kinematics.ChassisVelocities;
 
@@ -31,10 +38,8 @@ class SwerveDriveSubsystemTest implements Timeless {
 
     @Test
     void test0() throws IOException {
-
         LoggerFactory logger = new TestLoggerFactory(new TestPrimitiveLogger());
         TotalCurrentLog currentLog = new TotalCurrentLog(logger);
-        LoggerFactory fieldLogger = new TestLoggerFactory(new TestPrimitiveLogger());
         SwerveKinodynamics swerveKinodynamics = SwerveKinodynamicsFactory.forTest();
         // uses simulated modules
         SwerveModuleCollection collection = SwerveModuleCollection.get(
@@ -43,20 +48,35 @@ class SwerveDriveSubsystemTest implements Timeless {
         SwerveLocal swerveLocal = new SwerveLocal(logger, swerveKinodynamics, collection);
 
         AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation();
-
+        AprilTagCornerReader tagReader = new AprilTagCornerReader(
+                logger, layout, MatchState::getAlliance);
+        OdometryEstimator odometryEstimate = new OdometryEstimator(
+                logger,
+                swerveKinodynamics,
+                gyro.white_noise(),
+                gyro.bias_noise(),
+                false,
+                false);
+        NudgingVisionEstimator visionEstimate = new NudgingVisionEstimator(logger);
         FusedEstimator estimate = new FusedEstimator(
-                logger, fieldLogger, swerveKinodynamics, false, layout, gyro, swerveLocal);
+                Takt.get(),
+                gyro::getYawNWU,
+                swerveLocal::positions,
+                tagReader::read,
+                odometryEstimate,
+                visionEstimate);
 
         SwerveDriveSubsystem drive = new SwerveDriveSubsystem(
                 logger,
-                estimate,
+                new UpdatedEstimate(estimate),
                 swerveLocal);
 
         stepTime();
 
         drive.reset(
-                new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
-                IsotropicNoiseSE2.high());
+                Takt.get(),
+                new NoisyStateSE2(new StateSE2(Pose2d.kZero, VelocitySE2.ZERO),
+                        IsotropicNoiseSE2.high()));
 
         stepTime();
         StateSE2 state = drive.getState();

@@ -5,9 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
-
-import org.wpilib.math.geometry.Pose3d;
 import org.wpilib.driverstation.Alliance;
+import org.wpilib.math.geometry.Pose3d;
 
 /** These tests use the 2025 map, will have to be updated in 2026. */
 public class AprilTagFieldLayoutWithCorrectOrientationTest {
@@ -34,4 +33,15 @@ public class AprilTagFieldLayoutWithCorrectOrientationTest {
         assertEquals(0.655, pose.getY(), DELTA);
         assertEquals(1.486, pose.getZ(), DELTA);
     }
+
+    @Test
+    void test0() throws IOException {
+        AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation(
+                "2025-reefscape.json");
+        Pose3d tag4pose = layout.getTagPose(Alliance.RED, 4).get();
+        assertEquals(8.272, tag4pose.getX(), DELTA);
+        assertEquals(1.914, tag4pose.getY(), DELTA);
+        assertEquals(1.868, tag4pose.getZ(), DELTA);
+    }
+
 }

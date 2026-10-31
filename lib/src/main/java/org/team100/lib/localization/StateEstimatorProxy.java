@@ -2,8 +2,7 @@ package org.team100.lib.localization;
 
 import java.util.Map;
 
-import org.team100.lib.state.StateSE2;
-import org.team100.lib.uncertainty.IsotropicNoiseSE2;
+import org.team100.lib.uncertainty.NoisyStateSE2;
 import org.team100.lib.util.NamedChooser;
 import org.wpilib.smartdashboard.SendableChooser;
 import org.wpilib.smartdashboard.SmartDashboard;
@@ -39,7 +38,7 @@ public class StateEstimatorProxy implements StateEstimator {
     }
 
     @Override
-    public StateSE2 getState(double timestampS) {
+    public NoisyStateSE2 getState(double timestampS) {
         return switch (m_choice) {
             case A -> m_A.getState(timestampS);
             case B -> m_B.getState(timestampS);
@@ -48,25 +47,16 @@ public class StateEstimatorProxy implements StateEstimator {
     }
 
     @Override
-    public void reset(StateSE2 pose, IsotropicNoiseSE2 noise) {
+    public void reset(double timestampS, NoisyStateSE2 state) {
         switch (m_choice) {
-            case A -> m_A.reset(pose, noise);
-            case B -> m_B.reset(pose, noise);
+            case A -> m_A.reset(timestampS, state);
+            case B -> m_B.reset(timestampS, state);
             default -> throw new IllegalStateException();
         }
     }
 
     @Override
-    public void setHeedRadiusM(double heedRadiusM) {
-        switch (m_choice) {
-            case A -> m_A.setHeedRadiusM(heedRadiusM);
-            case B -> m_B.setHeedRadiusM(heedRadiusM);
-            default -> throw new IllegalStateException();
-        }
-    }
-
-    @Override
-    public Map<Double, StateSE2> all() {
+    public Map<Double, NoisyStateSE2> all() {
         return switch (m_choice) {
             case A -> m_A.all();
             case B -> m_B.all();

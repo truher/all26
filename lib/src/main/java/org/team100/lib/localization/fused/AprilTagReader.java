@@ -48,11 +48,4 @@ public class AprilTagReader {
         }
         return measurements;
     }
-
-    /**
-     * Tags outside this radius are ignored.
-     */
-    void setHeedRadiusM(double heedRadiusM) {
-        m_translator.setHeedRadiusM(heedRadiusM);
-    }
 }

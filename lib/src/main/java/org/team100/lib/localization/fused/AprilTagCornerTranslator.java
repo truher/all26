@@ -17,7 +17,6 @@ import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientatio
 import org.team100.lib.localization.network.BlipWithCorners;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
-import org.team100.lib.logging.LoggerFactory.DoubleLogger;
 import org.team100.lib.logging.LoggerFactory.Transform3dLogger;
 import org.team100.lib.uncertainty.NoisyPose2d;
 import org.team100.lib.uncertainty.VisionNoise;
@@ -38,12 +37,8 @@ public class AprilTagCornerTranslator {
 
     private final LoggerFactory m_log_cameraToTag_factory;
     private final LoggerFactory m_log_robotToTag_factory;
-    private final DoubleLogger m_log_heedRadius;
     private final Map<String, Transform3dLogger> m_log_cameraToTag;
     private final Map<String, Transform3dLogger> m_log_tagInRobot;
-
-    /** Use tags closer than this. Ignore tags further than this. */
-    private double m_heedRadiusM;
 
     public AprilTagCornerTranslator(
             LoggerFactory parent,
@@ -58,9 +53,6 @@ public class AprilTagCornerTranslator {
         m_log_robotToTag_factory = calLog.name("robot to tag");
         m_log_cameraToTag = new HashMap<>();
         m_log_tagInRobot = new HashMap<>();
-        m_log_heedRadius = log.doubleLogger(Level.TRACE, "heed radius");
-        // TODO: remove this
-        setHeedRadiusM(3.5);
     }
 
     /**
@@ -114,20 +106,6 @@ public class AprilTagCornerTranslator {
 
             // Estimate the tag pose in the field frame.
             double blipTimeSec = (double) blip.getTimestamp() / 1e6;
-
-            //////////////////////////////////////////////////////////////////
-            ///
-            /// Should we use this update?
-            ///
-            // TODO: remove this
-            if (cameraToTag.getTranslation().getNorm() > m_heedRadiusM) {
-                if (DEBUG)
-                    System.out.println("Tag is too far away.");
-                continue;
-            }
-            /// Yes, we should use this update.
-            /// 
-            ///
 
             NoisyPose2d noisyMeasurement = new NoisyPose2d(
                     robotPose2d,
@@ -183,13 +161,5 @@ public class AprilTagCornerTranslator {
                 (x) -> m_log_robotToTag_factory.transform3dLogger(Level.TRACE, x));
         Transform3d robotToTag = Offset.get(camera).offset().plus(cameraToTag);
         logRobotToTag.log(() -> robotToTag);
-    }
-
-    /**
-     * Tags outside this radius are ignored.
-     */
-    void setHeedRadiusM(double heedRadiusM) {
-        m_heedRadiusM = heedRadiusM;
-        m_log_heedRadius.log(() -> m_heedRadiusM);
     }
 }

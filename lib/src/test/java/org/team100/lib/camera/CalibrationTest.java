@@ -3,17 +3,11 @@ package org.team100.lib.camera;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.http.HttpClient.Version;
 
 import org.junit.jupiter.api.Test;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
 import org.team100.lib.localization.gtsam.Geometry;
 import org.team100.lib.testing.TestUtil;
 import org.team100.lib.util.CDF;
@@ -28,13 +22,14 @@ import org.wpilib.vision.apriltag.AprilTagDetector.Config;
 import org.wpilib.vision.camera.OpenCvLoader;
 
 import gtsam.Cal3DS2;
-import gtsam.GeneralSFMFactor3;
+import gtsam.GenericProjectionFactor2;
 import gtsam.Key;
 import gtsam.LevenbergMarquardtOptimizer;
 import gtsam.LevenbergMarquardtParams;
 import gtsam.Matrix;
 import gtsam.Matrix3;
 import gtsam.NonlinearFactorGraph;
+import gtsam.NonlinearOptimizerParams.Verbosity;
 import gtsam.PinholeCamera;
 import gtsam.Point2;
 import gtsam.Point3;
@@ -46,10 +41,15 @@ import gtsam.Vector;
 import gtsam.Vector2;
 import gtsam.Vector4;
 import gtsam.shared_ptr;
-import gtsam.NonlinearOptimizerParams.Verbosity;
 import gtsam.noiseModel.Diagonal;
 import gtsam.noiseModel.Isotropic;
 
+/**
+ * Exercise the many-tag calibration method that uses GenericProjectionFactor2,
+ * a projection factor using pixel measurements and fixed landmarks
+ * (apriltags), and with variable pose (so you can move the target around), and
+ * variable calibration (the thing to be solved).
+ */
 public class CalibrationTest {
     static {
         try {
@@ -73,7 +73,7 @@ public class CalibrationTest {
             conf.quadDecimate = 1.0f;
             detector.setConfig(conf);
 
-            Mat image = loadImage("tangram.png");
+            Mat image = ImgUtil.loadImage(getClass(), "tangram.png");
             System.out.println(image);
 
             Key pose_key = Key.X(0);
@@ -145,7 +145,7 @@ public class CalibrationTest {
             conf.quadDecimate = 1.0f;
             detector.setConfig(conf);
 
-            Mat image = loadImage("tangram.png");
+            Mat image = ImgUtil.loadImage(getClass(), "tangram.png");
             // System.out.println(image);
 
             Key pose0 = Key.X(0);
@@ -185,17 +185,18 @@ public class CalibrationTest {
 
             // add rotated image detections
             // Mat rotated_image = ImgUtil.ro@t(ImgUtil.yrot(0.5), image);
-            Mat rotated_image = ImgUtil.rot(ImgUtil.xrot(0.5, f), image, f);
+            Mat rotated_image = ImgUtil.transform(ImgUtil.xrot(0.5, f), image, f);
             Imgcodecs.imwrite("/tmp/img.png", rotated_image);
             addFactors(detector, rotated_image, pose1, calib_key, sfm_noise, graph);
 
-            Mat rotated_image2 = ImgUtil.rot(ImgUtil.yrot(0.5, f), image, f);
+            Mat rotated_image2 = ImgUtil.transform(ImgUtil.yrot(0.5, f), image, f);
             Imgcodecs.imwrite("/tmp/img2.png", rotated_image2);
             addFactors(detector, rotated_image2, pose2, calib_key, sfm_noise, graph);
 
             LevenbergMarquardtParams params = new LevenbergMarquardtParams();
             params.setCeresDefaults();
-            // this particular problem wants about 80 iterations, so the default, 50, is not enough.
+            // this particular problem wants about 80 iterations, so the default, 50, is not
+            // enough.
             params.setMaxIterations(100);
             // turn all the tolerances off to see what happens
             params.setRelativeErrorTol(0);
@@ -344,12 +345,12 @@ public class CalibrationTest {
         Point2 measured = new Point2(corners[2 * i], corners[2 * i + 1]);
         System.out.printf("ID: %5d LANDMARK: %6.3f %6.3f %6.3f MEASURED %6.3f %6.3f\n",
                 id, landmark.x(), landmark.y(), landmark.z(), measured.x(), measured.y());
-        graph.add(GeneralSFMFactor3.GeneralSFMFactor3Cal3DS2(
+        graph.add(GenericProjectionFactor2.GenericProjectionFactor2Cal3DS2(
+                pose_key,
+                calib_key,
                 landmark,
                 measured,
                 sfm_noise,
-                pose_key,
-                calib_key,
                 false));
     }
 
@@ -367,8 +368,9 @@ public class CalibrationTest {
         shared_ptr<Isotropic> sfm_noise = Isotropic.Sigma(2, 1.0);
         Key calib_key = Key.K(0);
 
-        shared_ptr<GeneralSFMFactor3<Cal3DS2>> sfmFactor = GeneralSFMFactor3.GeneralSFMFactor3Cal3DS2(
-                landmark, measured_pt, sfm_noise, pose_key, calib_key, false);
+        shared_ptr<GenericProjectionFactor2<Cal3DS2>> sfmFactor = GenericProjectionFactor2
+                .GenericProjectionFactor2Cal3DS2(
+                        pose_key, calib_key, landmark, measured_pt, sfm_noise, false);
 
         // should print
         // keys = { x0 l0 k0 }
@@ -449,32 +451,6 @@ public class CalibrationTest {
                 center.transformBy(LR).getTranslation(),
                 center.transformBy(UR).getTranslation(),
                 center.transformBy(UL).getTranslation() };
-    }
-
-    // from wpilib
-    public Mat loadImage(String resource) {
-        URL res = getClass().getResource(resource);
-        if (res == null)
-            throw new IllegalArgumentException(String.format("no file at %s", resource));
-        try (InputStream is = res.openStream()) {
-            try (ByteArrayOutputStream os = new ByteArrayOutputStream(is.available())) {
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = is.read(buffer)) != -1) {
-                    os.write(buffer, 0, bytesRead);
-                }
-                Mat encoded = new Mat(1, os.size(), CvType.CV_8U);
-                encoded.put(0, 0, os.toByteArray());
-                Mat image = Imgcodecs.imdecode(encoded, Imgcodecs.IMREAD_COLOR);
-                encoded.release();
-                Imgproc.cvtColor(image, image, Imgproc.COLOR_BGR2GRAY);
-                return image;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-
     }
 
 }

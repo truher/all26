@@ -7,7 +7,6 @@ import java.io.IOException;
 
 import org.junit.jupiter.api.Test;
 import org.opencv.core.Mat;
-import org.opencv.imgcodecs.Imgcodecs;
 import org.team100.lib.localization.gtsam.Geometry;
 import org.team100.lib.testing.TestUtil;
 import org.team100.lib.util.CDF;
@@ -26,6 +25,7 @@ import gtsam.GenericProjectionFactor2;
 import gtsam.Key;
 import gtsam.LevenbergMarquardtOptimizer;
 import gtsam.LevenbergMarquardtParams;
+import gtsam.Marginals;
 import gtsam.Matrix;
 import gtsam.Matrix3;
 import gtsam.NonlinearFactorGraph;
@@ -186,11 +186,11 @@ public class CalibrationTest {
             // add rotated image detections
             // Mat rotated_image = ImgUtil.ro@t(ImgUtil.yrot(0.5), image);
             Mat rotated_image = ImgUtil.transform(ImgUtil.xrot(0.5, f), image, f);
-            Imgcodecs.imwrite("/tmp/img.png", rotated_image);
+            // Imgcodecs.imwrite("/tmp/img.png", rotated_image);
             addFactors(detector, rotated_image, pose1, calib_key, sfm_noise, graph);
 
             Mat rotated_image2 = ImgUtil.transform(ImgUtil.yrot(0.5, f), image, f);
-            Imgcodecs.imwrite("/tmp/img2.png", rotated_image2);
+            // Imgcodecs.imwrite("/tmp/img2.png", rotated_image2);
             addFactors(detector, rotated_image2, pose2, calib_key, sfm_noise, graph);
 
             LevenbergMarquardtParams params = new LevenbergMarquardtParams();
@@ -202,7 +202,7 @@ public class CalibrationTest {
             params.setRelativeErrorTol(0);
             params.setErrorTol(0);
             // watch the error
-            params.setVerbosity(Verbosity.ERROR);
+            // params.setVerbosity(Verbosity.ERROR);
             LevenbergMarquardtOptimizer optimizer = new LevenbergMarquardtOptimizer(
                     graph, values, params);
             Values result = optimizer.optimize();
@@ -228,16 +228,20 @@ public class CalibrationTest {
             Pose3d rp2 = Geometry.toPose3d(result_pose2);
             System.out.printf("pose2 %s\n", rp2);
 
-            // Marginals marginals = Marginals.QR(graph, result);
-            // marginals.marginalCovariance(pose0).diagonal_cwiseSqrt().print("pose0");
-            // marginals.marginalCovariance(pose1).diagonal_cwiseSqrt().print("pose1");
-            // marginals.marginalCovariance(calib_key).diagonal_cwiseSqrt().print("calib");
+            System.out.println("\nSIGMAS:");
+            Marginals marginals = Marginals.QR(graph, result);
+            marginals.marginalCovariance(pose0).diagonal_cwiseSqrt().print("pose0 sigma");
+            marginals.marginalCovariance(pose1).diagonal_cwiseSqrt().print("pose1 sigma");
+            marginals.marginalCovariance(pose2).diagonal_cwiseSqrt().print("pose2 sigma");
+            marginals.marginalCovariance(calib_key).diagonal_cwiseSqrt().print("calib sigma");
+            System.out.println();
 
             // graph.printErrors(result, "errors");
 
             // reprojection
             CDF cdf = new CDF();
             Point3 t0 = result_pose0.translation();
+            System.out.printf("translation (%8.3f, %8.3f, %8.3f)\n", t0.x(), t0.y(), t0.z());
             PinholeCamera<Cal3DS2> camera0 = PinholeCamera.PinholeCameraCal3DS2(result_pose0, result_cal);
             for (AprilTagDetection r : detector.detect(image)) {
                 int id = r.getId();
@@ -251,8 +255,7 @@ public class CalibrationTest {
                     double error = measured.minus(estimate).norm();
                     cdf.add(error);
                     System.out.printf(
-                            "translation (%8.3f, %8.3f, %8.3f) landmark (%8.3f, %8.3f, %8.3f) measurement (%8.3f, %8.3f) estimate (%8.3f, %8.3f) error %8.3f\n",
-                            t0.x(), t0.y(), t0.z(),
+                            "landmark (%8.3f, %8.3f, %8.3f) measurement (%8.3f, %8.3f) estimate (%8.3f, %8.3f) error %8.3f\n",
                             landmark.x(), landmark.y(), landmark.z(),
                             measured.x(), measured.y(),
                             estimate.x(), estimate.y(),
@@ -260,6 +263,7 @@ public class CalibrationTest {
                 }
             }
             Point3 t1 = result_pose1.translation();
+            System.out.printf("translation (%8.3f, %8.3f, %8.3f)\n", t1.x(), t1.y(), t1.z());
             PinholeCamera<Cal3DS2> camera1 = PinholeCamera.PinholeCameraCal3DS2(result_pose1, result_cal);
             for (AprilTagDetection r : detector.detect(rotated_image)) {
                 int id = r.getId();
@@ -273,8 +277,7 @@ public class CalibrationTest {
                     double error = measured.minus(estimate).norm();
                     cdf.add(error);
                     System.out.printf(
-                            "translation (%8.3f, %8.3f, %8.3f) landmark (%8.3f, %8.3f, %8.3f) measurement (%8.3f, %8.3f) estimate (%8.3f, %8.3f) error %8.3f\n",
-                            t1.x(), t1.y(), t1.z(),
+                            "landmark (%8.3f, %8.3f, %8.3f) measurement (%8.3f, %8.3f) estimate (%8.3f, %8.3f) error %8.3f\n",
                             landmark.x(), landmark.y(), landmark.z(),
                             measured.x(), measured.y(),
                             estimate.x(), estimate.y(),
@@ -282,6 +285,7 @@ public class CalibrationTest {
                 }
             }
             Point3 t2 = result_pose2.translation();
+            System.out.printf("translation (%8.3f, %8.3f, %8.3f)\n", t2.x(), t2.y(), t2.z());
             PinholeCamera<Cal3DS2> camera2 = PinholeCamera.PinholeCameraCal3DS2(result_pose2, result_cal);
             for (AprilTagDetection r : detector.detect(rotated_image2)) {
                 int id = r.getId();
@@ -295,8 +299,7 @@ public class CalibrationTest {
                     double error = measured.minus(estimate).norm();
                     cdf.add(error);
                     System.out.printf(
-                            "translation (%8.3f, %8.3f, %8.3f) landmark (%8.3f, %8.3f, %8.3f) measurement (%8.3f, %8.3f) estimate (%8.3f, %8.3f) error %8.3f\n",
-                            t2.x(), t2.y(), t2.z(),
+                            "landmark (%8.3f, %8.3f, %8.3f) measurement (%8.3f, %8.3f) estimate (%8.3f, %8.3f) error %8.3f\n",
                             landmark.x(), landmark.y(), landmark.z(),
                             measured.x(), measured.y(),
                             estimate.x(), estimate.y(),

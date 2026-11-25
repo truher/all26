@@ -128,7 +128,7 @@ public class Machinery implements AutoCloseable {
                 Takt.get(),
                 gyro::getYawNWU,
                 swerveLocal::positions,
-                cornerReader::read,
+                cornerReader,
                 m_swerveKinodynamics.getKinematics(),
                 gyro.white_noise(),
                 gyro.bias_noise());

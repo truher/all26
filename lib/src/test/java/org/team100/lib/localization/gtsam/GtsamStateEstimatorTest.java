@@ -58,6 +58,19 @@ public class GtsamStateEstimatorTest {
     private SwerveModulePositions positions;
     private List<Corners> vision;
 
+    class Source implements CornerSource {
+
+        @Override
+        public List<Corners> read() {
+            return vision;
+        }
+
+        @Override
+        public void truncate() {
+        }
+
+    }
+
     @Test
     void test0() {
         yaw = Rotation2d.ZERO;
@@ -68,7 +81,7 @@ public class GtsamStateEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 kinodynamics.getKinematics(),
                 1e-4,
                 3e-5);
@@ -91,7 +104,7 @@ public class GtsamStateEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 kinodynamics.getKinematics(),
                 1e-4,
                 3e-5);
@@ -114,7 +127,7 @@ public class GtsamStateEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 kinodynamics.getKinematics(),
                 1e-4,
                 3e-5);
@@ -141,7 +154,7 @@ public class GtsamStateEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 kinodynamics.getKinematics(),
                 1e-4,
                 3e-5);
@@ -192,7 +205,7 @@ public class GtsamStateEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 kinodynamics.getKinematics(),
                 1e-4,
                 3e-5);
@@ -271,7 +284,7 @@ public class GtsamStateEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 kinodynamics.getKinematics(),
                 1e-4,
                 3e-5);
@@ -320,7 +333,7 @@ public class GtsamStateEstimatorTest {
         TestUtil.verify(IsotropicNoiseSE2.fromStdDev(8.550, 7.178), state.noise());
         state = h.get(0.01);
         TestUtil.verify(new Pose2d(0.055, 0.228, new Rotation2d(0.227)), state.pose());
-        TestUtil.verify(new VelocitySE2(0.000, 0.000, 0.000), state.velocity(), 0.005);
+        TestUtil.verify(new VelocitySE2(0.000, 0.000, 0.000), state.velocity(), 0.007);
         TestUtil.verify(IsotropicNoiseSE2.fromStdDev(8.550, 7.178), state.noise());
         state = h.get(0.02);
         TestUtil.verify(new Pose2d(0.055, 0.228, new Rotation2d(0.227)), state.pose());

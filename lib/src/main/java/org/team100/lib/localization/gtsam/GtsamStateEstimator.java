@@ -72,7 +72,7 @@ public class GtsamStateEstimator implements StateEstimator {
 
     private final Supplier<Rotation2d> m_gyro;
     private final Supplier<SwerveModulePositions> m_positions;
-    private final Supplier<List<Corners>> m_vision;
+    private final CornerSource m_vision;
     private final SwerveDriveKinematics100 m_kinematics;
 
     private final Odometry m_odometry;
@@ -97,7 +97,7 @@ public class GtsamStateEstimator implements StateEstimator {
             double initialTimestamp,
             Supplier<Rotation2d> gyro,
             Supplier<SwerveModulePositions> positions,
-            Supplier<List<Corners>> vision,
+            CornerSource vision,
             SwerveDriveKinematics100 kinematics,
             double whiteNoise,
             double biasNoise) {
@@ -211,7 +211,7 @@ public class GtsamStateEstimator implements StateEstimator {
 
         // Vision factors.
         Collection<Long> timestamps = Vision.vision(
-                m_result, m_vision.get(), m_newFactors, m_newValues, m_newTimestamps);
+                m_result, m_vision.read(), m_newFactors, m_newValues, m_newTimestamps);
 
         // Interpolated odometry required by vision factors.
         addInterpolatedFactorsAndValues(timestamps);
@@ -476,6 +476,8 @@ public class GtsamStateEstimator implements StateEstimator {
     public void reset(double timestamp, NoisyStateSE2 state) {
         if (DEBUG)
             System.out.printf("#### GtsamStateEstimator.reset() %f\n", timestamp);
+        // Truncate the input queue.
+        m_vision.truncate();
         m_measurements.reset(
                 (long) (timestamp * 1e6),
                 new OdoGyroMeasurement(

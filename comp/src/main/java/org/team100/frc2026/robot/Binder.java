@@ -4,9 +4,12 @@ import static org.team100.lib.util.TriggerUtil.onTrue;
 import static org.team100.lib.util.TriggerUtil.whileTrue;
 import static org.wpilib.command2.Commands.parallel;
 
+import org.team100.lib.camera.OffsetCalibrationCommand;
 import org.team100.lib.controller.r1.AzimuthController;
 import org.team100.lib.controller.r1.FeedbackR1;
 import org.team100.lib.controller.r1.FullStateFeedback;
+import org.team100.lib.experiments.Experiment;
+import org.team100.lib.experiments.Experiments;
 import org.team100.lib.hid.DriverXboxControl;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.subsystems.swerve.commands.manual.DriveFieldRelative;
@@ -104,14 +107,14 @@ public class Binder {
 
         whileTrue(m_driver::leftBumper, machinery.m_intakeExtend.goToExtendedPositionEndlessly());
 
-        whileTrue(m_driver::leftTrigger,machinery.m_intake.intake());
+        whileTrue(m_driver::leftTrigger, machinery.m_intake.intake());
         // whileTrue(m_driver::rightBumper, Commands.print("help me"));
         // whileTrue(m_driver::rightBumper, Commands.print("rightBumper"));
         // whileTrue(m_driver::rightTrigger, Commands.print("rightTrigger"));
         // whileTrue(m_driver::a, Commands.print("a"));
         // whileTrue(m_driver::b, Commands.print("b"));
         // whileTrue(m_driver::x, Commands.print("x"));
-        whileTrue(m_driver::y,parallel(machinery.m_intake.back(), machinery.m_conveyor.back()));
+        whileTrue(m_driver::y, parallel(machinery.m_intake.back(), machinery.m_conveyor.back()));
         // whileTrue(m_driver::start, Commands.print("start"));
         // whileTrue(m_driver::back, Commands.print("back"));
         // whileTrue(m_driver::leftBumper, Commands.print("leftBumper"));
@@ -140,6 +143,13 @@ public class Binder {
                         machinery.m_cachedSolution,
                         machinery.m_drive)
                         .withName("Target lock"));
+
+        /////////////////////
+        ///
+        /// CALIBRATION
+        ///
+        whileTrue(() -> Experiments.INSTANCE.enabled(Experiment.CalibrateOffsets),
+                new OffsetCalibrationCommand(log));
     }
 
     /** Keeps tests from conflicting. */

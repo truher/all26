@@ -19,7 +19,7 @@ import org.wpilib.util.struct.StructBuffer;
  * 
  * @param T payload type, e.g. Blip.
  */
-public final class CameraReader<T> {
+public final class CameraReader<T> implements AutoCloseable {
     private static final boolean DEBUG = false;
 
     public record Record<T>(Camera camera, T[] values) {
@@ -111,5 +111,10 @@ public final class CameraReader<T> {
             records.add(new Record<>(camera, valueArray));
         }
         return records;
+    }
+
+    @Override 
+    public void close() {
+        m_poller.close();
     }
 }

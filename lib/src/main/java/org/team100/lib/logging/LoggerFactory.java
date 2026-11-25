@@ -25,12 +25,12 @@ import org.team100.lib.reference.r1.SetpointsR1;
 import org.team100.lib.reference.r1.VelocitySetpointsR1;
 import org.team100.lib.state.ControlR1;
 import org.team100.lib.state.ControlSE2;
-import org.team100.lib.state.WindingControlSE2;
 import org.team100.lib.state.StateR1;
 import org.team100.lib.state.StateSE2;
-import org.team100.lib.state.WindingStateSE2;
 import org.team100.lib.state.VelocityControlR1;
 import org.team100.lib.state.VelocityControlSE2;
+import org.team100.lib.state.WindingControlSE2;
+import org.team100.lib.state.WindingStateSE2;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePosition100;
 import org.team100.lib.subsystems.swerve.module.state.SwerveModulePositions;
 import org.team100.lib.trajectory.se2.TrajectorySE2Entry;
@@ -112,7 +112,7 @@ public class LoggerFactory {
         return a + "/" + b;
     }
 
-    ////////////////////////////////////
+    ////////////////////////////
 
     private boolean allow(Level level) {
         Level allowed = m_level.get();
@@ -123,7 +123,7 @@ public class LoggerFactory {
         return allowed.admit(level);
     }
 
-    ///////////////////////////////////
+    ///////////////////////////
     //
     // logger inner classes
     //

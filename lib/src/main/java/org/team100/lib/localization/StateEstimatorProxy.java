@@ -32,6 +32,12 @@ public class StateEstimatorProxy implements StateEstimator {
     }
 
     private void update(EstimatorChoice choice) {
+        // Avoid transients when switching estimators.
+        double now = Takt.get();
+        // Use the *current* estimate. Otherwise the new estimator remembers whatever it
+        // thought the last time it was active.
+        NoisyStateSE2 state = getState(now);
+        reset(now, state);
         m_choice = choice;
         // Avoid transients when switching estimators.
         reset(Takt.get());

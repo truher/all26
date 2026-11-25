@@ -37,8 +37,8 @@ public class StateEstimatorProxy implements StateEstimator {
         // Use the *current* estimate. Otherwise the new estimator remembers whatever it
         // thought the last time it was active.
         NoisyStateSE2 state = getState(now);
-        reset(now, state);
         m_choice = choice;
+        reset(now, state);
     }
 
     @Override

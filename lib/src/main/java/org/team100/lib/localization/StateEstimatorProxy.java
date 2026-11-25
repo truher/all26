@@ -2,6 +2,7 @@ package org.team100.lib.localization;
 
 import java.util.Map;
 
+import org.team100.lib.coherence.Takt;
 import org.team100.lib.uncertainty.NoisyStateSE2;
 import org.team100.lib.util.NamedChooser;
 
@@ -31,6 +32,12 @@ public class StateEstimatorProxy implements StateEstimator {
     }
 
     private void update(EstimatorChoice choice) {
+        // Avoid transients when switching estimators.
+        double now = Takt.get();
+        // Use the *current* estimate. Otherwise the new estimator remembers whatever it
+        // thought the last time it was active.
+        NoisyStateSE2 state = getState(now);
+        reset(now, state);
         m_choice = choice;
     }
 

@@ -18,7 +18,7 @@ import org.wpilib.util.struct.StructBuffer;
  * 
  * Uses the corners of observed AprilTags, not the camera-relative tag pose.
  */
-public class AprilTagCornerReader {
+public class AprilTagCornerReader implements VisionMeasurementSource {
     private final CameraReader<BlipWithCorners> m_reader;
     private final AprilTagCornerTranslator m_translator;
     private final AprilTagFilter m_filter;
@@ -38,8 +38,14 @@ public class AprilTagCornerReader {
      * Read all pending input, convert into measurements, filter unreliable input,
      * return a list of measurements.
      */
+    @Override 
     public List<VisionMeasurement> read() {
         return m_filter.filter(readAll());
+    }
+
+    @Override 
+    public void truncate() {
+        m_reader.truncate();
     }
 
     /** Read all pending input and return a list of measurements */

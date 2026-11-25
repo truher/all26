@@ -117,7 +117,7 @@ public class Machinery implements AutoCloseable {
                 Takt.get(),
                 gyro::getYawNWU,
                 swerveLocal::positions,
-                tagReader::read,
+                tagReader,
                 odometryEstimate,
                 visionEstimate);
         m_proxyEstimator = new StateEstimatorProxy(

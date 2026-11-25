@@ -40,7 +40,7 @@ public class FusedEstimator implements StateEstimator {
 
     private final Supplier<Rotation2d> m_gyro;
     private final Supplier<SwerveModulePositions> m_positions;
-    private final Supplier<List<VisionMeasurement>> m_vision;
+    private final VisionMeasurementSource m_vision;
     private final OdometryEstimator m_odometryEstimator;
     private final NudgingVisionEstimator m_visionEstimator;
 
@@ -52,7 +52,7 @@ public class FusedEstimator implements StateEstimator {
             double initialTimestamp,
             Supplier<Rotation2d> gyro,
             Supplier<SwerveModulePositions> positions,
-            Supplier<List<VisionMeasurement>> vision,
+            VisionMeasurementSource vision,
             OdometryEstimator odometryEstimate,
             NudgingVisionEstimator visionEstimate) {
         m_gyro = gyro;
@@ -112,6 +112,8 @@ public class FusedEstimator implements StateEstimator {
 
     @Override
     public void reset(double timestampS, NoisyStateSE2 state) {
+        // Truncate the input queue.
+        m_vision.truncate();
         // Always reset both at once, so they stay in sync.
         m_measurements.reset(
                 timestampS,
@@ -180,7 +182,7 @@ public class FusedEstimator implements StateEstimator {
      * Apply pending vision updates, with replay.
      */
     private void vision() {
-        for (VisionMeasurement v : m_vision.get()) {
+        for (VisionMeasurement v : m_vision.read()) {
             double visionTimestamp = v.timestamp();
             if (m_measurements.tooOld(visionTimestamp))
                 continue;

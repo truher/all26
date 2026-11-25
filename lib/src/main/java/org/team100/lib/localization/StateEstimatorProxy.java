@@ -32,9 +32,13 @@ public class StateEstimatorProxy implements StateEstimator {
     }
 
     private void update(EstimatorChoice choice) {
-        m_choice = choice;
         // Avoid transients when switching estimators.
-        reset(Takt.get());
+        double now = Takt.get();
+        // Use the *current* estimate. Otherwise the new estimator remembers whatever it
+        // thought the last time it was active.
+        NoisyStateSE2 state = getState(now);
+        m_choice = choice;
+        reset(now, state);
     }
 
     @Override
@@ -60,15 +64,6 @@ public class StateEstimatorProxy implements StateEstimator {
         switch (m_choice) {
             case A -> m_A.reset(timestampS, state);
             case B -> m_B.reset(timestampS, state);
-            default -> throw new IllegalStateException();
-        }
-    }
-
-    @Override
-    public void reset(double timestamp) {
-        switch (m_choice) {
-            case A -> m_A.reset(timestamp);
-            case B -> m_B.reset(timestamp);
             default -> throw new IllegalStateException();
         }
     }

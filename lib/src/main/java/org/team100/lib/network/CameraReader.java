@@ -60,6 +60,13 @@ public final class CameraReader<T> {
     }
 
     /**
+     * Read the queue and throw it away.
+     */
+    public void truncate() {
+        m_poller.readQueue();
+    }
+
+    /**
      * Read all queued input and return it as records.
      */
     public List<Record<T>> getRecords() {

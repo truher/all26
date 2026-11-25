@@ -112,7 +112,7 @@ public class Machinery2025 {
                 Takt.get(),
                 gyro::getYawNWU,
                 swerveLocal::positions,
-                tagReader::read,
+                tagReader,
                 odometryEstimate,
                 visionEstimate);
         StateEstimator proxyEstimator = new StateEstimatorProxy(

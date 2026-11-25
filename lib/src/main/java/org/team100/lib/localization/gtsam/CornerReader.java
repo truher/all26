@@ -14,7 +14,7 @@ import org.wpilib.util.struct.StructBuffer;
 /**
  * Reads camera observations, produces corners for GTSAM
  */
-public class CornerReader {
+public class CornerReader implements CornerSource {
     private static final boolean DEBUG = false;
     private final CameraReader<BlipWithCorners> m_reader;
     private final TagToCorners m_translator;
@@ -30,8 +30,14 @@ public class CornerReader {
         m_filter = new CornerFilter();
     }
 
+    @Override
     public List<Corners> read() {
         return m_filter.filter(readAll());
+    }
+
+    @Override
+    public void truncate() {
+        m_reader.truncate();
     }
 
     public List<Corners> readAll() {
@@ -42,7 +48,7 @@ public class CornerReader {
         for (CameraReader.Record<BlipWithCorners> r : records) {
             measurements.addAll(m_translator.convert(r.camera(), r.values()));
         }
-                if (DEBUG)
+        if (DEBUG)
             System.out.printf("#### CornerReader.readAll() measurements %d\n", measurements.size());
         return measurements;
     }

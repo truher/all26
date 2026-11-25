@@ -59,6 +59,19 @@ public class FusedEstimatorTest {
     private SwerveModulePositions positions;
     private List<VisionMeasurement> vision;
 
+    class Source implements VisionMeasurementSource {
+
+        @Override
+        public List<VisionMeasurement> read() {
+            return vision;
+        }
+
+        @Override
+        public void truncate() {
+        }
+
+    }
+
     @Test
     void testDump() throws IOException {
         yaw = Rotation2d.ZERO;
@@ -79,7 +92,7 @@ public class FusedEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 odometryEstimate,
                 visionEstimate);
 
@@ -111,7 +124,7 @@ public class FusedEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 odometryEstimate,
                 visionEstimate);
 
@@ -201,7 +214,7 @@ public class FusedEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 odometryEstimator,
                 visionEstimator);
         estimator.reset(
@@ -260,7 +273,7 @@ public class FusedEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 odometryEstimator,
                 visionEstimator);
         estimator.reset(
@@ -314,7 +327,7 @@ public class FusedEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 odometryEstimator,
                 visionEstimator);
         estimator.reset(
@@ -377,7 +390,7 @@ public class FusedEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 odometryEstimator,
                 visionEstimator);
         estimator.reset(
@@ -525,7 +538,7 @@ public class FusedEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 odometryEstimator,
                 visionEstimator);
         estimator.reset(
@@ -661,7 +674,7 @@ public class FusedEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 odometryEstimator,
                 visionEstimator);
         estimator.reset(
@@ -727,7 +740,7 @@ public class FusedEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 odometryEstimator,
                 visionEstimator);
         estimator.reset(
@@ -794,7 +807,7 @@ public class FusedEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 odometryEstimator,
                 visionEstimator);
         estimator.reset(
@@ -863,7 +876,7 @@ public class FusedEstimatorTest {
                 0,
                 () -> yaw,
                 () -> positions,
-                () -> vision,
+                new Source(),
                 odometryEstimator,
                 visionEstimator);
         estimator.reset(

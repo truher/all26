@@ -80,7 +80,7 @@ class DriveWithTrajectoryListFunctionTest implements Timeless {
                 Takt.get(),
                 gyro::getYawNWU,
                 swerveLocal::positions,
-                tagReader::read,
+                tagReader,
                 odometryEstimate,
                 visionEstimate);
         UpdatedEstimate e = new UpdatedEstimate(estimate);

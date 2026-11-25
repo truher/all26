@@ -181,7 +181,7 @@ public class DriveWithTrajectoryTest implements Timeless {
                 Takt.get(),
                 gyro::getYawNWU,
                 swerveLocal::positions,
-                tagReader::read,
+                tagReader,
                 odometryEstimate,
                 visionEstimate);
 

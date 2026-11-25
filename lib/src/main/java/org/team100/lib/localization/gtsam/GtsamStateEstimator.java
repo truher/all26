@@ -228,7 +228,7 @@ public class GtsamStateEstimator implements StateEstimator {
         } catch (IndeterminateSystemException e) {
             System.out.printf("#### IndeterminateSystemException %s", e);
             // it can get stuck here so try just resetting
-            reset(timestamp);
+            reset(timestamp, new NoisyStateSE2(lastState(), IsotropicNoiseSE2.high()));
         }
 
         m_result = m_smoother.calculateEstimate();
@@ -257,9 +257,12 @@ public class GtsamStateEstimator implements StateEstimator {
 
     /** reset to the most-recent pose, with high uncertainty. */
     public void reset(double timestamp) {
-        reset(timestamp, new NoisyStateSE2(
-                new StateSE2(Geometry.toPose2d(lastPose(m_result))),
-                IsotropicNoiseSE2.high()));
+        NoisyStateSE2 state = new NoisyStateSE2(lastState(), IsotropicNoiseSE2.high());
+        reset(timestamp, state);
+    }
+
+    private StateSE2 lastState() {
+        return new StateSE2(Geometry.toPose2d(lastPose(m_result)));
     }
 
     /**

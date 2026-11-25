@@ -115,11 +115,6 @@ public class SwerveDriveSubsystem extends SubsystemBase
         m_estimate.reset(timestampS, state);
     }
 
-    @Override
-    public void reset(double timestamp) {
-        m_estimate.reset(timestamp);
-    }
-
     ///////////////////////////////////////////////////////////
     //
     // Observers

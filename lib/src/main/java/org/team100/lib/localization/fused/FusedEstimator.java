@@ -1,6 +1,5 @@
 package org.team100.lib.localization.fused;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -110,12 +109,12 @@ public class FusedEstimator implements StateEstimator {
         return state;
     }
 
-    @Override
-    public void reset(double timestamp) {
+    /** Most-recent state, for resetting. */
+    NoisyStateSE2 lastState() {
         Entry<Double, LocalizerEstimate> e = m_estimates.lastEntry();
         if (e == null)
-            return;
-        reset(timestamp, e.getValue().noisyState());
+            return null;
+        return e.getValue().noisyState();
     }
 
     @Override

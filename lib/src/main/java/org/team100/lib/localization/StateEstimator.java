@@ -26,11 +26,6 @@ public interface StateEstimator {
     void reset(double timestampS, NoisyStateSE2 state);
 
     /**
-     * Reset to the most-recent state.
-     */
-    void reset(double timestamp);
-
-    /**
      * Timestamped StateSE2 estimates, for visualization.
      */
     Map<Double, NoisyStateSE2> all();

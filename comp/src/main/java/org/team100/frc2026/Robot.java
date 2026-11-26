@@ -6,6 +6,8 @@ import org.team100.frc2026.auton.Autons;
 import org.team100.frc2026.robot.Binder;
 import org.team100.frc2026.robot.Machinery;
 import org.team100.frc2026.robot.Prewarmer;
+import org.team100.lib.camera.CameraCalibrator;
+import org.team100.lib.camera.OffsetCalibrator;
 import org.team100.lib.coherence.Cache;
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.config.AnnotatedCommand;
@@ -72,6 +74,10 @@ public class Robot extends TimedRobot100 {
         m_autoViz = new AutonVisualization(fieldLogger);
         m_autons.onChange(m_autoViz::show);
         m_play = Commands.repeatingSequence(m_machinery.play());
+        OffsetCalibrator offsetCalibrator = new OffsetCalibrator(log);
+        addPeriodic(offsetCalibrator::execute, 1);
+        CameraCalibrator cameraCalibrator = new CameraCalibrator(log);
+        addPeriodic(cameraCalibrator::execute, 1);
         Prewarmer.init(m_machinery);
         System.out.printf("Total Logger Keys: %d\n", Logging.keyCount());
     }
@@ -101,7 +107,7 @@ public class Robot extends TimedRobot100 {
         // System.out.printf(" Left Trigger %f\n", m_binder.m_driver.LeftTriggerAxis());
     }
 
-    ///////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////
     //
     // INITIALIZERS, DO NOT CHANGE THESE
     //
@@ -145,7 +151,7 @@ public class Robot extends TimedRobot100 {
         m_binder.close();
     }
 
-    ///////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////
     //
     // EXIT: CLEAN UP
     //
@@ -155,7 +161,7 @@ public class Robot extends TimedRobot100 {
         CommandScheduler.getInstance().cancelAll();
     }
 
-    ////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////
     //
     // LEAVE ALL THESE EMPTY
     //

@@ -105,14 +105,18 @@ public class TestUtil {
     }
 
     public static void verify(Pose3d expected, Pose3d actual) {
+        verify(expected, actual, 1e-3);
+    }
+
+    public static void verify(Pose3d expected, Pose3d actual, double tol) {
         if (DEBUG)
             System.out.printf("expected %s actual %s\n", StrUtil.poseStr(expected), StrUtil.poseStr(actual));
-        assertEquals(expected.getX(), actual.getX(), 1e-3, "x");
-        assertEquals(expected.getY(), actual.getY(), 1e-3, "y");
-        assertEquals(expected.getZ(), actual.getZ(), 1e-3, "z");
-        assertEquals(expected.getRotation().getX(), actual.getRotation().getX(), 1e-3, "rx");
-        assertEquals(expected.getRotation().getY(), actual.getRotation().getY(), 1e-3, "ry");
-        assertEquals(expected.getRotation().getZ(), actual.getRotation().getZ(), 1e-3, "rz");
+        assertEquals(expected.getX(), actual.getX(), tol, "x");
+        assertEquals(expected.getY(), actual.getY(), tol, "y");
+        assertEquals(expected.getZ(), actual.getZ(), tol, "z");
+        assertEquals(expected.getRotation().getX(), actual.getRotation().getX(), tol, "rx");
+        assertEquals(expected.getRotation().getY(), actual.getRotation().getY(), tol, "ry");
+        assertEquals(expected.getRotation().getZ(), actual.getRotation().getZ(), tol, "rz");
     }
 
     public static void verify(Transform2d expected, Transform2d actual) {

@@ -110,11 +110,7 @@ public enum Experiment {
      * 
      * Don't play music.
      */
-    Quiet("Quiet"),
-    /**
-     * Report pose of each camera, used for calibrating the robot->camera transform.
-     */
-    CalibrateOffsets("Calibrate Offsets");
+    Quiet("Quiet");
 
     /** Show this at startup */
     public final String description;

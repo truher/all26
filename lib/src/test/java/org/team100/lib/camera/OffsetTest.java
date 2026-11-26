@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.team100.lib.localization.gtsam.Geometry;
+import org.team100.lib.testing.TestUtil;
 import org.team100.lib.util.ImgUtil;
 import org.wpilib.math.geometry.Pose3d;
 import org.wpilib.math.geometry.Rotation3d;
@@ -63,14 +64,14 @@ public class OffsetTest {
 
             // Shrink and shift the image to roughly 25%, so the tag length is about 20% of
             // the frame width.
+            // this transform puts the tag in the lower-right corner.
             Mat timage = ImgUtil.transform(ImgUtil.t(600, 600, 6000), image, 1500);
             Imgcodecs.imwrite("/tmp/transformedimg.png", timage);
 
             Key pose0 = Key.X(0);
-            Rot3 priorRot = new Rot3();
-            Point3 priorTranslation = new Point3(0, 0, -1);
-            Pose3 pose_prior = new Pose3(priorRot, priorTranslation);
-            // The prior is essentially meaningless.
+            // a zero pose as both the prior and the initial value seems to work fine.
+            Pose3 pose_prior = new Pose3();
+            // The prior uncertainty is essentially infinite.
             shared_ptr<Isotropic> prior_noise = Isotropic.Sigma(6, 100.0);
 
             // choose f to make the tag appear about 1 m away.
@@ -99,7 +100,8 @@ public class OffsetTest {
             assertEquals(0, r.getHamming());
 
             // Add a projection factor for each corner.
-            Translation3d[] landmarks = landmarks();
+            // Translation3d[] landmarks = landmarks();
+            Translation3d[] landmarks = landmarksYZ();
             double[] corners = r.getCorners();
 
             // Take one second of input.
@@ -150,6 +152,12 @@ public class OffsetTest {
             System.out.printf("sigma translation (%6.3f, %6.3f, %6.3f) rotation (%6.3f, %6.3f, %6.3f)\n",
                     sigma.at(3), sigma.at(4), sigma.at(5), sigma.at(0), sigma.at(1), sigma.at(2));
             System.out.println();
+
+            // with the tag in the lower-right corner of the YZ plane, the camera pose is
+            // about a meter in -x, a little in +y and +z.
+            // the rotation is 90 roll left, 90 yaw right, which puts +z forward, which
+            // is the actual camera pose.
+            TestUtil.verify(new Pose3d(-1.049, 0.162, 0.190, new Rotation3d(-1.571, 0, -1.571)), rp0, 0.02);
 
             // Compute and print the reprojection errors.
             PinholeCamera<Cal3DS2> camera0 = PinholeCamera.PinholeCameraCal3DS2(result_pose0, K.get());
@@ -206,16 +214,33 @@ public class OffsetTest {
                 K, px_noise, false));
     }
 
+    /** Landmarks in the XY plane */
     Translation3d[] landmarks() {
         Pose3d center = new Pose3d();
         // this is the normal FRC tag size, 16.51 cm.
         double marker_length = 0.1651;
         double H = marker_length / 2;
-        // these are in x-forward, y-left, z-up coordinates.
         Transform3d LL = new Transform3d(-H, H, 0, Rotation3d.ZERO);
         Transform3d LR = new Transform3d(H, H, 0, Rotation3d.ZERO);
         Transform3d UR = new Transform3d(H, -H, 0, Rotation3d.ZERO);
         Transform3d UL = new Transform3d(-H, -H, 0, Rotation3d.ZERO);
+        return new Translation3d[] {
+                center.transformBy(LL).getTranslation(),
+                center.transformBy(LR).getTranslation(),
+                center.transformBy(UR).getTranslation(),
+                center.transformBy(UL).getTranslation() };
+    }
+
+    /** Landmarks in the NWU YZ plane, as is typical in an FRC map. */
+    Translation3d[] landmarksYZ() {
+        Pose3d center = new Pose3d();
+        // this is the normal FRC tag size, 16.51 cm.
+        double marker_length = 0.1651;
+        double H = marker_length / 2;
+        Transform3d LL = new Transform3d(0, H, -H, Rotation3d.ZERO);
+        Transform3d LR = new Transform3d(0, -H, -H, Rotation3d.ZERO);
+        Transform3d UR = new Transform3d(0, -H, H, Rotation3d.ZERO);
+        Transform3d UL = new Transform3d(0, H, H, Rotation3d.ZERO);
         return new Translation3d[] {
                 center.transformBy(LL).getTranslation(),
                 center.transformBy(LR).getTranslation(),

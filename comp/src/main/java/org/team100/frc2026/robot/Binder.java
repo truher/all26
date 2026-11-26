@@ -4,7 +4,7 @@ import static org.team100.lib.util.TriggerUtil.onTrue;
 import static org.team100.lib.util.TriggerUtil.whileTrue;
 import static org.wpilib.command2.Commands.parallel;
 
-import org.team100.lib.camera.OffsetCalibrationCommand;
+import org.team100.lib.camera.OffsetCalibrator;
 import org.team100.lib.controller.r1.AzimuthController;
 import org.team100.lib.controller.r1.FeedbackR1;
 import org.team100.lib.controller.r1.FullStateFeedback;
@@ -143,13 +143,6 @@ public class Binder {
                         machinery.m_cachedSolution,
                         machinery.m_drive)
                         .withName("Target lock"));
-
-        /////////////////////
-        ///
-        /// CALIBRATION
-        ///
-        whileTrue(() -> Experiments.INSTANCE.enabled(Experiment.CalibrateOffsets),
-                new OffsetCalibrationCommand(log));
     }
 
     /** Keeps tests from conflicting. */

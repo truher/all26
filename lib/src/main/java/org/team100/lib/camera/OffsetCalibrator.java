@@ -13,10 +13,14 @@ import org.team100.lib.logging.LoggerFactory.DoubleArrayLogger;
 import org.team100.lib.logging.LoggerFactory.Transform3dLogger;
 import org.team100.lib.network.CameraReader;
 import org.team100.lib.uncertainty.NoisyTransform3d;
-import org.wpilib.command2.Command;
+import org.team100.lib.util.NamedChooser;
 import org.wpilib.util.struct.StructBuffer;
 
 /**
+ * Offset calibration worker, should run in TimedRobot.addPeriodic().
+ * 
+ * Set a tag in a known location relative to the robot, and then turn this on, and it will log the transform from the camera pose to the tag pose.  Use that transform in 
+ * 
  * Finds one tag per camera, sets tag to the origin, solves for camera pose,
  * publishes it.
  * 
@@ -25,7 +29,7 @@ import org.wpilib.util.struct.StructBuffer;
  * 
  * The tag should be stationary during this time!
  */
-public class OffsetCalibrationCommand extends Command {
+public class OffsetCalibrator {
 
     private final LoggerFactory m_log;
 
@@ -41,34 +45,57 @@ public class OffsetCalibrationCommand extends Command {
     private final Map<Camera, Map<Integer, DoubleArrayLogger>> m_sigmaLoggers;
 
     private final GtsamOffsetSolver m_solver;
+
+    private final NamedChooser<Boolean> m_enable;
     /**
      * Reader is not final because we make a new one every time the command runs, in
      * order to keep the listener from spinning unnecessarily.
      */
     private CameraReader<BlipWithCorners> m_reader;
 
-    public OffsetCalibrationCommand(LoggerFactory parent) {
+    public OffsetCalibrator(LoggerFactory parent) {
         m_log = parent.type(this);
         m_queue = new EnumMap<>(Camera.class);
         m_meanLoggers = new EnumMap<>(Camera.class);
         m_sigmaLoggers = new EnumMap<>(Camera.class);
         m_solver = new GtsamOffsetSolver();
+        // this is the same as the experiment setup; we need the "onchange".
+        String name = "Solve Camera->Tag";
+        m_enable = new NamedChooser<>(name);
+        m_enable.addDefault(name + " OFF", false);
+        m_enable.add(name + " ON", true);
+        m_enable.onChange(this::enable);
     }
 
-    @Override
-    public void initialize() {
-        // Forget the previously-read input.
-        m_queue.clear();
-        // Start polling for new camera input.
-        m_reader = new CameraReader<>(
-                "vision", "blips_with_corners",
-                StructBuffer.create(BlipWithCorners.struct));
-    }
-
-    @Override
+    /**
+     * This should be called periodically, e.g. in TimedRobot.addPeriodic().
+     */
     public void execute() {
-        read();
-        solve();
+        Boolean enabled = m_enable.getSelected();
+        if (enabled != null && enabled) {
+            read();
+            solve();
+        }
+    }
+
+    /**
+     * Updated by the chooser.
+     */
+    private void enable(Boolean enabled) {
+        if (enabled != null && enabled) {
+            // Forget the previously-read input.
+            m_queue.clear();
+            // Start polling for new camera input.
+            m_reader = new CameraReader<>(
+                    "vision",
+                    "blips_with_corners",
+                    StructBuffer.create(BlipWithCorners.struct),
+                    50);
+        } else {
+            // Stop polling when the command ends.
+            m_reader.close();
+            m_reader = null;
+        }
     }
 
     /**
@@ -103,8 +130,6 @@ public class OffsetCalibrationCommand extends Command {
                 if (blips.size() < 30)
                     continue;
                 // There are enough blips to run the solver.
-                // Note this Transform3d is in camera coordinates, z-forward.
-                // TODO: use x-forward instead?
                 NoisyTransform3d result = m_solver.solve(camera, blips);
                 blips.clear();
                 // Log the results
@@ -121,23 +146,6 @@ public class OffsetCalibrationCommand extends Command {
                 sl.log(() -> result.sigma());
             }
         }
-    }
-
-    @Override
-    public boolean isFinished() {
-        // Run as long as the user wants it to run.
-        return false;
-    }
-
-    @Override
-    public void end(boolean interrupted) {
-        // Stop polling when the command ends.
-        m_reader.close();
-    }
-
-    @Override
-    public boolean runsWhenDisabled() {
-        return true;
     }
 
 }

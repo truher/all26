@@ -29,7 +29,7 @@ public final class CameraReader<T> implements AutoCloseable {
      * Five cameras, 50hz each => 250 hz of updates. Rio runs at 50 hz, so there
      * should be five messages waiting for us each cycle.
      */
-    private static final int QUEUE_DEPTH = 10;
+    private static final int DEFAULT_QUEUE_DEPTH = 10;
 
     /** e.g. "blips" or "Rotation3d" */
     private final String m_value;
@@ -46,6 +46,10 @@ public final class CameraReader<T> implements AutoCloseable {
      * @param buf   deserializer, e.g. StructBuffer.create(Blip.struct).
      */
     public CameraReader(String root, String value, StructBuffer<T> buf) {
+        this(root,value,buf,DEFAULT_QUEUE_DEPTH);
+    }
+
+    public CameraReader(String root, String value, StructBuffer<T> buf, int queueDepth) {
         m_value = value;
         NetworkTableInstance inst = NetworkTableInstance.getDefault();
         m_poller = new NetworkTableListenerPoller(inst);
@@ -54,7 +58,7 @@ public final class CameraReader<T> implements AutoCloseable {
                         inst,
                         new String[] { root },
                         PubSubOption.KEEP_DUPLICATES,
-                        PubSubOption.pollStorage(QUEUE_DEPTH)),
+                        PubSubOption.pollStorage(queueDepth)),
                 EnumSet.of(NetworkTableEvent.Kind.VALUE_ALL));
         m_buf = buf;
     }
@@ -113,7 +117,7 @@ public final class CameraReader<T> implements AutoCloseable {
         return records;
     }
 
-    @Override 
+    @Override
     public void close() {
         m_poller.close();
     }

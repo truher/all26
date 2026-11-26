@@ -21,14 +21,12 @@ import gtsam.Point2;
 import gtsam.Point3;
 import gtsam.Pose3;
 import gtsam.PriorFactor;
-import gtsam.Rot3;
 import gtsam.Values;
 import gtsam.Vector;
 import gtsam.shared_ptr;
 import gtsam.noiseModel.Isotropic;
 
 public class GtsamOffsetSolver {
-
     private final shared_ptr<Isotropic> m_pixelNoise;
     private final shared_ptr<Isotropic> m_posePriorNoise;
     private final Translation3d[] m_landmarks;
@@ -40,13 +38,16 @@ public class GtsamOffsetSolver {
     }
 
     /**
-     * Return a camera-relative ("z forward") transform for the given blips.
+     * Return the transform from camera to tag.
+     * 
+     * This uses the actual camera orientation, with z down the barrel,
+     * instead of the x-down-the-barrel thing we've done the past few years.
      * 
      * @param blips list of sightings of the same tag by the same camera.
      */
     public NoisyTransform3d solve(Camera camera, List<BlipWithCorners> blips) {
         Key pose = Key.X(0);
-        Pose3 pose_prior = new Pose3(new Rot3(), new Point3(0, 0, -1));
+        Pose3 pose_prior = new Pose3();
 
         Values values = new Values();
         values.insert(pose, pose_prior);
@@ -82,7 +83,7 @@ public class GtsamOffsetSolver {
         Pose3 resultPose = result.atPose3(pose);
         // Pose of the camera relative to the tag at the origin.
         Pose3d resultPose3d = Geometry.toPose3d(resultPose);
-        // Transform from camera to the origin.
+        // Transform from camera to the tag at the origin.
         Transform3d transform = new Transform3d(resultPose3d, new Pose3d());
 
         // Standard deviation of the camera pose.
@@ -124,16 +125,16 @@ public class GtsamOffsetSolver {
                 K, m_pixelNoise, false));
     }
 
+    /** Landmarks in the NWY YZ plane, which is the "zero" rotation */
     static Translation3d[] landmarks() {
         Pose3d center = new Pose3d();
         // this is the normal FRC tag size, 16.51 cm.
         double marker_length = 0.1651;
         double H = marker_length / 2;
-        // these are in x-forward, y-left, z-up coordinates.
-        Transform3d LL = new Transform3d(-H, H, 0, Rotation3d.ZERO);
-        Transform3d LR = new Transform3d(H, H, 0, Rotation3d.ZERO);
-        Transform3d UR = new Transform3d(H, -H, 0, Rotation3d.ZERO);
-        Transform3d UL = new Transform3d(-H, -H, 0, Rotation3d.ZERO);
+        Transform3d LL = new Transform3d(0, H, -H, Rotation3d.ZERO);
+        Transform3d LR = new Transform3d(0, -H, -H, Rotation3d.ZERO);
+        Transform3d UR = new Transform3d(0, -H, H, Rotation3d.ZERO);
+        Transform3d UL = new Transform3d(0, H, H, Rotation3d.ZERO);
         return new Translation3d[] {
                 center.transformBy(LL).getTranslation(),
                 center.transformBy(LR).getTranslation(),

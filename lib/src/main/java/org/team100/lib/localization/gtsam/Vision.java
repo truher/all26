@@ -37,7 +37,8 @@ public class Vision {
      * "offset" is measured in x-forward, z-up coordinates (because
      * it's simpler to think about). Add this transform to get
      * the actual offset, with the z-axis pointing in the right
-     * direction.
+     * direction.  So this rotates the camera so the z axis
+     * is pointing where the x axis used to be pointing.
      */
     static final Transform3d CAM = new Transform3d(
             Translation3d.ZERO,

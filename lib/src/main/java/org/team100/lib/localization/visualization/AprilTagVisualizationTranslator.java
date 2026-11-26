@@ -8,8 +8,6 @@ import java.util.function.Supplier;
 
 import org.team100.lib.camera.Camera;
 import org.team100.lib.camera.Offset;
-import org.team100.lib.experiments.Experiment;
-import org.team100.lib.experiments.Experiments;
 import org.team100.lib.geometry.GeometryUtil;
 import org.team100.lib.localization.PoseFromCorners;
 import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
@@ -48,12 +46,9 @@ public class AprilTagVisualizationTranslator {
         m_layout = layout;
         m_estimator = new PoseFromCorners();
         m_log_tag_error = log.doubleLogger(Level.DEBUG, "tag error");
-
     }
 
     public List<Measurement> convert(Camera camera, BlipWithCorners[] blips) {
-        if (!Experiments.INSTANCE.enabled(Experiment.ShowTags))
-            return List.of();
         Transform3d cameraOffset = Offset.get(camera).offset();
         // Fetch the alliance (not available immediately after startup).
         Optional<Alliance> optAlliance = m_alliance.get();

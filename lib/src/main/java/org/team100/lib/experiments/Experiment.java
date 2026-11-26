@@ -60,13 +60,6 @@ public enum Experiment {
      */
     IgnoreOdometry("Ignore odometry input"),
     /**
-     * Show seen tags.
-     * 
-     * Listens for camera input and paints the tags on the field. This is
-     * expensive to do, so it should be kept off for comp.
-     */
-    ShowTags("Show seen tags"),
-    /**
      * Use motor feedforward alone.
      * 
      * We almost always use outboard closed-loop control of position or

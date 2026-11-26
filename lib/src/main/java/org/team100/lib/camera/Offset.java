@@ -115,19 +115,19 @@ public class Offset {
         offsets.put(Camera.SIM0, new Offset(
                 new Transform3d(
                         new Translation3d(0, 0, 0.25),
-                        new Rotation3d(0, -0.1, 0))));
+                        new Rotation3d(0, -0.5, 0))));
         offsets.put(Camera.SIM1, new Offset(
                 new Transform3d(
                         new Translation3d(0, 0, 0.25),
-                        new Rotation3d(0, -0.1, Math.PI / 2))));
+                        new Rotation3d(0, -0.5, Math.PI / 2))));
         offsets.put(Camera.SIM2, new Offset(
                 new Transform3d(
                         new Translation3d(0, 0, 0.25),
-                        new Rotation3d(0, -0.1, Math.PI))));
+                        new Rotation3d(0, -0.5, Math.PI))));
         offsets.put(Camera.SIM3, new Offset(
                 new Transform3d(
                         new Translation3d(0, 0, 0.25),
-                        new Rotation3d(0, -0.1, -Math.PI / 2))));
+                        new Rotation3d(0, -0.5, -Math.PI / 2))));
         offsets.put(Camera.UNKNOWN,
                 new Offset(new Transform3d()));
     }

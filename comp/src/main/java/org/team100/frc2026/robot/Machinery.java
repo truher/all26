@@ -11,6 +11,7 @@ import org.team100.frc2026.subsystems.Intake;
 import org.team100.frc2026.subsystems.IntakeExtend;
 import org.team100.frc2026.subsystems.Shooter;
 import org.team100.frc2026.targeting.Targeter;
+import org.team100.lib.camera.CameraVisualizer;
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.config.CurrentLimit;
 import org.team100.lib.geometry.se2.VelocitySE2;
@@ -143,6 +144,7 @@ public class Machinery implements AutoCloseable {
                 t -> m_drive.getState(t).state(), layout, MatchState::getAlliance);
         new RobotPoseVisualization(fieldLogger, () -> m_drive.getState(), "robot");
         new SwerveHistoryVisualization(fieldLogger, m_drive);
+        new CameraVisualizer();
 
         ///////////////////
         //

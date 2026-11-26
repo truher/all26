@@ -19,7 +19,9 @@ import org.wpilib.util.struct.StructBuffer;
 /**
  * Offset calibration worker, should run in TimedRobot.addPeriodic().
  * 
- * Set a tag in a known location relative to the robot, and then turn this on, and it will log the transform from the camera pose to the tag pose.  Use that transform in 
+ * Set a tag in a known location relative to the robot, and then turn this on,
+ * and it will log the transform from the camera pose to the tag pose. Use that
+ * transform in
  * 
  * Finds one tag per camera, sets tag to the origin, solves for camera pose,
  * publishes it.
@@ -72,10 +74,10 @@ public class OffsetCalibrator {
      */
     public void execute() {
         Boolean enabled = m_enable.getSelected();
-        if (enabled != null && enabled) {
-            read();
-            solve();
-        }
+        if (enabled == null || !enabled)
+            return;
+        read();
+        solve();
     }
 
     /**
@@ -92,7 +94,7 @@ public class OffsetCalibrator {
                     StructBuffer.create(BlipWithCorners.struct),
                     50);
         } else {
-            // Stop polling when the command ends.
+            // Stop polling.
             m_reader.close();
             m_reader = null;
         }

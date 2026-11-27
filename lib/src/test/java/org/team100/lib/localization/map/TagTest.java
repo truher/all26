@@ -21,13 +21,13 @@ class TagTest {
 
     @Test
     void testBlueLayout() throws IOException {
-        AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation(
+        FieldTagMap layout = new FieldTagMap(
                 "2025-reefscape.json");
         /*
          * from the blue perspective, tag 7 has small x
          * and large y, and oriented at pi theta.
          */
-        Pose3d tag7Pose = layout.getTagPose(Alliance.BLUE, 7).get();
+        Pose3d tag7Pose = layout.getTagPose(7).get();
         assertEquals(13.89, tag7Pose.getTranslation().getX(), DELTA);
         assertEquals(4.026, tag7Pose.getTranslation().getY(), DELTA);
         assertEquals(0.308, tag7Pose.getTranslation().getZ(), DELTA);
@@ -39,14 +39,14 @@ class TagTest {
 
     @Test
     void testRedLayout() throws IOException {
-        AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation(
+        FieldTagMap layout = new FieldTagMap(
                 "2025-reefscape.json");
 
         /*
          * from the red perspective, tag 7 has large x
          * and small y, and oriented at zero theta.
          */
-        Pose3d tag7Pose = layout.getTagPose(Alliance.RED, 7).get();
+        Pose3d tag7Pose = layout.getTagPose(18).get();
         assertEquals(3.657, tag7Pose.getTranslation().getX(), DELTA);
         assertEquals(4.026, tag7Pose.getTranslation().getY(), DELTA); // close to right side
         assertEquals(0.308, tag7Pose.getTranslation().getZ(), DELTA); // 1.5m up (as above)

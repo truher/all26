@@ -10,7 +10,7 @@ import org.team100.lib.camera.Camera;
 import org.team100.lib.camera.Offset;
 import org.team100.lib.geometry.GeometryUtil;
 import org.team100.lib.localization.PoseFromCorners;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.localization.network.BlipWithCorners;
 import org.team100.lib.localization.visualization.AprilTagVisualizer.Measurement;
 import org.team100.lib.logging.Level;
@@ -27,22 +27,17 @@ import org.wpilib.math.geometry.Transform3d;
  * AprilTagVisualizer.Measurement
  */
 public class AprilTagVisualizationTranslator {
-    private static final boolean DEBUG = false;
-
     private final DoubleFunction<StateSE2> m_history;
-    private final Supplier<Optional<Alliance>> m_alliance;
-    private final AprilTagFieldLayoutWithCorrectOrientation m_layout;
+    private final FieldTagMap m_layout;
     private final PoseFromCorners m_estimator;
     private final DoubleLogger m_log_tag_error;
 
     public AprilTagVisualizationTranslator(
             LoggerFactory parent,
             DoubleFunction<StateSE2> history,
-            AprilTagFieldLayoutWithCorrectOrientation layout,
-            Supplier<Optional<Alliance>> alliance) {
+            FieldTagMap layout) {
         LoggerFactory log = parent.type(this);
         m_history = history;
-        m_alliance = alliance;
         m_layout = layout;
         m_estimator = new PoseFromCorners();
         m_log_tag_error = log.doubleLogger(Level.DEBUG, "tag error");
@@ -50,14 +45,8 @@ public class AprilTagVisualizationTranslator {
 
     public List<Measurement> convert(Camera camera, BlipWithCorners[] blips) {
         Transform3d cameraOffset = Offset.get(camera).offset();
-        // Fetch the alliance (not available immediately after startup).
-        Optional<Alliance> optAlliance = m_alliance.get();
-        if (!optAlliance.isPresent()) {
-            if (DEBUG)
-                System.out.println("no alliance!");
-            return List.of();
-        }
-        Alliance alliance = optAlliance.get();
+      
+       
 
         List<Measurement> measurements = new ArrayList<>();
 
@@ -68,7 +57,7 @@ public class AprilTagVisualizationTranslator {
             Transform3d cameraToTag = tagInCamera(camera, blip);
 
             // Look up the pose of the tag in the field frame.
-            Optional<Pose3d> tagInFieldOpt = m_layout.getTagPose(alliance, blip.getId());
+            Optional<Pose3d> tagInFieldOpt = m_layout.getTagPose(blip.getId());
             if (!tagInFieldOpt.isPresent()) {
                 // This shouldn't happen, but it does.
                 System.out.printf("WARNING: VisionDataProvider24: no tag for id %d\n", blip.getId());

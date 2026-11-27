@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.team100.lib.camera.Camera;
 import org.team100.lib.camera.Offset;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.state.StateSE2;
 import org.wpilib.driverstation.Alliance;
 import org.wpilib.hardware.hal.AllianceStationID;
@@ -38,7 +38,7 @@ public class SimulatedTagCornerDetectorTest {
     @Test
     void testSimple() throws IOException {
         List<Camera> cameras = List.of(Camera.SIM0, Camera.SIM1, Camera.SIM2, Camera.SIM3);
-        AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation(
+        FieldTagMap layout = new FieldTagMap(
                 "2025-reefscape.json");
         // right in front of tag 7
         SimulatedTagCornerDetector sim = new SimulatedTagCornerDetector(
@@ -173,7 +173,7 @@ public class SimulatedTagCornerDetectorTest {
     @Test
     void testTag6() throws IOException {
         Camera camera = Camera.TEST6;
-        AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation(
+        FieldTagMap layout = new FieldTagMap(
                 "2025-reefscape.json");
         // right in front of tag 7
         Pose2d robotPose = new Pose2d(2.6576, 4.0259, Rotation2d.ZERO);
@@ -193,7 +193,7 @@ public class SimulatedTagCornerDetectorTest {
         // panned right about 17 degrees
         assertEquals(-0.295, cameraPose3d.getRotation().getZ(), DELTA);
 
-        Pose3d tagPose = layout.getTagPose(Alliance.RED, 6).get();
+        Pose3d tagPose = layout.getTagPose(19).get();
         Transform3d tagInCamera = new Transform3d(cameraPose3d, tagPose);
 
         Translation3d tagTranslationInCamera = tagInCamera.getTranslation();

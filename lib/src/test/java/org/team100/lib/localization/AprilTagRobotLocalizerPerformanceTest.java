@@ -3,16 +3,14 @@ package org.team100.lib.localization;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.util.Optional;
 
 import org.team100.lib.camera.Camera;
 import org.team100.lib.localization.fused.AprilTagTranslator;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.localization.network.Blip;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
-import org.wpilib.driverstation.Alliance;
 import org.wpilib.math.geometry.Pose3d;
 import org.wpilib.math.geometry.Rotation3d;
 import org.wpilib.math.geometry.Transform3d;
@@ -26,9 +24,9 @@ class AprilTagRobotLocalizerPerformanceTest {
     // @Test
     void testEstimateRobotPose2() throws IOException {
         // robot is panned right 45, translation is ignored.
-        AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation();
+        FieldTagMap layout = new FieldTagMap();
 
-        AprilTagTranslator m_translator = new AprilTagTranslator(logger, layout, () -> Optional.of(Alliance.RED));
+        AprilTagTranslator m_translator = new AprilTagTranslator(logger, layout);
 
         // camera sees the tag straight ahead in the center of the frame,
         // but rotated pi/4 to the left. this is ignored anyway.
@@ -38,7 +36,7 @@ class AprilTagRobotLocalizerPerformanceTest {
                         new Rotation3d(0, -Math.PI / 4, 0)));
 
         // verify tag 7 location
-        Pose3d tagPose = layout.getTagPose(Alliance.RED, 7).get();
+        Pose3d tagPose = layout.getTagPose(18).get();
         assertEquals(16.5791, tagPose.getX(), DELTA);
         assertEquals(2.663, tagPose.getY(), DELTA);
         assertEquals(1.451, tagPose.getZ(), DELTA);

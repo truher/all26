@@ -3,15 +3,13 @@ package org.team100.lib.localization.gtsam;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 import org.team100.lib.camera.Camera;
 import org.team100.lib.camera.Distortion;
 import org.team100.lib.camera.Intrinsic;
 import org.team100.lib.camera.Offset;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.localization.network.BlipWithCorners;
-import org.wpilib.driverstation.Alliance;
 import org.wpilib.math.geometry.Pose3d;
 import org.wpilib.math.geometry.Rotation3d;
 import org.wpilib.math.geometry.Transform3d;
@@ -25,13 +23,10 @@ public class TagToCorners {
     private static final Transform3d UR = new Transform3d(0, -H, H, Rotation3d.ZERO);
     private static final Transform3d UL = new Transform3d(0, H, H, Rotation3d.ZERO);
 
-    private final AprilTagFieldLayoutWithCorrectOrientation m_layout;
-    private final Supplier<Optional<Alliance>> m_alliance;
+    private final FieldTagMap m_layout;
 
-    public TagToCorners(Supplier<Optional<Alliance>> alliance,
-            AprilTagFieldLayoutWithCorrectOrientation layout) {
+    public TagToCorners(FieldTagMap layout) {
         m_layout = layout;
-        m_alliance = alliance;
     }
 
     public List<Corners> convert(Camera camera, BlipWithCorners[] blips) {
@@ -39,17 +34,11 @@ public class TagToCorners {
         Intrinsic intrinsic = Intrinsic.get(camera);
         Distortion distortion = Distortion.get(camera);
 
-        // Fetch the alliance (not available immediately after startup).
-        Optional<Alliance> optAlliance = m_alliance.get();
-        if (!optAlliance.isPresent()) {
-            return List.of();
-        }
-        Alliance alliance = optAlliance.get();
         List<Corners> corners = new ArrayList<>();
         for (int i = 0; i < blips.length; ++i) {
             BlipWithCorners blip = blips[i];
 
-            Optional<Pose3d> tagInFieldOpt = m_layout.getTagPose(alliance, blip.getId());
+            Optional<Pose3d> tagInFieldOpt = m_layout.getTagPose(blip.getId());
             if (!tagInFieldOpt.isPresent()) {
                 // This shouldn't happen, but it does.
                 System.out.printf("WARNING: VisionDataProvider24: no tag for id %d\n", blip.getId());

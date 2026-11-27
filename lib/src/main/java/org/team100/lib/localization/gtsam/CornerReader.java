@@ -2,13 +2,10 @@ package org.team100.lib.localization.gtsam;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Supplier;
 
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.localization.network.BlipWithCorners;
 import org.team100.lib.network.CameraReader;
-import org.wpilib.driverstation.Alliance;
 import org.wpilib.util.struct.StructBuffer;
 
 /**
@@ -20,13 +17,11 @@ public class CornerReader implements CornerSource {
     private final TagToCorners m_translator;
     private final CornerFilter m_filter;
 
-    public CornerReader(
-            AprilTagFieldLayoutWithCorrectOrientation layout,
-            Supplier<Optional<Alliance>> alliance) {
+    public CornerReader(FieldTagMap layout) {
         m_reader = new CameraReader<>(
                 "vision", "blips_with_corners",
                 StructBuffer.create(BlipWithCorners.struct));
-        m_translator = new TagToCorners(alliance, layout);
+        m_translator = new TagToCorners(layout);
         m_filter = new CornerFilter();
     }
 

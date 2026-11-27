@@ -5,20 +5,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 import org.team100.lib.camera.Camera;
 import org.team100.lib.camera.Offset;
 import org.team100.lib.geometry.Metrics;
 import org.team100.lib.localization.PoseEstimationHelper;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.localization.network.Blip;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.Transform3dLogger;
 import org.team100.lib.uncertainty.NoisyPose2d;
 import org.team100.lib.uncertainty.VisionNoise;
-import org.wpilib.driverstation.Alliance;
 import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.math.geometry.Pose3d;
 import org.wpilib.math.geometry.Transform3d;
@@ -26,8 +24,7 @@ import org.wpilib.math.geometry.Transform3d;
 /** Translate camera "blip" input into robot pose measurements. */
 public class AprilTagTranslator {
     private static final boolean DEBUG = false;
-    private final Supplier<Optional<Alliance>> m_alliance;
-    private final AprilTagFieldLayoutWithCorrectOrientation m_layout;
+    private final FieldTagMap m_layout;
     private final LoggerFactory m_log_cameraToTag_factory;
     private final LoggerFactory m_log_robotToTag_factory;
     private final Map<String, Transform3dLogger> m_log_cameraToTag;
@@ -35,12 +32,10 @@ public class AprilTagTranslator {
 
     public AprilTagTranslator(
             LoggerFactory parent,
-            AprilTagFieldLayoutWithCorrectOrientation layout,
-            Supplier<Optional<Alliance>> alliance) {
+            FieldTagMap layout) {
         LoggerFactory log = parent.type(this);
         LoggerFactory calLog = log.name("calibration");
         m_layout = layout;
-        m_alliance = alliance;
         m_log_cameraToTag_factory = calLog.name("camera to tag");
         m_log_robotToTag_factory = calLog.name("robot to tag");
         m_log_cameraToTag = new HashMap<>();
@@ -52,15 +47,6 @@ public class AprilTagTranslator {
      */
     public List<VisionMeasurement> convert(Camera camera, Blip[] blips) {
         Transform3d cameraOffset = Offset.get(camera).offset();
-
-        // Fetch the alliance (not available immediately after startup).
-        Optional<Alliance> optAlliance = m_alliance.get();
-        if (!optAlliance.isPresent()) {
-            if (DEBUG)
-                System.out.println("no alliance!");
-            return List.of();
-        }
-        Alliance alliance = optAlliance.get();
 
         if (blips.length == 0) {
             if (DEBUG)
@@ -80,7 +66,7 @@ public class AprilTagTranslator {
             }
 
             // Look up the pose of the tag in the field frame.
-            Optional<Pose3d> tagInFieldOpt = m_layout.getTagPose(alliance, blip.getId());
+            Optional<Pose3d> tagInFieldOpt = m_layout.getTagPose(blip.getId());
             if (!tagInFieldOpt.isPresent()) {
                 // This shouldn't happen, but it does.
                 System.out.printf("WARNING: VisionDataProvider24: no tag for id %d\n", blip.getId());

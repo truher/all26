@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 import java.util.function.DoubleFunction;
 import java.util.function.DoubleSupplier;
@@ -16,13 +15,12 @@ import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.geometry.GeometryUtil;
 import org.team100.lib.geometry.Metrics;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.localization.network.BlipWithCorners;
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.uncertainty.IsotropicNoiseSE2;
 import org.team100.lib.uncertainty.VisionNoise;
-import org.wpilib.driverstation.Alliance;
-import org.wpilib.driverstation.MatchState;
+import org.wpilib.fields.FieldTag;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.math.geometry.Pose3d;
@@ -83,7 +81,7 @@ public class SimulatedTagCornerDetector {
     private static final double NOISE_RATIO = 0.25;
 
     private final List<Camera> m_cameras;
-    private final AprilTagFieldLayoutWithCorrectOrientation m_layout;
+    private final FieldTagMap m_layout;
     /** Estimate for the given timestamp in seconds */
     private final DoubleFunction<StateSE2> m_history;
 
@@ -101,7 +99,7 @@ public class SimulatedTagCornerDetector {
      */
     public SimulatedTagCornerDetector(
             List<Camera> cameras,
-            AprilTagFieldLayoutWithCorrectOrientation layout,
+            FieldTagMap layout,
             DoubleFunction<StateSE2> history) {
         m_cameras = cameras;
         m_layout = layout;
@@ -127,7 +125,7 @@ public class SimulatedTagCornerDetector {
     }
 
     public static SimulatedTagCornerDetector get(
-            AprilTagFieldLayoutWithCorrectOrientation layout, DoubleFunction<StateSE2> history) {
+            FieldTagMap layout, DoubleFunction<StateSE2> history) {
         return new SimulatedTagCornerDetector(
                 List.of(Camera.SIM0, Camera.SIM1, Camera.SIM2, Camera.SIM3),
                 layout,
@@ -142,9 +140,6 @@ public class SimulatedTagCornerDetector {
         }
         if (DEBUG)
             System.out.println("simulated tag detector");
-        Optional<Alliance> opt = MatchState.getAlliance();
-        if (opt.isEmpty())
-            return;
 
         // fetch the pose from a little while ago
         double actualDelay = MEAN_DELAY + m_rand.nextGaussian() * STDEV_DELAY;
@@ -168,16 +163,15 @@ public class SimulatedTagCornerDetector {
             List<BlipWithCorners> blips = new ArrayList<>();
             Transform3d cameraOffset = Offset.get(camera).offset();
             Pose3d cameraPose3d = robotPose3d.plus(cameraOffset);
-            Alliance alliance = opt.get();
 
-            for (int tagId = 1; tagId <= m_layout.size(alliance); ++tagId) {
+            for (FieldTag tag : m_layout.all()) {
                 if (DEBUG) {
-                    System.out.printf("alliance %s camera %12s ", alliance.name(), camera.name());
+                    System.out.printf("camera %12s ", camera.name());
                 }
-                Pose3d tagPose = m_layout.getTagPose(alliance, tagId).get();
+                Pose3d tagPose = tag.getPose();
                 if (DEBUG) {
                     System.out.printf("tag id: %2d tag pose: X %6.2f Y %6.2f Z %6.2f R %6.2f P %6.2f Y %6.2f ",
-                            tagId, tagPose.getTranslation().getX(), tagPose.getTranslation().getY(),
+                            tag.getID(), tagPose.getTranslation().getX(), tagPose.getTranslation().getY(),
                             tagPose.getTranslation().getZ(), tagPose.getRotation().getX(), tagPose.getRotation().getY(),
                             tagPose.getRotation().getZ());
                 }
@@ -198,7 +192,7 @@ public class SimulatedTagCornerDetector {
                         // at least one corner is out of view, skip this one.
                         continue;
                     }
-                    blips.add(new BlipWithCorners(time, tagId, tofloat(corners), tagInCamera));
+                    blips.add(new BlipWithCorners(time, tag.getID(), tofloat(corners), tagInCamera));
                 } else {
                     // ignore it
                     if (DEBUG) {

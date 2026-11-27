@@ -19,7 +19,7 @@ import org.team100.lib.localization.fused.FusedEstimator;
 import org.team100.lib.localization.fused.NudgingVisionEstimator;
 import org.team100.lib.localization.fused.OdometryEstimator;
 import org.team100.lib.localization.fused.UpdatedEstimate;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.localization.simulation.GroundTruth;
 import org.team100.lib.localization.visualization.AprilTagVisualizer;
 import org.team100.lib.logging.LoggerFactory;
@@ -79,7 +79,7 @@ public class Machinery2025 {
         fieldLogger = field;
         LoggerFactory driveLog = logger.name("Drive");
 
-        /////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////
         //
         // DRIVETRAIN
         //
@@ -93,13 +93,12 @@ public class Machinery2025 {
                 driveLog,
                 m_swerveKinodynamics,
                 m_modules);
-        AprilTagFieldLayoutWithCorrectOrientation layout = AprilTagFieldLayoutWithCorrectOrientation.getLayout();
+        FieldTagMap layout = FieldTagMap.getLayout();
         SwerveLocal swerveLocal = new SwerveLocal(
                 driveLog,
                 m_swerveKinodynamics,
                 m_modules);
-        AprilTagCornerReader tagReader = new AprilTagCornerReader(
-                driveLog, layout, MatchState::getAlliance);
+        AprilTagCornerReader tagReader = new AprilTagCornerReader(driveLog, layout);
         OdometryEstimator odometryEstimate = new OdometryEstimator(
                 logger,
                 m_swerveKinodynamics,
@@ -124,17 +123,17 @@ public class Machinery2025 {
         new AprilTagVisualizer(
                 driveLog, fieldLogger,
                 t -> m_drive.getState(t).state(),
-                layout, MatchState::getAlliance);
+                layout);
         new RobotPoseVisualization(fieldLogger, () -> m_drive.getState(), "robot");
 
-        /////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////
         //
         // TARGETING
         //
         m_targets = new Targets(
                 driveLog, fieldLogger, 0.2, t -> m_drive.getState(t).state());
 
-        /////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////
         //
         // SUBSYSTEMS
         //
@@ -143,7 +142,7 @@ public class Machinery2025 {
         m_climber = new Climber2025(logger, currentLog, new CanId(13), CANPort.CAN_S0);
         m_climberIntake = new ClimberIntake(logger, currentLog, new CanId(14), CANPort.CAN_S0);
 
-        /////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////
         //
         // VISUALIZATIONS
         //
@@ -151,7 +150,7 @@ public class Machinery2025 {
         new CalgamesViz(m_mech);
         new ClimberVisualization(m_climber, m_climberIntake);
 
-        /////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////
         //
         // LED INDICATOR
         //

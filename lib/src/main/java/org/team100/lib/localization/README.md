@@ -16,7 +16,7 @@ Each camera publishes relative poses of AprilTags it can see (`Blips`), and
 these are received by `AprilTagRobotLocalizer`, which transforms each one into
 a global pose estimate, using its knowledge of each camera pose relative to the
 robot (see `Camera`), and each tag relative to the field
-(see `AprilTagFieldLayoutWithCorrectOrientation`).
+(see `FieldTagMap`).
 
 The main complexity here is __accommodating delay.__  Camera input is delayed between
 around 75 and 100 ms, and so it can't be used to directly adjust the robot's __current__ pose

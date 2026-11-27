@@ -5,7 +5,10 @@ import org.wpilib.math.geometry.Rotation2d;
 /**
  * This represents driver's velocity command, usually mapped to three axes in
  * the control, so the ranges are [-1,1].
- * Usually this input should be SMOOTHED.  See DriverXboxControl.
+ * Usually this input should be SMOOTHED. See DriverXboxControl.
+ * 
+ * This velocity has no context; it is not "field relative" or "robot relative"
+ * it is just an expression of what the driver is doing.
  */
 public record DriverVelocity(double x, double y, double theta) {
 

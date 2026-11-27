@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.team100.lib.localization.AprilTagFilter;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.localization.network.BlipWithCorners;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.network.CameraReader;
@@ -25,12 +25,11 @@ public class AprilTagCornerReader implements VisionMeasurementSource {
 
     public AprilTagCornerReader(
             LoggerFactory parent,
-            AprilTagFieldLayoutWithCorrectOrientation layout,
-            Supplier<Optional<Alliance>> alliance) {
+            FieldTagMap layout) {
         LoggerFactory log = parent.type(this);
         m_reader = new CameraReader<>(
                 "vision", "blips_with_corners", StructBuffer.create(BlipWithCorners.struct));
-        m_translator = new AprilTagCornerTranslator(log, layout, alliance);
+        m_translator = new AprilTagCornerTranslator(log, layout);
         m_filter = new AprilTagFilter(log);
     }
 

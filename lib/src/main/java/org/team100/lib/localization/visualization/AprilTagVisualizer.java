@@ -2,12 +2,10 @@ package org.team100.lib.localization.visualization;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.DoubleFunction;
-import java.util.function.Supplier;
 
 import org.team100.lib.coherence.Takt;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.localization.network.BlipWithCorners;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LogPoller;
@@ -17,7 +15,6 @@ import org.team100.lib.network.CameraReader;
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.util.NamedChooser;
 import org.team100.lib.util.TrailingHistory;
-import org.wpilib.driverstation.Alliance;
 import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.math.geometry.Pose3d;
 import org.wpilib.networktables.NetworkTableInstance;
@@ -52,12 +49,11 @@ public class AprilTagVisualizer {
             LoggerFactory parent,
             LoggerFactory fieldLogger,
             DoubleFunction<StateSE2> history,
-            AprilTagFieldLayoutWithCorrectOrientation layout,
-            Supplier<Optional<Alliance>> alliance) {
+            FieldTagMap layout) {
         LoggerFactory log = parent.type(this);
 
         m_translator = new AprilTagVisualizationTranslator(
-                log, history, layout, alliance);
+                log, history, layout);
         m_allTags = new TrailingHistory<>();
         NetworkTableInstance inst = NetworkTableInstance.getDefault();
         // TODO: remove the publisher here, i don't care about 3d views.

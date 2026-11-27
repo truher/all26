@@ -13,7 +13,7 @@ import org.team100.lib.localization.fused.FusedEstimator;
 import org.team100.lib.localization.fused.NudgingVisionEstimator;
 import org.team100.lib.localization.fused.OdometryEstimator;
 import org.team100.lib.localization.fused.UpdatedEstimate;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
@@ -55,9 +55,8 @@ public class SimulatedDrivingTest implements Timeless {
         gyro = new SimulatedGyro(logger, swerveKinodynamics, collection, 0);
         swerveLocal = new SwerveLocal(logger, swerveKinodynamics, collection);
 
-        AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation();
-        AprilTagCornerReader tagReader = new AprilTagCornerReader(
-                logger, layout, MatchState::getAlliance);
+        FieldTagMap layout = new FieldTagMap();
+        AprilTagCornerReader tagReader = new AprilTagCornerReader(logger, layout);
         OdometryEstimator odometryEstimate = new OdometryEstimator(
                 logger,
                 swerveKinodynamics,

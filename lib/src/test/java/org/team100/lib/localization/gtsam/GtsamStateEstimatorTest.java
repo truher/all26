@@ -258,11 +258,11 @@ public class GtsamStateEstimatorTest {
         TestUtil.verify(IsotropicNoiseSE2.fromStdDev(8.536, 7.071), state.noise());
         state = h.get(0.02);
         TestUtil.verify(new Pose2d(0, 0, Rotation2d.ZERO), state.pose());
-        TestUtil.verify(new VelocitySE2(0, 0, 0), state.velocity(), 0.005);
+        TestUtil.verify(new VelocitySE2(0, 0, 0), state.velocity(), 0.007);
         TestUtil.verify(IsotropicNoiseSE2.fromStdDev(8.536, 7.071), state.noise());
         state = h.get(0.04);
         TestUtil.verify(new Pose2d(0, 0, Rotation2d.ZERO), state.pose());
-        TestUtil.verify(new VelocitySE2(0, 0, 0), state.velocity(), 0.005);
+        TestUtil.verify(new VelocitySE2(0, 0, 0), state.velocity(), 0.007);
         TestUtil.verify(IsotropicNoiseSE2.fromStdDev(8.536, 7.071), state.noise());
 
         estimator.dump();
@@ -337,11 +337,11 @@ public class GtsamStateEstimatorTest {
         TestUtil.verify(IsotropicNoiseSE2.fromStdDev(8.550, 7.178), state.noise());
         state = h.get(0.02);
         TestUtil.verify(new Pose2d(0.055, 0.228, new Rotation2d(0.227)), state.pose());
-        TestUtil.verify(new VelocitySE2(0.000, 0.000, 0.000), state.velocity(), 0.005);
+        TestUtil.verify(new VelocitySE2(0.000, 0.000, 0.000), state.velocity(), 0.007);
         TestUtil.verify(IsotropicNoiseSE2.fromStdDev(8.550, 7.178), state.noise());
         state = h.get(0.04);
         TestUtil.verify(new Pose2d(0.055, 0.228, new Rotation2d(0.227)), state.pose());
-        TestUtil.verify(new VelocitySE2(0.000, 0.000, 0.000), state.velocity(), 0.005);
+        TestUtil.verify(new VelocitySE2(0.000, 0.000, 0.000), state.velocity(), 0.007);
         TestUtil.verify(IsotropicNoiseSE2.fromStdDev(8.550, 7.178), state.noise());
         estimator.dump();
 

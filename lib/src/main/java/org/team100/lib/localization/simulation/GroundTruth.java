@@ -6,7 +6,7 @@ import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.geometry.se2.VelocitySE2;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveDriveKinematics100;
@@ -49,7 +49,7 @@ public class GroundTruth {
             LoggerFactory logger,
             SwerveKinodynamics kinodynamics,
             SwerveModuleCollection modules,
-            AprilTagFieldLayoutWithCorrectOrientation layout) {
+            FieldTagMap layout) {
         LoggerFactory simLog = logger.name("Simulation");
         m_kinematics = kinodynamics.getKinematics();
         m_modules = modules;

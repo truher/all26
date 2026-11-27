@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
-import org.team100.lib.localization.map.AprilTagFieldLayoutWithCorrectOrientation;
+import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.localization.network.Blip;
 import org.wpilib.driverstation.Alliance;
 import org.wpilib.fields.Field;
@@ -469,10 +469,10 @@ class PoseEstimationHelperTest {
 
         // first try the "corrected" layout, which is "into the page" tag orientation.
         // this is CORRECT
-        AprilTagFieldLayoutWithCorrectOrientation layout = new AprilTagFieldLayoutWithCorrectOrientation(
+        FieldTagMap layout = new FieldTagMap(
                 "2025-reefscape.json");
 
-        Pose3d tagInFieldCoords = layout.getTagPose(Alliance.BLUE, 7).get();
+        Pose3d tagInFieldCoords = layout.getTagPose(7).get();
 
         Pose3d cameraInField = PoseEstimationHelper.cameraInField(tagInFieldCoords, tagInCamera);
 

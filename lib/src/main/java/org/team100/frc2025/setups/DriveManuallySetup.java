@@ -1,5 +1,8 @@
 package org.team100.frc2025.setups;
 
+import java.util.Optional;
+import java.util.function.Supplier;
+
 import org.team100.lib.controller.r1.FeedbackR1;
 import org.team100.lib.hid.DriverXboxControl;
 import org.team100.lib.localization.fused.AprilTagReader;
@@ -8,6 +11,7 @@ import org.team100.lib.subsystems.swerve.SwerveDriveSubsystem;
 import org.team100.lib.subsystems.swerve.commands.manual.DriveFieldRelative;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
 import org.team100.lib.subsystems.swerve.kinodynamics.limiter.SwerveLimiter;
+import org.wpilib.driverstation.Alliance;
 
 /**
  * This is the set of manual driving modes we usually support,
@@ -19,6 +23,7 @@ public class DriveManuallySetup {
             LoggerFactory comLog,
             LoggerFactory fieldLog,
             DriverXboxControl driverControl,
+            Supplier<Optional<Alliance>> alliance,
             AprilTagReader localizer,
             SwerveDriveSubsystem drive,
             SwerveLimiter limiter,
@@ -29,6 +34,7 @@ public class DriveManuallySetup {
                 comLog,
                 swerveKinodynamics,
                 driverControl::velocity,
+                alliance,
                 drive,
                 limiter);
     }

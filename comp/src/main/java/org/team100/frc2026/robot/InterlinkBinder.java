@@ -11,8 +11,8 @@ import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.subsystems.swerve.commands.manual.DriveFieldRelative;
 import org.team100.lib.subsystems.swerve.commands.manual.DriveMovingTargetLock;
 import org.team100.lib.subsystems.swerve.kinodynamics.limiter.SwerveLimiter;
+import org.wpilib.driverstation.MatchState;
 import org.wpilib.system.RobotController;
-
 
 /**
  * Control bindings for the Interlink DX. Also default commands.
@@ -43,6 +43,7 @@ public class InterlinkBinder {
                         log,
                         machinery.m_swerveKinodynamics,
                         driver::velocity,
+                        MatchState::getAlliance,
                         machinery.m_drive,
                         limiter));
         machinery.m_shooter.setDefaultCommand(
@@ -85,6 +86,7 @@ public class InterlinkBinder {
                         machinery.m_swerveKinodynamics,
                         aim,
                         driver::velocity,
+                        MatchState::getAlliance,
                         limiter,
                         machinery.m_cachedSolution,
                         machinery.m_drive)
@@ -107,7 +109,7 @@ public class InterlinkBinder {
         ///
         // Tester tester = new Tester(m_machinery);
         // whileTrue(() -> (RobotState.isTest() && driver.reset() && driver.cancel()),
-        //         tester.prematch());
+        // tester.prematch());
     }
 
 }

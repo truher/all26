@@ -23,6 +23,7 @@ import org.team100.lib.subsystems.swerve.kinodynamics.limiter.SwerveLimiter;
 import org.team100.lib.targeting.CachedSolution;
 import org.team100.lib.targeting.Solution;
 import org.wpilib.command2.Command;
+import org.wpilib.driverstation.Alliance;
 
 /**
  * Manual cartesian control, with rotational control based on a target position.
@@ -38,6 +39,7 @@ public class DriveMovingTargetLock extends Command {
      * Velocity control in control units, [-1,1] on all axes.
      */
     private final Supplier<DriverVelocity> m_twistSupplier;
+    private final Supplier<Optional<Alliance>> m_alliance;
     private final SwerveLimiter m_limiter;
     private final CachedSolution m_solver;
     private final SwerveDriveSubsystem m_drive;
@@ -52,6 +54,7 @@ public class DriveMovingTargetLock extends Command {
             SwerveKinodynamics swerveKinodynamics,
             AzimuthController aim,
             Supplier<DriverVelocity> twistSupplier,
+            Supplier<Optional<Alliance>> alliance,
             SwerveLimiter limiter,
             CachedSolution solver,
             SwerveDriveSubsystem drive) {
@@ -59,6 +62,7 @@ public class DriveMovingTargetLock extends Command {
         m_log_aiming = log.booleanLogger(Level.TRACE, "aiming");
         m_swerveKinodynamics = swerveKinodynamics;
         m_twistSupplier = twistSupplier;
+        m_alliance = alliance;
         m_limiter = limiter;
         m_solver = solver;
         m_drive = drive;
@@ -110,6 +114,7 @@ public class DriveMovingTargetLock extends Command {
         // Clip and scale user input.
         VelocitySE2 scaled = VelocitySE2.scale(
                 m_twistSupplier.get().clip(1.0),
+                m_alliance,
                 m_swerveKinodynamics.getMaxDriveVelocityM_S(),
                 m_swerveKinodynamics.getMaxAngleSpeedRad_S());
 

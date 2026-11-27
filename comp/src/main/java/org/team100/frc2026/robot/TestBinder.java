@@ -20,6 +20,7 @@ import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.subsystems.swerve.commands.manual.DriveFieldRelative;
 import org.team100.lib.subsystems.swerve.commands.manual.DriveMovingTargetLock;
 import org.team100.lib.subsystems.swerve.kinodynamics.limiter.SwerveLimiter;
+import org.wpilib.driverstation.MatchState;
 import org.wpilib.system.RobotController;
 
 /**
@@ -59,6 +60,7 @@ public class TestBinder {
                         log,
                         machinery.m_swerveKinodynamics,
                         driver::velocity,
+                        MatchState::getAlliance,
                         machinery.m_drive,
                         limiter));
         machinery.m_intake.setDefaultCommand(
@@ -152,6 +154,7 @@ public class TestBinder {
                         machinery.m_swerveKinodynamics,
                         aim,
                         driver::velocity,
+                        MatchState::getAlliance,
                         limiter,
                         machinery.m_cachedSolution,
                         machinery.m_drive)

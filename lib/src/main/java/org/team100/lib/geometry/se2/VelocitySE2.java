@@ -1,8 +1,11 @@
 package org.team100.lib.geometry.se2;
 
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.team100.lib.hid.DriverVelocity;
+import org.team100.lib.hid.FieldRelativeControl;
+import org.wpilib.driverstation.Alliance;
 import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.math.geometry.Rotation2d;
 import org.wpilib.math.geometry.Translation2d;
@@ -155,15 +158,21 @@ public record VelocitySE2(double x, double y, double theta)
      * This makes no attempt to address infeasibilty, it just multiplies.
      * 
      * @param twist    [-1,1]
+     * @param alliance flips input for red, pass empty to never flip.
      * @param maxSpeed meters per second
      * @param maxRot   radians per second
      * @return meters and rad per second as specified by speed limits
      */
-    public static VelocitySE2 scale(DriverVelocity twist, double maxSpeed, double maxRot) {
-        return new VelocitySE2(
+    public static VelocitySE2 scale(
+            DriverVelocity twist,
+            Supplier<Optional<Alliance>> alliance,
+            double maxSpeed,
+            double maxRot) {
+        VelocitySE2 v = new VelocitySE2(
                 maxSpeed * Math.clamp(twist.x(), -1, 1),
                 maxSpeed * Math.clamp(twist.y(), -1, 1),
                 maxRot * Math.clamp(twist.theta(), -1, 1));
+        return FieldRelativeControl.forAlliance(v, alliance);
     }
 
     @Override

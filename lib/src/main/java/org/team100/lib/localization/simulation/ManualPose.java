@@ -1,5 +1,6 @@
 package org.team100.lib.localization.simulation;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.team100.lib.coherence.Cache;
@@ -14,6 +15,7 @@ import org.team100.lib.logging.LogPoller;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.StructLogger;
 import org.team100.lib.state.StateSE2;
+import org.wpilib.driverstation.Alliance;
 import org.wpilib.math.geometry.Pose2d;
 
 /**
@@ -29,6 +31,7 @@ public class ManualPose {
     private static final double MAX_V = 2.0;
     private static final double MAX_OMEGA = 2.0;
     private final StructLogger<Pose2d> m_log_field_robot;
+    private final Supplier<Optional<Alliance>> m_alliance;
     private final Supplier<DriverVelocity> m_input;
     private final ObjectCache<StateSE2> m_stateCache;
     /** Used only by update(). */
@@ -36,10 +39,12 @@ public class ManualPose {
 
     public ManualPose(
             LoggerFactory fieldLogger,
-            Supplier<DriverVelocity> v,
+            Supplier<Optional<Alliance>> alliance,
+            Supplier<DriverVelocity> input,
             Pose2d initial) {
         m_log_field_robot = fieldLogger.structLogger(Level.COMP, "robot", Pose2d.struct);
-        m_input = v;
+        m_alliance = alliance;
+        m_input = input;
         m_state = new StateSE2(initial);
         m_stateCache = Cache.of(this::update);
         LogPoller.register(this::log);
@@ -61,7 +66,7 @@ public class ManualPose {
         // Input in range [-1, 1]
         DriverVelocity input = m_input.get();
         // Velocity in m/s and rad/s
-        VelocitySE2 v = VelocitySE2.scale(input, MAX_V, MAX_OMEGA);
+        VelocitySE2 v = VelocitySE2.scale(input, m_alliance, MAX_V, MAX_OMEGA);
         // Acceleration in m/s/s and rad/s/s
         AccelerationSE2 a = v.accel(m_state.velocity(), DT);
         // Find new position using *previous* velocity and accel

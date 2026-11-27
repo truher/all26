@@ -1,5 +1,6 @@
 package org.team100.lib.subsystems.mecanum.commands;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.team100.lib.experiments.Experiment;
@@ -12,9 +13,9 @@ import org.team100.lib.state.VelocityControlSE2;
 import org.team100.lib.subsystems.mecanum.MecanumDrive100;
 import org.team100.lib.subsystems.swerve.kinodynamics.limiter.SwerveLimiter;
 import org.team100.lib.util.EnumChooser;
-
-import org.wpilib.math.geometry.Rotation2d;
 import org.wpilib.command2.Command;
+import org.wpilib.driverstation.Alliance;
+import org.wpilib.math.geometry.Rotation2d;
 
 /**
  * Map manual velocity input to the Mecanum drive, using some sort of input
@@ -30,6 +31,7 @@ public class ManualMecanum extends Command {
     }
 
     private final Supplier<DriverVelocity> m_velocity;
+    private final Supplier<Optional<Alliance>> m_alliance;
     private final double m_maxVX;
     private final double m_maxVY;
     private final double m_maxOmega;
@@ -41,6 +43,7 @@ public class ManualMecanum extends Command {
 
     public ManualMecanum(
             Supplier<DriverVelocity> velocity,
+            Supplier<Optional<Alliance>> alliance,
             double maxVX,
             double maxVY,
             double maxOmega,
@@ -49,6 +52,7 @@ public class ManualMecanum extends Command {
         if (maxVY > maxVX)
             throw new IllegalArgumentException();
         m_velocity = velocity;
+        m_alliance = alliance;
         m_maxVX = maxVX;
         m_maxVY = maxVY;
         m_maxOmega = maxOmega;
@@ -78,7 +82,7 @@ public class ManualMecanum extends Command {
         };
         // Scale stick input to field-relative velocity.
         VelocitySE2 scaled = VelocitySE2.scale(
-                clippedOrSquashed, m_maxVX, m_maxOmega);
+                clippedOrSquashed, m_alliance, m_maxVX, m_maxOmega);
         // Apply field-relative limits.
         if (Experiments.INSTANCE.enabled(Experiment.UseSwerveLimiter)) {
             scaled = m_limiter.apply(scaled);

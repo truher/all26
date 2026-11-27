@@ -1,5 +1,6 @@
 package org.team100.lib.subsystems.se2.commands;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.team100.lib.framework.TimedRobot100;
@@ -11,8 +12,6 @@ import org.team100.lib.state.ControlSE2;
 import org.team100.lib.subsystems.se2.PositionSubsystemSE2;
 import org.wpilib.command2.Command;
 import org.wpilib.math.geometry.Pose2d;
-
-
 
 /**
  * Use the operator control to "fly" a positional planar subsystem around in
@@ -49,7 +48,8 @@ public class ManualPosition extends Command {
         // Input in range [-1, 1]
         DriverVelocity input = m_input.get();
         // Velocity in m/s and rad/s
-        VelocitySE2 v = VelocitySE2.scale(input, SCALE, SCALE);
+        // no alliance here, it's not on the field.
+        VelocitySE2 v = VelocitySE2.scale(input, () -> Optional.empty(), SCALE, SCALE);
         // Acceleration in m/s/s and rad/s/s
         AccelerationSE2 a = v.accel(m_v, DT);
         // Find new position using *previous* velocity and accel

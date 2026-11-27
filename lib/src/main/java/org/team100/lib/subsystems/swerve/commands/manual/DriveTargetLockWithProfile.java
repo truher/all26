@@ -1,6 +1,7 @@
 
 package org.team100.lib.subsystems.swerve.commands.manual;
 
+import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.Supplier;
 
@@ -31,6 +32,7 @@ import org.team100.lib.subsystems.swerve.kinodynamics.limiter.SwerveLimiter;
 import org.team100.lib.targeting.TargetUtil;
 import org.team100.lib.util.Math100;
 import org.wpilib.command2.Command;
+import org.wpilib.driverstation.Alliance;
 import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.math.geometry.Rotation2d;
 import org.wpilib.math.geometry.Translation2d;
@@ -55,6 +57,7 @@ public class DriveTargetLockWithProfile extends Command {
      * mapped to a feasible velocity control as early as possible.
      */
     private final Supplier<DriverVelocity> m_twistSupplier;
+    private final Supplier<Optional<Alliance>> m_alliance;
     private final SwerveDriveSubsystem m_drive;
     private final SwerveLimiter m_limiter;
 
@@ -86,6 +89,7 @@ public class DriveTargetLockWithProfile extends Command {
             Supplier<Translation2d> target,
             FeedbackR1 thetaController,
             Supplier<DriverVelocity> twistSupplier,
+            Supplier<Optional<Alliance>> alliance,
             SwerveDriveSubsystem drive,
             SwerveLimiter limiter) {
         LoggerFactory log = parent.type(this);
@@ -94,6 +98,7 @@ public class DriveTargetLockWithProfile extends Command {
         m_log_thetaFB = log.doubleLogger(Level.TRACE, "thetaFB");
         m_log_thetaFF = log.doubleLogger(Level.TRACE, "thetaFF");
         m_twistSupplier = twistSupplier;
+        m_alliance = alliance;
 
         m_drive = drive;
         m_limiter = limiter;
@@ -162,6 +167,7 @@ public class DriveTargetLockWithProfile extends Command {
         // Clip and scale user input.
         VelocitySE2 scaled = VelocitySE2.scale(
                 m_twistSupplier.get().clip(1.0),
+                m_alliance,
                 m_swerveKinodynamics.getMaxDriveVelocityM_S(),
                 m_swerveKinodynamics.getMaxAngleSpeedRad_S());
 

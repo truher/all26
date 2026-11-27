@@ -1,5 +1,6 @@
 package org.team100.lib.subsystems.swerve.commands.manual;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.team100.lib.config.DriverSkill;
@@ -14,9 +15,9 @@ import org.team100.lib.state.VelocityControlSE2;
 import org.team100.lib.subsystems.swerve.SwerveDriveSubsystem;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
 import org.team100.lib.subsystems.swerve.kinodynamics.limiter.SwerveLimiter;
-
-import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.command2.Command;
+import org.wpilib.driverstation.Alliance;
+import org.wpilib.math.geometry.Pose2d;
 
 /**
  * Function that supports manual cartesian control, and both manual and locked
@@ -36,6 +37,7 @@ public class DriveBargeAssist extends Command {
      * mapped to a feasible velocity control as early as possible.
      */
     private final Supplier<DriverVelocity> m_twistSupplier;
+    private final Supplier<Optional<Alliance>> m_alliance;
     private final SwerveDriveSubsystem m_drive;
     private final SwerveLimiter m_limiter;
 
@@ -48,9 +50,11 @@ public class DriveBargeAssist extends Command {
             SwerveKinodynamics swerveKinodynamics,
             Supplier<Pose2d> pose,
             Supplier<DriverVelocity> twistSupplier,
+            Supplier<Optional<Alliance>> alliance,
             SwerveDriveSubsystem drive,
             SwerveLimiter limiter) {
         m_twistSupplier = twistSupplier;
+        m_alliance = alliance;
         m_drive = drive;
         m_limiter = limiter;
         m_swerveKinodynamics = swerveKinodynamics;
@@ -88,6 +92,7 @@ public class DriveBargeAssist extends Command {
 
         VelocitySE2 scaled = VelocitySE2.scale(
                 avoidBarge,
+                m_alliance,
                 m_swerveKinodynamics.getMaxDriveVelocityM_S(),
                 m_swerveKinodynamics.getMaxAngleSpeedRad_S());
 
@@ -110,11 +115,23 @@ public class DriveBargeAssist extends Command {
     }
 
     private DriverVelocity avoidBarge(DriverVelocity clipped) {
-        if (clipped.x() <= 0)
+        boolean blue = m_alliance.get().orElse(Alliance.BLUE) == Alliance.RED;
+        if (blue && clipped.x() <= 0) {
+            // on the blue side, moving away from the barge is negative
             return clipped;
-        // moving towards the barge
-        double distance = BARGE_X - m_pose.get().getX();
+        }
+        if (!blue && clipped.x() >= 0) {
+            // on the red side, moving away from the barge is positive
+            return clipped;
+        }
+
+        // move towards the barge
+        double distance = Math.abs(BARGE_X - m_pose.get().getX());
         double vx = vx(distance);
+        if (!blue) {
+            // on the red side, moving towards the barge is negative.
+            vx = -1.0 * vx;
+        }
         return new DriverVelocity(vx, clipped.y(), clipped.theta());
     }
 

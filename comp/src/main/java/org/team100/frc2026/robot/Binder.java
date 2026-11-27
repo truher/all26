@@ -4,17 +4,15 @@ import static org.team100.lib.util.TriggerUtil.onTrue;
 import static org.team100.lib.util.TriggerUtil.whileTrue;
 import static org.wpilib.command2.Commands.parallel;
 
-import org.team100.lib.camera.OffsetCalibrator;
 import org.team100.lib.controller.r1.AzimuthController;
 import org.team100.lib.controller.r1.FeedbackR1;
 import org.team100.lib.controller.r1.FullStateFeedback;
-import org.team100.lib.experiments.Experiment;
-import org.team100.lib.experiments.Experiments;
 import org.team100.lib.hid.DriverXboxControl;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.subsystems.swerve.commands.manual.DriveFieldRelative;
 import org.team100.lib.subsystems.swerve.commands.manual.DriveMovingTargetLock;
 import org.team100.lib.subsystems.swerve.kinodynamics.limiter.SwerveLimiter;
+import org.wpilib.driverstation.MatchState;
 import org.wpilib.system.RobotController;
 
 /**
@@ -48,6 +46,7 @@ public class Binder {
                         log,
                         machinery.m_swerveKinodynamics,
                         m_driver::velocity,
+                        MatchState::getAlliance,
                         machinery.m_drive,
                         limiter));
         machinery.m_intake.setDefaultCommand(
@@ -139,6 +138,7 @@ public class Binder {
                         machinery.m_swerveKinodynamics,
                         aim,
                         m_driver::velocity,
+                        MatchState::getAlliance,
                         limiter,
                         machinery.m_cachedSolution,
                         machinery.m_drive)

@@ -34,8 +34,6 @@ public record DriverVelocity(double x, double y, double theta) {
      * control class.
      */
     public DriverVelocity clip(double maxMagnitude) {
-        double x = x();
-        double y = y();
         double hyp = Math.hypot(x, y);
         if (hyp < 1e-12)
             return this;
@@ -51,8 +49,6 @@ public record DriverVelocity(double x, double y, double theta) {
      * orientation.
      */
     public DriverVelocity diamond(double maxX, double maxY, Rotation2d poseAngle) {
-        double x = x();
-        double y = y();
         double hyp = Math.hypot(x, y);
         if (hyp < 1e-12)
             return this;
@@ -65,8 +61,6 @@ public record DriverVelocity(double x, double y, double theta) {
     }
 
     public DriverVelocity squashedDiamond(double maxX, double maxY, Rotation2d poseAngle) {
-        double x = x();
-        double y = y();
         double hyp = Math.hypot(x, y);
         if (hyp < 1e-12)
             return this;

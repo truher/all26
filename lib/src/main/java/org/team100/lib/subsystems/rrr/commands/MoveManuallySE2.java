@@ -1,5 +1,6 @@
 package org.team100.lib.subsystems.rrr.commands;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.team100.lib.framework.TimedRobot100;
@@ -73,7 +74,8 @@ public class MoveManuallySE2 extends Command {
         DriverVelocity input = m_input.get();
 
         // Velocity in m/s and rad/s
-        VelocitySE2 v = VelocitySE2.scale(input, 0.5, 1.5);
+        // no alliance here, it's an arm, not the field.
+        VelocitySE2 v = VelocitySE2.scale(input, () -> Optional.empty(), 0.5, 1.5);
         if (DEBUG) {
             System.out.printf("MoveManuallySE2: v [%s] m_v [%s]\n", v, m_v);
             System.out.printf("MoveManuallySE2: current %s\n", m_current);

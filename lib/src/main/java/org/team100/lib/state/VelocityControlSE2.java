@@ -1,8 +1,12 @@
 package org.team100.lib.state;
 
+import java.util.Optional;
+import java.util.function.Supplier;
+
 import org.team100.lib.geometry.se2.AccelerationSE2;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.hid.DriverVelocity;
+import org.wpilib.driverstation.Alliance;
 import org.wpilib.math.linalg.Vector;
 import org.wpilib.math.numbers.N3;
 
@@ -82,14 +86,16 @@ public class VelocityControlSE2 {
      * This makes no attempt to address infeasibilty, it just multiplies.
      * 
      * @param v        [-1,1]
+     * @param alliance flips input for red
      * @param maxSpeed meters per second
      * @param maxRot   radians per second
      * @return meters and rad per second as specified by speed limits
      */
-    public static VelocityControlSE2 scale(DriverVelocity v, double maxSpeed, double maxRot) {
-        return new VelocityControlSE2(
-                maxSpeed * Math.clamp(v.x(), -1, 1),
-                maxSpeed * Math.clamp(v.y(), -1, 1),
-                maxRot * Math.clamp(v.theta(), -1, 1));
+    public static VelocityControlSE2 scale(
+            DriverVelocity v,
+            Supplier<Optional<Alliance>> alliance,
+            double maxSpeed,
+            double maxRot) {
+        return new VelocityControlSE2(VelocitySE2.scale(v, alliance, maxSpeed, maxRot));
     }
 }

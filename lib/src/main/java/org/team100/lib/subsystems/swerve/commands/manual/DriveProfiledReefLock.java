@@ -1,5 +1,6 @@
 package org.team100.lib.subsystems.swerve.commands.manual;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.team100.frc2025.field.FieldConstants2025;
@@ -27,6 +28,7 @@ import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
 import org.team100.lib.subsystems.swerve.kinodynamics.limiter.SwerveLimiter;
 import org.team100.lib.util.Math100;
 import org.wpilib.command2.Command;
+import org.wpilib.driverstation.Alliance;
 import org.wpilib.math.geometry.Rotation2d;
 import org.wpilib.math.geometry.Translation2d;
 
@@ -50,6 +52,7 @@ public class DriveProfiledReefLock extends Command {
      * Must be smoothed.
      */
     private final Supplier<DriverVelocity> m_twistSupplier;
+    private final Supplier<Optional<Alliance>> m_alliance;
     private final SwerveDriveSubsystem m_drive;
     private final SwerveLimiter m_limiter;
 
@@ -89,9 +92,11 @@ public class DriveProfiledReefLock extends Command {
             FeedbackR1 thetaController,
             Supplier<Translation2d> robotLocation,
             Supplier<DriverVelocity> twistSupplier,
+            Supplier<Optional<Alliance>> alliance,
             SwerveDriveSubsystem drive,
             SwerveLimiter limiter) {
         m_twistSupplier = twistSupplier;
+        m_alliance = alliance;
         m_drive = drive;
         m_limiter = limiter;
         m_log = parent.type(this);
@@ -152,6 +157,7 @@ public class DriveProfiledReefLock extends Command {
         final DriverVelocity clipped = twist1_1.clip(1.0);
         final VelocitySE2 control = VelocitySE2.scale(
                 clipped,
+                m_alliance,
                 m_swerveKinodynamics.getMaxDriveVelocityM_S(),
                 m_swerveKinodynamics.getMaxAngleSpeedRad_S());
 

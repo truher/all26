@@ -224,6 +224,7 @@ public class TestBinder {
         whileTrue(() -> driver.povDown() && driver.a(),
                 new CenterFullSweepAuton(
                         log,
+                        machinery.symmetry,
                         machinery.m_swerveKinodynamics,
                         holonomicController,
                         machinery).command());
@@ -231,18 +232,21 @@ public class TestBinder {
         whileTrue(() -> driver.povDown() && driver.b(),
                 new CenterHalfSweepAuton(
                         log,
+                        machinery.symmetry,
                         machinery.m_swerveKinodynamics,
                         holonomicController,
                         machinery).command());
         whileTrue(() -> driver.povDown() && driver.x(),
                 new RightBumpFullSweepAuton(
                         log,
+                        machinery.symmetry,
                         machinery.m_swerveKinodynamics,
                         holonomicController,
                         machinery).command());
         whileTrue(() -> driver.povDown() && driver.y(),
                 new RightBumpHalfSweepAuton(
                         log,
+                        machinery.symmetry,
                         machinery.m_swerveKinodynamics,
                         holonomicController,
                         machinery).command());

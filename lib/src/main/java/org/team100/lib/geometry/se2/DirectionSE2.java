@@ -115,7 +115,7 @@ public class DirectionSE2 {
 
     @Override
     public String toString() {
-        return String.format("%5.3f %5.3f %5.3f", x, y, theta);
+        return String.format("direction [%5.3f %5.3f %5.3f]", x, y, theta);
     }
 
 }

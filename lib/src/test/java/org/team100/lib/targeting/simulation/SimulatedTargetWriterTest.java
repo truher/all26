@@ -12,7 +12,6 @@ import org.team100.lib.logging.primitive.TestPrimitiveLogger;
 import org.team100.lib.state.StateSE2;
 import org.team100.lib.targeting.Targets;
 import org.team100.lib.testing.Timeless;
-
 import org.wpilib.math.geometry.Translation2d;
 import org.wpilib.networktables.NetworkTableInstance;
 
@@ -39,7 +38,7 @@ public class SimulatedTargetWriterTest implements Timeless {
                 logger,
                 List.of(Camera.TEST4),
                 x -> p,
-                new Translation2d[] {
+                () -> new Translation2d[] {
                         new Translation2d(1, 0) });
 
         // wait for NT rate-limiting

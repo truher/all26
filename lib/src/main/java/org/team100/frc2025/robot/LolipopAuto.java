@@ -12,6 +12,7 @@ import org.team100.lib.commands.MoveAndHold;
 import org.team100.lib.config.ElevatorUtil.ScoringLevel;
 import org.team100.lib.controller.se2.FullStateControllerSE2;
 import org.team100.lib.geometry.se2_universal_cover.WindingWaypointSE2;
+import org.team100.lib.localization.map.FieldSymmetry;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.profile.se2.ProfileSE2;
 import org.team100.lib.subsystems.se2.commands.DriveToPoseWithProfile;
@@ -26,6 +27,7 @@ import org.wpilib.math.geometry.Translation2d;
 
 public class LolipopAuto {
     private final LoggerFactory m_log;
+    private final FieldSymmetry m_symmetry;
     private final Machinery2025 m_machinery;
     private final ProfileSE2 m_autoProfile;
     private final FullStateControllerSE2 m_autoController;
@@ -38,6 +40,7 @@ public class LolipopAuto {
             FullStateControllerSE2 autoController,
             TrajectorySE2Planner planner) {
         m_log = parent.type(this);
+        m_symmetry = machinery.symmetry;
         m_machinery = machinery;
         m_autoProfile = autoProfile;
         m_autoController = autoController;
@@ -48,10 +51,7 @@ public class LolipopAuto {
         // this one uses some curvature
         DriveWithTrajectoryFunction toReefTrajectory = new DriveWithTrajectoryFunction(
                 m_log, m_machinery.m_drive, m_autoController, m_machinery.m_trajectoryViz,
-                (p) -> m_planner.restToRest(List.of(
-                        WindingWaypointSE2.irrotational(m_machinery.m_drive.getState().pose(), Math.PI, 1.2),
-                        WindingWaypointSE2.irrotational(
-                                new Pose2d(3, 5, new Rotation2d(0)), -2, 1.2))));
+                (p) -> m_planner.restToRest(m_symmetry.imageExclusive(waypoints(p))));
 
         DriveToPoseWithProfile toReefA = new DriveToPoseWithProfile(
                 m_log, m_machinery.m_drive, m_autoController, m_autoProfile,
@@ -116,5 +116,13 @@ public class LolipopAuto {
                                 .andThen(ejectthird))
                         .until(() -> (toReefC.isDone() && toL4third.isDone() && ejectthird.isFinished())),
                 m_machinery.m_mech.l4ToHome());
+    }
+
+    private List<WindingWaypointSE2> waypoints(Pose2d p) {
+        return List.of(
+                WindingWaypointSE2.irrotational(
+                        p, Math.PI, 1.2),
+                WindingWaypointSE2.irrotational(
+                        new Pose2d(3, 5, new Rotation2d(0)), -2, 1.2));
     }
 }

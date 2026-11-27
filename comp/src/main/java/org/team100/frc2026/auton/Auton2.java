@@ -14,6 +14,7 @@ import org.team100.lib.controller.se2.ControllerSE2;
 import org.team100.lib.geometry.se2.DirectionSE2;
 import org.team100.lib.geometry.se2_universal_cover.WindingPose2d;
 import org.team100.lib.geometry.se2_universal_cover.WindingWaypointSE2;
+import org.team100.lib.localization.map.FieldSymmetry;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.path.se2.PathSE2Factory;
 import org.team100.lib.subsystems.se2.commands.DriveWithTrajectoryFunction;
@@ -29,6 +30,7 @@ import org.wpilib.math.geometry.Pose2d;
 /** An example of a simple sequence */
 public class Auton2 implements AnnotatedCommand {
     private final LoggerFactory log;
+    private final FieldSymmetry symmetry;
     private final TrajectorySE2Factory trajectoryFactory;
     private final PathSE2Factory pathFactory;
     private final TrajectorySE2Planner planner;
@@ -36,10 +38,12 @@ public class Auton2 implements AnnotatedCommand {
 
     public Auton2(
             LoggerFactory parent,
+            FieldSymmetry symmetry,
             SwerveKinodynamics kinodynamics,
             ControllerSE2 controller,
             Machinery machinery) {
         log = parent.name(name());
+        this.symmetry = symmetry;
 
         // In meters/second
         double maxBumpVelocity = 1;
@@ -96,7 +100,7 @@ public class Auton2 implements AnnotatedCommand {
                         new DirectionSE2(1, 0, 0), 1),
                 new WindingWaypointSE2(AutonPositions.ABOVE_BALL_FIELD,
                         new DirectionSE2(1, 1, 0), 1));
-        return planner.restToRest(waypoints);
+        return planner.restToRest(symmetry.imageExclusive(waypoints));
     }
 
     TrajectorySE2 t2(Pose2d startingPose) {
@@ -105,7 +109,7 @@ public class Auton2 implements AnnotatedCommand {
                         new DirectionSE2(0, -1, 0), 1),
                 new WindingWaypointSE2(AutonPositions.BELOW_BALL_FIELD,
                         new DirectionSE2(0, -1, 0), 1));
-        return planner.restToRest(waypoints);
+        return planner.restToRest(symmetry.imageExclusive(waypoints));
     }
 
     TrajectorySE2 t3(Pose2d startingPose) {
@@ -118,7 +122,7 @@ public class Auton2 implements AnnotatedCommand {
                         new DirectionSE2(-1, 0, 0), 1),
                 new WindingWaypointSE2(AutonPositions.SHOOT_LEFT,
                         new DirectionSE2(-1, -1, 0), 1));
-        return planner.restToRest(waypoints);
+        return planner.restToRest(symmetry.imageExclusive(waypoints));
     }
 
     @Override
@@ -128,7 +132,7 @@ public class Auton2 implements AnnotatedCommand {
 
     @Override
     public Pose2d start() {
-        return StartingPositions.LEFT_BUMP.pose2d();
+        return symmetry.image(StartingPositions.LEFT_BUMP.pose2d());
     }
 
     @Override

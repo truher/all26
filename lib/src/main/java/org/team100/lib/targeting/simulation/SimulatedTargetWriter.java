@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.DoubleFunction;
+import java.util.function.Supplier;
 
 import org.team100.frc2025.field.FieldConstants2025;
 import org.team100.lib.camera.Camera;
@@ -11,6 +12,7 @@ import org.team100.lib.camera.Offset;
 import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
+import org.team100.lib.localization.map.FieldSymmetry;
 import org.team100.lib.logging.Level;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.LoggerFactory.DoubleLogger;
@@ -43,16 +45,16 @@ public class SimulatedTargetWriter {
     /** State estimate for the given timestamp in seconds */
     private final DoubleFunction<StateSE2> m_history;
 
-    /** For now, a fixed list of targets */
-    private final Translation2d[] m_targets;
-    /** client instance, not the default */
+    /** Array of targets. */
+    private final Supplier<Translation2d[]> m_targets;
+    /** Client instance, not the default. */
     private final NetworkTableInstance m_inst;
 
     public SimulatedTargetWriter(
             LoggerFactory parent,
             List<Camera> cameras,
             DoubleFunction<StateSE2> history,
-            Translation2d[] targets) {
+            Supplier<Translation2d[]> targets) {
         LoggerFactory log = parent.type(this);
         m_log_poseTimestamp = log.doubleLogger(Level.TRACE, "pose timestamp (s)");
         m_cameras = cameras;
@@ -77,15 +79,17 @@ public class SimulatedTargetWriter {
     }
 
     public static SimulatedTargetWriter get(
-            LoggerFactory parent, DoubleFunction<StateSE2> history) {
+            LoggerFactory parent,
+            FieldSymmetry symmetry,
+            DoubleFunction<StateSE2> history) {
         return new SimulatedTargetWriter(
                 parent,
                 List.of(Camera.SIM0, Camera.SIM1, Camera.SIM2, Camera.SIM3),
                 history,
-                new Translation2d[] {
+                () -> symmetry.image(new Translation2d[] {
                         FieldConstants2025.CoralMark.LEFT.value,
                         FieldConstants2025.CoralMark.CENTER.value,
-                        FieldConstants2025.CoralMark.RIGHT.value });
+                        FieldConstants2025.CoralMark.RIGHT.value }));
     }
 
     public void run() {
@@ -107,7 +111,7 @@ public class SimulatedTargetWriter {
             Camera camera = entry.getKey();
             StructArrayPublisher<Target> publisher = entry.getValue();
             List<Rotation3d> rot = SimulatedObjectDetector.getRotations(
-                    pose, Offset.get(camera).offset(), m_targets);
+                    pose, Offset.get(camera).offset(), m_targets.get());
             if (DEBUG) {
                 System.out.printf("rot size %d\n", rot.size());
             }

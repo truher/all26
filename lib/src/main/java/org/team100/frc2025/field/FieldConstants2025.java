@@ -10,6 +10,9 @@ import org.wpilib.math.geometry.Translation2d;
 
 /**
  * Positions on the field used as waypoints.
+ * 
+ * These are all "blue side" because in 2025 we didn't adjust constants
+ * depending on the side of the field.
  */
 public class FieldConstants2025 {
     /** Staged coral ("lollipop") locations. */
@@ -18,6 +21,7 @@ public class FieldConstants2025 {
         CENTER(new Translation2d(1.219, 4.026)),
         RIGHT(new Translation2d(1.219, 2.197));
 
+        /** The blue-side translation */
         public final Translation2d value;
 
         private CoralMark(Translation2d t) {
@@ -72,7 +76,8 @@ public class FieldConstants2025 {
         return targetAngle;
     }
 
-    public static Optional<Rotation2d> calculateDeltaSpline(Rotation2d originalRotation, Rotation2d deltaRotation, double scale) {
+    public static Optional<Rotation2d> calculateDeltaSpline(Rotation2d originalRotation, Rotation2d deltaRotation,
+            double scale) {
         Translation2d originalTranslation = new Translation2d(1, originalRotation);
         Translation2d deltaTranslation = new Translation2d(scale, deltaRotation);
         Translation2d newTranslation = originalTranslation.plus(deltaTranslation);
@@ -86,7 +91,7 @@ public class FieldConstants2025 {
         return new Pose2d(destination, heading);
     }
 
-    ///////////////////////////
+    ////////////////////
 
     public static Translation2d getScoringDestination(ReefPoint point, double radius) {
         Rotation2d sectorAngle = point.angle();

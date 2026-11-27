@@ -23,7 +23,7 @@ public class DoubleCircleAutonTest {
     void test0() {
         try (Machinery machinery = new Machinery(log, log, currentLog)) {
             DoubleCircleAuton a = new DoubleCircleAuton(
-                    log, dynamics, controller, machinery.m_solver, machinery);
+                    log, machinery.symmetry, dynamics, controller, machinery.m_solver, machinery);
             TrajectorySE2 t = a.t1(a.start());
             t.getLastPoint();
         }

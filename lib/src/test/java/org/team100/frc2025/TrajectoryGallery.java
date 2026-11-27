@@ -14,9 +14,10 @@ import org.team100.frc2025.field.FieldConstants2025.CoralStation;
 import org.team100.frc2025.field.FieldConstants2025.ReefPoint;
 import org.team100.lib.config.ElevatorUtil.ScoringLevel;
 import org.team100.lib.geometry.se2.DirectionSE2;
-import org.team100.lib.geometry.se2_universal_cover.WindingWaypointSE2;
 import org.team100.lib.geometry.se2_universal_cover.WindingPose2d;
+import org.team100.lib.geometry.se2_universal_cover.WindingWaypointSE2;
 import org.team100.lib.kinematics.prr.PRRKinematics;
+import org.team100.lib.localization.map.FieldSymmetryIdentity;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.logging.TestLoggerFactory;
 import org.team100.lib.logging.primitive.TestPrimitiveLogger;
@@ -32,7 +33,6 @@ import org.team100.lib.trajectory.se2.constraint.TimingConstraint;
 import org.team100.lib.trajectory.se2.constraint.TorqueConstraint;
 import org.team100.lib.trajectory.se2.constraint.YawRateConstraint;
 import org.team100.lib.util.ChartUtil;
-
 import org.wpilib.math.geometry.Pose2d;
 
 /** Show some trajectories from 2025 in a vector series chart. */
@@ -112,7 +112,8 @@ public class TrajectoryGallery {
     }
 
     private List<VectorSeries> series(CoralStation coralStation, ReefPoint reefPoint, ScoringLevel scoringLevel) {
-        GoToCoralStation toStation = new GoToCoralStation(swerveKinodynamics, coralStation, 0.5);
+        GoToCoralStation toStation = new GoToCoralStation(
+                new FieldSymmetryIdentity(), swerveKinodynamics, coralStation, 0.5);
         // the start is the goal from the previous maneuver
         Pose2d start = FieldConstants2025.makeGoal(scoringLevel, reefPoint);
         TrajectorySE2 trajectory = toStation.apply(start);

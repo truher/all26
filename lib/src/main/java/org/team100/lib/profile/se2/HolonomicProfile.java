@@ -1,13 +1,12 @@
 package org.team100.lib.profile.se2;
 
 import org.team100.lib.framework.TimedRobot100;
+import org.team100.lib.geometry.GeometryUtil;
 import org.team100.lib.profile.r1.ProfileR1;
 import org.team100.lib.state.ControlR1;
 import org.team100.lib.state.ControlSE2;
 import org.team100.lib.state.StateR1;
 import org.team100.lib.state.StateSE2;
-
-import org.wpilib.math.util.MathUtil;
 
 /**
  * Coordinates three axes so that their profiles complete at about the same
@@ -110,7 +109,7 @@ public class HolonomicProfile implements ProfileSE2 {
         if (wrap) {
             // theta is periodic, so choose a setpoint angle near the goal.
             return new StateR1(
-                    MathUtil.angleModulus(i.theta().x() - g.theta().x()) + g.theta().x(),
+                    GeometryUtil.angleNear(i.theta().x(), g.theta().x()),
                     i.theta().v());
         } else {
             // theta is not periodic, treated like any other R1

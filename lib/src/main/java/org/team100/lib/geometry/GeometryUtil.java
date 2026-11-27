@@ -42,6 +42,11 @@ public class GeometryUtil {
     private GeometryUtil() {
     }
 
+    /** Choose an angle within 2pi of the other angle */
+    public static double angleNear(double x, double other) {
+        return MathUtil.angleModulus(x - other) + other;
+    }
+
     /**
      * Change in course per change in position.
      * 

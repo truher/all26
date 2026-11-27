@@ -25,6 +25,7 @@ import org.team100.lib.localization.fused.OdometryEstimator;
 import org.team100.lib.localization.fused.UpdatedEstimate;
 import org.team100.lib.localization.gtsam.CornerReader;
 import org.team100.lib.localization.gtsam.GtsamStateEstimator;
+import org.team100.lib.localization.map.FieldSymmetry;
 import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.localization.simulation.GroundTruth;
 import org.team100.lib.localization.simulation.StateError;
@@ -69,6 +70,8 @@ public class Machinery implements AutoCloseable {
     private final GroundTruth m_groundTruth;
     private final StateEstimator m_proxyEstimator;
 
+    public final FieldSymmetry symmetry;
+
     public final TrajectoryVisualization m_trajectoryViz;
     public final SwerveKinodynamics m_swerveKinodynamics;
     public final SwerveDriveSubsystem m_drive;
@@ -87,7 +90,7 @@ public class Machinery implements AutoCloseable {
     public Machinery(LoggerFactory logger, LoggerFactory fieldLogger, TotalCurrentLog currentLog) {
         LoggerFactory driveLog = logger.name("Drive");
 
-        /////////////////
+        //////////
         //
         // DRIVETRAIN
         //
@@ -98,14 +101,12 @@ public class Machinery implements AutoCloseable {
                 new CurrentLimit(67.5, 52.5),
                 new CurrentLimit(45, 22.5));
         Gyro gyro = GyroFactory.get(
-                driveLog,
-                m_swerveKinodynamics,
-                m_modules);
+                driveLog, m_swerveKinodynamics, m_modules);
         FieldTagMap layout = FieldTagMap.getLayout();
+        symmetry = FieldSymmetry.get(
+                layout.length(), layout.width(), MatchState::getAlliance);
         SwerveLocal swerveLocal = new SwerveLocal(
-                driveLog,
-                m_swerveKinodynamics,
-                m_modules);
+                driveLog, m_swerveKinodynamics, m_modules);
         AprilTagCornerReader tagReader = new AprilTagCornerReader(driveLog, layout);
         CornerReader cornerReader = new CornerReader(layout);
         OdometryEstimator odometryEstimate = new OdometryEstimator(
@@ -145,7 +146,7 @@ public class Machinery implements AutoCloseable {
         new SwerveHistoryVisualization(fieldLogger, m_drive);
         new CameraVisualizer();
 
-        /////////////////
+        //////////
         //
         // TARGETING
         //
@@ -167,7 +168,7 @@ public class Machinery implements AutoCloseable {
 
         m_targets = new Targets(driveLog, fieldLogger, 0.2, t -> m_drive.getState(t).state());
 
-        //////////////////
+        ///////////
         //
         // SUBSYSTEMS
         //
@@ -177,13 +178,13 @@ public class Machinery implements AutoCloseable {
         m_feeder = new Feeder(logger, currentLog, m_shooter);
         m_conveyor = new Conveyor(logger, currentLog);
 
-        //////////////////
+        ///////////
         //
         // VISUALIZATIONS
         //
         m_trajectoryViz = new TrajectoryVisualization(fieldLogger);
 
-        //////////////////
+        ///////////
         //
         // INDICATOR
         //
@@ -195,7 +196,7 @@ public class Machinery implements AutoCloseable {
         /// GROUND TRUTH
         ///
         m_groundTruth = new GroundTruth(
-                fieldLogger, logger, m_swerveKinodynamics, m_modules, layout);
+                fieldLogger, logger, symmetry, m_swerveKinodynamics, m_modules, layout);
 
         new StateError(logger, m_groundTruth::get, () -> m_drive.getState(Takt.get()));
 

@@ -8,6 +8,7 @@ import org.team100.lib.config.AutonChooser;
 import org.team100.lib.config.ElevatorUtil.ScoringLevel;
 import org.team100.lib.controller.se2.ControllerFactorySE2;
 import org.team100.lib.controller.se2.FullStateControllerSE2;
+import org.team100.lib.localization.map.FieldSymmetry;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.path.se2.PathSE2Factory;
 import org.team100.lib.profile.se2.HolonomicProfileFactory;
@@ -16,7 +17,6 @@ import org.team100.lib.trajectory.se2.TrajectorySE2Factory;
 import org.team100.lib.trajectory.se2.TrajectorySE2Planner;
 import org.team100.lib.trajectory.se2.constraint.TimingConstraint;
 import org.team100.lib.trajectory.se2.constraint.TimingConstraintFactory;
-
 import org.wpilib.command2.Command;
 
 /**

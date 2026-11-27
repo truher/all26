@@ -15,6 +15,7 @@ import org.team100.lib.controller.se2.ControllerSE2;
 import org.team100.lib.geometry.se2.DirectionSE2;
 import org.team100.lib.geometry.se2_universal_cover.WindingPose2d;
 import org.team100.lib.geometry.se2_universal_cover.WindingWaypointSE2;
+import org.team100.lib.localization.map.FieldSymmetry;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.path.se2.PathSE2Factory;
 import org.team100.lib.subsystems.se2.commands.DriveWithTrajectoryFunction;
@@ -30,17 +31,19 @@ import org.wpilib.math.geometry.Pose2d;
 
 public class ScallopLobAuton implements AnnotatedCommand {
     private final LoggerFactory log;
-
+    private final FieldSymmetry symmetry;
     private final Machinery machinery;
     private final TrajectorySE2Planner planner;
     private final Command command;
 
     public ScallopLobAuton(
             LoggerFactory parent,
+            FieldSymmetry symmetry,
             SwerveKinodynamics kinodynamics,
             ControllerSE2 controller,
             Machinery machinery) {
         log = parent.name(name());
+        this.symmetry = symmetry;
         this.machinery = machinery;
 
         double bumpV = 2; // cartesian velocity over the bump
@@ -82,7 +85,7 @@ public class ScallopLobAuton implements AnnotatedCommand {
 
     @Override
     public Pose2d start() {
-        return StartingPositions.LEFT_BUMP.pose2d();
+        return symmetry.image(StartingPositions.LEFT_BUMP.pose2d());
     }
 
     @Override
@@ -136,7 +139,8 @@ public class ScallopLobAuton implements AnnotatedCommand {
 
         //
         );
-        return planner.restToRest(waypoints);
+        // correct for red/blue
+        return planner.restToRest(symmetry.imageExclusive(waypoints));
     }
 
     /** Runs the commands according to the condition, interrupting to transition. */

@@ -1,6 +1,7 @@
 package org.team100.frc2026;
 
 import java.nio.file.Paths;
+import java.util.Optional;
 
 import org.team100.frc2026.auton.Autons;
 import org.team100.frc2026.robot.Binder;
@@ -25,11 +26,10 @@ import org.team100.lib.visualization.AutonVisualization;
 import org.wpilib.command2.Command;
 import org.wpilib.command2.CommandScheduler;
 import org.wpilib.command2.Commands;
+import org.wpilib.driverstation.Alliance;
+import org.wpilib.driverstation.MatchState;
 import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.networktables.NetworkTableInstance;
-import org.wpilib.smartdashboard.Field2d;
-import org.wpilib.smartdashboard.FieldObject2d;
-import org.wpilib.telemetry.Telemetry;
 
 import gtsam.Point2;
 
@@ -50,6 +50,7 @@ public class Robot extends TimedRobot100 {
     private final Autons m_autons;
     private final Binder m_binder;
     private final Command m_play;
+    private Optional<Alliance> m_alliance;
 
     // figuring out the field logging again
     // Field2d f = new Field2d();
@@ -73,13 +74,32 @@ public class Robot extends TimedRobot100 {
         m_autons = new Autons(log, m_machinery);
         m_autoViz = new AutonVisualization(fieldLogger);
         m_autons.onChange(m_autoViz::show);
+
+        // Update the auton viz if the alliance state changes (e.g. in sim)
+        addPeriodic(this::allianceChangeAutonViz, 1);
+
+        // Play music
         m_play = Commands.repeatingSequence(m_machinery.play());
+
+        // Periodically check to see if we should run the offset calibrator.
         OffsetCalibrator offsetCalibrator = new OffsetCalibrator(log);
         addPeriodic(offsetCalibrator::execute, 1);
+
+        // Periodically check to see if we should run the camera calibrator.
         CameraCalibrator cameraCalibrator = new CameraCalibrator(log);
         addPeriodic(cameraCalibrator::execute, 1);
+
+        // Try to get Java to load all the classes.
         Prewarmer.init(m_machinery);
         System.out.printf("Total Logger Keys: %d\n", Logging.keyCount());
+    }
+
+    private void allianceChangeAutonViz() {
+        Optional<Alliance> alliance = MatchState.getAlliance();
+        if (m_alliance == null || !alliance.equals(m_alliance)) {
+            m_alliance = alliance;
+            m_autoViz.show(m_autons.getAnnotated());
+        }
     }
 
     /** Called in the main loop. */
@@ -107,7 +127,7 @@ public class Robot extends TimedRobot100 {
         // System.out.printf(" Left Trigger %f\n", m_binder.m_driver.LeftTriggerAxis());
     }
 
-    /////////////////////////////////////////////////////
+    ////////////////////////////////////////////////
     //
     // INITIALIZERS, DO NOT CHANGE THESE
     //
@@ -151,7 +171,7 @@ public class Robot extends TimedRobot100 {
         m_binder.close();
     }
 
-    /////////////////////////////////////////////////////
+    ////////////////////////////////////////////////
     //
     // EXIT: CLEAN UP
     //
@@ -161,7 +181,7 @@ public class Robot extends TimedRobot100 {
         CommandScheduler.getInstance().cancelAll();
     }
 
-    //////////////////////////////////////////////////////
+    /////////////////////////////////////////////////
     //
     // LEAVE ALL THESE EMPTY
     //

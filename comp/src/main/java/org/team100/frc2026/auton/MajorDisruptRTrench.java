@@ -12,6 +12,7 @@ import org.team100.lib.controller.se2.ControllerSE2;
 import org.team100.lib.geometry.se2.DirectionSE2;
 import org.team100.lib.geometry.se2_universal_cover.WindingPose2d;
 import org.team100.lib.geometry.se2_universal_cover.WindingWaypointSE2;
+import org.team100.lib.localization.map.FieldSymmetry;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.path.se2.PathSE2Factory;
 import org.team100.lib.subsystems.se2.commands.DriveWithTrajectoryFunction;
@@ -27,16 +28,19 @@ import org.wpilib.math.geometry.Pose2d;
 
 public class MajorDisruptRTrench implements AnnotatedCommand {
     private final LoggerFactory log;
+    private final FieldSymmetry symmetry;
+
     private final TrajectorySE2Planner planner;
     private final Command command;
 
     public MajorDisruptRTrench(
             LoggerFactory parent,
+            FieldSymmetry symmetry,
             SwerveKinodynamics kinodynamics,
             ControllerSE2 controller,
             Machinery machinery) {
         log = parent.name(name());
-
+        this.symmetry = symmetry;
         double bumpV = 2; // cartesian velocity over the bump
         List<TimingConstraint> new_constraints = Stream.concat(
                 BumpZones.constraint(bumpV).stream(),
@@ -79,7 +83,7 @@ public class MajorDisruptRTrench implements AnnotatedCommand {
 
     @Override
     public Pose2d start() {
-        return StartingPositions.RIGHT_TRENCH.pose2d();
+        return symmetry.image(StartingPositions.RIGHT_TRENCH.pose2d());
     }
 
     @Override
@@ -107,6 +111,6 @@ public class MajorDisruptRTrench implements AnnotatedCommand {
 
         //
         );
-        return planner.restToRest(waypoints);
+        return planner.restToRest(symmetry.imageExclusive(waypoints));
     }
 }

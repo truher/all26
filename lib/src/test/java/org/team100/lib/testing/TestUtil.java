@@ -3,6 +3,7 @@ package org.team100.lib.testing;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.util.Map;
 
 import org.team100.lib.geometry.lynx_arm.LynxArmConfig;
@@ -19,8 +20,10 @@ import org.team100.lib.geometry.rrr.RRRAcceleration;
 import org.team100.lib.geometry.rrr.RRRConfig;
 import org.team100.lib.geometry.rrr.RRRVelocity;
 import org.team100.lib.geometry.se2.AccelerationSE2;
+import org.team100.lib.geometry.se2.DirectionSE2;
 import org.team100.lib.geometry.se2.VelocitySE2;
 import org.team100.lib.geometry.se2_universal_cover.WindingPose2d;
+import org.team100.lib.geometry.se2_universal_cover.WindingWaypointSE2;
 import org.team100.lib.geometry.se3.AccelerationSE3;
 import org.team100.lib.geometry.se3.VelocitySE3;
 import org.team100.lib.geometry.six_dof.SixDofAcceleration;
@@ -64,6 +67,30 @@ public class TestUtil {
     public static void verify(Translation2d expected, Translation2d actual) {
         assertEquals(expected.getX(), actual.getX(), 1e-3, "x");
         assertEquals(expected.getY(), actual.getY(), 1e-3, "y");
+    }
+
+    public static void verify(Translation2d[] expected, Translation2d[] actual) {
+        for (int i = 0; i < expected.length; ++i) {
+            verify(expected[i], actual[i]);
+        }
+    }
+
+    public static void verify(DirectionSE2 expected, DirectionSE2 actual) {
+        assertEquals(expected.x, actual.x, 1e-3, "x");
+        assertEquals(expected.y, actual.y, 1e-3, "y");
+        assertEquals(expected.theta, actual.theta, 1e-3, "theta");
+    }
+
+    public static void verify(WindingWaypointSE2 expected, WindingWaypointSE2 actual) {
+        verify(expected.pose(), actual.pose());
+        verify(expected.course(), actual.course());
+        assertEquals(expected.scale(), actual.scale(), 1e-3, "scale");
+    }
+
+    public static void verify(List<WindingWaypointSE2> expected, List<WindingWaypointSE2> actual) {
+        for (int i = 0; i < expected.size(); i++) {
+            verify(expected.get(i), actual.get(i));
+        }
     }
 
     public static void verify(Translation3d expected, Translation3d actual) {

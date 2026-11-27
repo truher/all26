@@ -34,8 +34,8 @@ public class Autons implements AutoCloseable {
                 1, // v tolerance
                 1);// omega tolerance
         m_autonChooser = new AutonChooser();
-        m_autonChooser.add(new JustShoot(machinery));
-        m_autonChooser.add(new DoNothing());
+        m_autonChooser.add(new JustShoot(machinery.symmetry, machinery));
+        m_autonChooser.add(new DoNothing(machinery.symmetry));
 
         // These are for training, see
         // https://docs.google.com/document/d/1sSncYjKAp9Fh6xd_zrAt39hOhBcCyGkcvSjClX0NMxk
@@ -101,101 +101,121 @@ public class Autons implements AutoCloseable {
         // The following were from CVE in 2026
         m_autonChooser.add(new ScallopLobAuton(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new ScallopLobAutonRight(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new ScallopLobAutonLeft(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new TrenchScallopLobAutonRight(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new TrenchScallopLobAutonRightFull(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new TrenchScallopLobAutonLeft(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new TrenchScallopLobAutonLeftFull(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new MajorDisruptLTrench(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new MajorDisruptLBump(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new MajorDisruptRBump(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new MajorDisruptRTrench(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new MiddleDefenseLBump(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new MiddleDefenseRTrench(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new MiddleDefenseLTrench(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new MajorDefenseLTrench(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new CenterHalfSweepAuton(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new RightHalfSweepAuton(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new RightBumpHalfSweepAuton(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new CenterPreloadedAuton(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));
         m_autonChooser.add(new HStartIntakeOutake(
                 log,
+                machinery.symmetry,
                 machinery.m_swerveKinodynamics,
                 controller,
                 machinery));

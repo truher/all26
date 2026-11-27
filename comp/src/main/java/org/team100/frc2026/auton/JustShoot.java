@@ -7,18 +7,23 @@ import java.util.function.Function;
 
 import org.team100.frc2026.robot.Machinery;
 import org.team100.lib.config.AnnotatedCommand;
+import org.team100.lib.localization.map.FieldSymmetry;
 import org.team100.lib.trajectory.se2.TrajectorySE2;
 import org.wpilib.command2.Command;
 import org.wpilib.math.geometry.Pose2d;
 
 /** An auton that does nothing at all. */
 public class JustShoot implements AnnotatedCommand {
+    private final FieldSymmetry symmetry;
+
     private final Machinery m_machinery;
     private final Command command;
 
     public JustShoot(
+            FieldSymmetry symmetry,
             Machinery machinery) {
         m_machinery = machinery;
+        this.symmetry = symmetry;
         command = parallel(
                 m_machinery.m_shooter.shooterFullspeed()).withName("Shoot").withTimeout(5);
     }
@@ -35,7 +40,7 @@ public class JustShoot implements AnnotatedCommand {
 
     @Override
     public Pose2d start() {
-        return StartingPositions.CENTER.pose2d();
+        return symmetry.image(StartingPositions.CENTER.pose2d());
     }
 
     @Override

@@ -108,7 +108,8 @@ public class Auton2025 {
 
     /** Score, drive to the station, and pause briefly. */
     private Command scoreAndReload(CoralStation station) {
-        GoToCoralStation toStation = new GoToCoralStation(m_machinery.m_swerveKinodynamics, station, 0.5);
+        GoToCoralStation toStation = new GoToCoralStation(
+                m_machinery.symmetry, m_machinery.m_swerveKinodynamics, station, 0.5);
         DriveWithTrajectoryFunction navigator = new DriveWithTrajectoryFunction(
                 m_log, m_machinery.m_drive, m_autoController, m_machinery.m_trajectoryViz,
                 toStation);

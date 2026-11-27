@@ -16,7 +16,6 @@ import org.team100.lib.state.StateSE2;
 import org.team100.lib.targeting.network.Target;
 import org.team100.lib.targeting.simulation.SimulatedTargetWriter;
 import org.team100.lib.testing.Timeless;
-
 import org.wpilib.math.geometry.Rotation3d;
 import org.wpilib.math.geometry.Translation2d;
 import org.wpilib.networktables.NetworkTableInstance;
@@ -92,7 +91,7 @@ public class TargetsTest implements Timeless {
                 logger,
                 List.of(Camera.TEST4),
                 x -> p,
-                new Translation2d[] { new Translation2d(1, 0) });
+                () -> new Translation2d[] { new Translation2d(1, 0) });
 
         // wait for NT rate-limiting
         Thread.sleep(100);
@@ -131,7 +130,7 @@ public class TargetsTest implements Timeless {
                 logger,
                 List.of(Camera.TEST4, Camera.TEST5),
                 x -> p,
-                new Translation2d[] { new Translation2d(1, 0) });
+                () -> new Translation2d[] { new Translation2d(1, 0) });
 
         // wait for NT rate-limiting
         Thread.sleep(100);
@@ -173,7 +172,7 @@ public class TargetsTest implements Timeless {
                 logger,
                 List.of(Camera.TEST4),
                 x -> p,
-                new Translation2d[] {
+                () -> new Translation2d[] {
                         new Translation2d(1, 0),
                         new Translation2d(2, 0) });
 
@@ -216,7 +215,7 @@ public class TargetsTest implements Timeless {
                 logger,
                 List.of(Camera.TEST4, Camera.TEST5),
                 x -> p,
-                new Translation2d[] {
+                () -> new Translation2d[] {
                         new Translation2d(1, 0),
                         new Translation2d(2, 0) });
 

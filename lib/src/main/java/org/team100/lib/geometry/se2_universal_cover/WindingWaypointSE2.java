@@ -34,6 +34,11 @@ import org.wpilib.math.geometry.Rotation2d;
 public record WindingWaypointSE2(WindingPose2d pose, DirectionSE2 course, double scale) {
     private static final boolean DEBUG = false;
 
+    /** Return a waypoint whose rotation is on the same sheet as the other */
+    public WindingWaypointSE2 near(WindingWaypointSE2 other) {
+        return new WindingWaypointSE2(pose.near(other.pose()), course, scale);
+    }
+
     /** Course without rotation, with unit scale. */
     public static WindingWaypointSE2 irrotational(Pose2d p, double course, double scale) {
         return new WindingWaypointSE2(new WindingPose2d(p), DirectionSE2.irrotational(course), scale);
@@ -50,7 +55,7 @@ public record WindingWaypointSE2(WindingPose2d pose, DirectionSE2 course, double
 
     @Override
     public String toString() {
-        return String.format("%s %s %5.3f", pose, course, scale);
+        return String.format("waypoint [%s %s %5.3f]", pose, course, scale);
     }
 
     @Override

@@ -6,6 +6,7 @@ import org.team100.lib.coherence.Takt;
 import org.team100.lib.experiments.Experiment;
 import org.team100.lib.experiments.Experiments;
 import org.team100.lib.geometry.se2.VelocitySE2;
+import org.team100.lib.localization.map.FieldSymmetry;
 import org.team100.lib.localization.map.FieldTagMap;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.state.StateSE2;
@@ -47,6 +48,7 @@ public class GroundTruth {
     public GroundTruth(
             LoggerFactory fieldLogger,
             LoggerFactory logger,
+            FieldSymmetry symmetry,
             SwerveKinodynamics kinodynamics,
             SwerveModuleCollection modules,
             FieldTagMap layout) {
@@ -69,7 +71,7 @@ public class GroundTruth {
         // Simulated camera uses the ground truth because the real cameras are not aware
         // of the pose estimate.
         m_tagSim = SimulatedTagCornerDetector.get(layout, m_estimates::get);
-        m_targetSim = SimulatedTargetWriter.get(simLog, m_estimates::get);
+        m_targetSim = SimulatedTargetWriter.get(simLog, symmetry, m_estimates::get);
 
         previousTimestamp = Takt.get();
         previousEstimate = initialEstimate;

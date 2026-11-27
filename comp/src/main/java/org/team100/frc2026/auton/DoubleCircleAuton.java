@@ -15,6 +15,7 @@ import org.team100.lib.controller.se2.ControllerSE2;
 import org.team100.lib.geometry.se2.DirectionSE2;
 import org.team100.lib.geometry.se2_universal_cover.WindingPose2d;
 import org.team100.lib.geometry.se2_universal_cover.WindingWaypointSE2;
+import org.team100.lib.localization.map.FieldSymmetry;
 import org.team100.lib.logging.LoggerFactory;
 import org.team100.lib.path.se2.PathSE2Factory;
 import org.team100.lib.subsystems.se2.commands.DriveWithTrajectoryFunctionWithOverride;
@@ -34,6 +35,8 @@ import org.wpilib.math.geometry.Pose2d;
 /** Full speed sweep, shoot-on-the-move, repeat */
 public class DoubleCircleAuton implements AnnotatedCommand {
     private final LoggerFactory log;
+    private final FieldSymmetry symmetry;
+
     private final Machinery machinery;
     private final TrajectorySE2Planner planner;
     private final Solver m_solver;
@@ -41,11 +44,13 @@ public class DoubleCircleAuton implements AnnotatedCommand {
 
     public DoubleCircleAuton(
             LoggerFactory parent,
+            FieldSymmetry symmetry,
             SwerveKinodynamics kinodynamics,
             ControllerSE2 controller,
             Solver solver,
             Machinery machinery) {
         log = parent.name(name());
+        this.symmetry = symmetry;
         m_solver = solver;
         this.machinery = machinery;
 
@@ -136,7 +141,7 @@ public class DoubleCircleAuton implements AnnotatedCommand {
                 new WindingWaypointSE2(new WindingPose2d(3, 2.25, (1.1)), new DirectionSE2(-1, 1, 0), 1),
                 new WindingWaypointSE2(new WindingPose2d(2.25, 4, (-0.2)), new DirectionSE2(0, 1, 0), 1),
                 new WindingWaypointSE2(new WindingPose2d(3, 5.75, (-1.4)), new DirectionSE2(1, 1, 0), 1));
-        return planner.restToRest(waypoints);
+        return planner.restToRest(symmetry.imageExclusive(waypoints));
     }
 
     @Override
@@ -146,7 +151,7 @@ public class DoubleCircleAuton implements AnnotatedCommand {
 
     @Override
     public Pose2d start() {
-        return StartingPositions.LEFT_BUMP.pose2d();
+        return symmetry.image(StartingPositions.LEFT_BUMP.pose2d());
     }
 
     @Override

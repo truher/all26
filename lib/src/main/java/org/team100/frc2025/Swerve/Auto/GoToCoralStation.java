@@ -10,6 +10,7 @@ import org.team100.frc2025.field.FieldConstants2025.CoralStation;
 import org.team100.lib.geometry.se2.DirectionSE2;
 import org.team100.lib.geometry.se2_universal_cover.WindingPose2d;
 import org.team100.lib.geometry.se2_universal_cover.WindingWaypointSE2;
+import org.team100.lib.localization.map.FieldSymmetry;
 import org.team100.lib.path.se2.PathSE2Factory;
 import org.team100.lib.subsystems.swerve.kinodynamics.SwerveKinodynamics;
 import org.team100.lib.trajectory.se2.TrajectorySE2;
@@ -27,13 +28,16 @@ import org.wpilib.math.geometry.Translation2d;
  */
 public class GoToCoralStation implements Function<Pose2d, TrajectorySE2> {
     private final double m_scale;
+    private final FieldSymmetry m_symmetry;
     private final CoralStation m_station;
     private final TrajectorySE2Planner m_planner;
 
     public GoToCoralStation(
+            FieldSymmetry symmetry,
             SwerveKinodynamics kinodynamics,
             CoralStation station,
             double scale) {
+        m_symmetry = symmetry;
         m_station = station;
         m_scale = scale;
         List<TimingConstraint> constraints = new TimingConstraintFactory(kinodynamics).auto();
@@ -53,15 +57,17 @@ public class GoToCoralStation implements Function<Pose2d, TrajectorySE2> {
 
         Translation2d currTranslation = currentPose.getTranslation();
         Optional<Rotation2d> courseToGoal = goal.getTranslation().minus(currTranslation).getAngle();
-        if (courseToGoal.isEmpty()) return new TrajectorySE2();
+        if (courseToGoal.isEmpty())
+            return new TrajectorySE2();
         Optional<Rotation2d> newInitialSpline = FieldConstants2025.calculateDeltaSpline(
                 courseToGoal.get(), courseToGoal.get().rotateBy(Rotation2d.fromDegrees(-90)), scaleAdjust);
 
         List<WindingWaypointSE2> waypoints = new ArrayList<>();
-        waypoints.add(new WindingWaypointSE2(new WindingPose2d(currentPose), DirectionSE2.irrotational(newInitialSpline.get()), 1));
+        waypoints.add(new WindingWaypointSE2(new WindingPose2d(currentPose),
+                DirectionSE2.irrotational(newInitialSpline.get()), 1));
         waypoints.add(new WindingWaypointSE2(goal, DirectionSE2.irrotational(courseToGoal.get()), 1));
 
-        return m_planner.restToRest(waypoints);
+        return m_planner.restToRest(m_symmetry.imageExclusive(waypoints));
     }
 
 }

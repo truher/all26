@@ -1,5 +1,6 @@
 package org.team100.lib.geometry.se2_universal_cover;
 
+import org.team100.lib.geometry.GeometryUtil;
 import org.wpilib.math.geometry.Pose2d;
 import org.wpilib.math.geometry.Rotation2d;
 import org.wpilib.math.geometry.Translation2d;
@@ -31,6 +32,11 @@ public class WindingPose2d implements Interpolatable<WindingPose2d> {
 
     public WindingPose2d() {
         this(Translation2d.ZERO, 0.0);
+    }
+
+    /** Return a pose whose rotation is on the same sheet as the other */
+    public WindingPose2d near(WindingPose2d other) {
+        return new WindingPose2d(m_translation, GeometryUtil.angleNear(m_rotation, other.m_rotation));
     }
 
     /** Project into SE(2) */
@@ -85,6 +91,11 @@ public class WindingPose2d implements Interpolatable<WindingPose2d> {
             WindingTwist2d scaledTwist = new WindingTwist2d(twist.dx * t, twist.dy * t, twist.dtheta * t);
             return this.plus(scaledTwist.exp());
         }
+    }
+
+    @Override
+    public String toString() {
+        return String.format("pose [%s %5.3f]", m_translation, m_rotation);
     }
 
 }

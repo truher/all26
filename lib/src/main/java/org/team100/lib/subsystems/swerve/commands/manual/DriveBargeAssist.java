@@ -115,7 +115,7 @@ public class DriveBargeAssist extends Command {
     }
 
     private DriverVelocity avoidBarge(DriverVelocity clipped) {
-        boolean blue = m_alliance.get().orElse(Alliance.BLUE) == Alliance.RED;
+        boolean blue = m_alliance.get().orElse(Alliance.BLUE) == Alliance.BLUE;
         if (blue && clipped.x() <= 0) {
             // on the blue side, moving away from the barge is negative
             return clipped;
